@@ -1,0 +1,25 @@
+{
+  "name": "openproject-mcp",
+  "version": "0.1.0",
+  "description": "OPerator — MCP server for OpenProject",
+  "type": "module",
+  "bin": { "openproject-mcp": "dist/index.js" },
+  "files": ["dist", "templates"],
+  "engines": { "node": ">=20" },
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:live": "vitest run --dir test-live",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
