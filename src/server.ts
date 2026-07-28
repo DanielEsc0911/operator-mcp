@@ -6,6 +6,7 @@ import { registerIdentityTools } from "./tools/identity.js";
 import { registerMetaTools } from "./tools/meta.js";
 import { registerRawTools } from "./tools/raw.js";
 import { registerWorkPackageTools } from "./tools/workPackages.js";
+import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
 const MANUAL_WARNING_BYTES = 10_000;
 
@@ -39,6 +40,7 @@ export async function createServer(config: Config): Promise<McpServer> {
   registerIdentityTools(server, { client });
   registerMetaTools(server, { client });
   registerWorkPackageTools(server, { client });
+  registerWorkPackageWriteTools(server, { client });
   registerRawTools(server, { client });
   return server;
 }
