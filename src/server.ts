@@ -6,6 +6,7 @@ import { registerIdentityTools } from "./tools/identity.js";
 import { registerMetaTools } from "./tools/meta.js";
 import { registerNotificationTools } from "./tools/notifications.js";
 import { registerRawTools } from "./tools/raw.js";
+import { registerTimeTools } from "./tools/time.js";
 import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
@@ -43,6 +44,7 @@ export async function createServer(config: Config): Promise<McpServer> {
   registerWorkPackageTools(server, { client });
   registerWorkPackageWriteTools(server, { client });
   registerNotificationTools(server, { client });
+  registerTimeTools(server, { client });
   registerRawTools(server, { client });
   return server;
 }
