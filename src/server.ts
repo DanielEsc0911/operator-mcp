@@ -3,6 +3,7 @@ import { OpenProjectClient, type Identity } from "./client.js";
 import type { Config } from "./config.js";
 import { readConventions } from "./conventions.js";
 import { registerIdentityTools } from "./tools/identity.js";
+import { registerRawTools } from "./tools/raw.js";
 
 const MANUAL_WARNING_BYTES = 10_000;
 
@@ -34,5 +35,6 @@ export async function createServer(config: Config): Promise<McpServer> {
   );
 
   registerIdentityTools(server, { client });
+  registerRawTools(server, { client });
   return server;
 }
