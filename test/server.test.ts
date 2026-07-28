@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { buildInstructions } from "../src/server.js";
+import { connect } from "./support/harness.js";
 import type { Config } from "../src/config.js";
 
 const config: Config = {
@@ -50,5 +51,30 @@ describe("buildInstructions", () => {
   it("omits the conventions block when there is no manual", () => {
     expect(buildInstructions(config, identity, null)).not.toContain("Follow these conventions");
     expect(buildInstructions(config, identity, "   ")).not.toContain("Follow these conventions");
+  });
+});
+
+describe("tool registration", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(identity), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("registers exactly the twenty planned tools", async () => {
+    const client = await connect();
+    const names = (await client.listTools()).tools.map((tool) => tool.name).sort();
+
+    expect(names).toEqual([
+      "add_convention", "api_request", "comment_work_package", "conventions", "create_work_package",
+      "get_work_package", "link_work_packages", "list_activities", "list_metadata", "list_notifications",
+      "list_projects", "list_users", "log_time", "mark_notifications_read", "my_work",
+      "remove_convention", "search_work_packages", "update_work_package", "watch_work_package", "whoami",
+    ]);
   });
 });

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OpenProjectClient, type Identity } from "./client.js";
 import type { Config } from "./config.js";
 import { readConventions } from "./conventions.js";
+import { registerConventionTools } from "./tools/conventions.js";
 import { registerIdentityTools } from "./tools/identity.js";
 import { registerMetaTools } from "./tools/meta.js";
 import { registerNotificationTools } from "./tools/notifications.js";
@@ -45,6 +46,7 @@ export async function createServer(config: Config): Promise<McpServer> {
   registerWorkPackageWriteTools(server, { client });
   registerNotificationTools(server, { client });
   registerTimeTools(server, { client });
+  registerConventionTools(server, { client });
   registerRawTools(server, { client });
   return server;
 }

@@ -14,7 +14,8 @@ export function errorResult(message: string) {
 export function handler<Args>(run: (args: Args) => Promise<unknown>) {
   return async (args: Args) => {
     try {
-      return jsonResult(await run(args));
+      const value = await run(args);
+      return typeof value === "string" ? { content: [{ type: "text" as const, text: value }] } : jsonResult(value);
     } catch (error) {
       return errorResult(humanMessage(error));
     }
