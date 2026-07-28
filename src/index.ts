@@ -2,6 +2,11 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
 import { createServer } from "./server.js";
+import { runSetup } from "./setup.js";
 
-const server = await createServer(loadConfig());
-await server.connect(new StdioServerTransport());
+if (process.argv.includes("setup")) {
+  await runSetup(process.argv.slice(2));
+} else {
+  const server = await createServer(loadConfig());
+  await server.connect(new StdioServerTransport());
+}
