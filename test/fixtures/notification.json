@@ -1,0 +1,13 @@
+{
+  "_type": "Notification",
+  "id": 88,
+  "reason": "mentioned",
+  "readIAN": false,
+  "createdAt": "2026-07-28T09:20:00Z",
+  "_links": {
+    "self": { "href": "/api/v3/notifications/88" },
+    "project": { "href": "/api/v3/projects/3", "title": "Website" },
+    "actor": { "href": "/api/v3/users/5", "title": "Ana Ruiz" },
+    "resource": { "href": "/api/v3/work_packages/1234", "title": "Fix login redirect" }
+  }
+}
