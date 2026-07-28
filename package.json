@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "test:live": "vitest run --dir test-live",
+    "test:live": "vitest run --config vitest.live.config.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

@@ -26,10 +26,11 @@ split it by responsibility. `OpenProjectClient` is the only class.
 
 **Comments are rare and earn their place.** Names carry the meaning. A comment
 explains something the code cannot: an external constraint, a counterintuitive
-API contract, a workaround. There are exactly five in this codebase — OpenProject's
+API contract, a workaround. There are exactly six in this codebase — OpenProject's
 `lockVersion` locking, `offset` being a page number, ISO 8601 durations, the `o`/`c`
-status operators, and readline's echo muting. Do not add a sixth without a reason
-of the same kind. Never write a comment restating what the line does.
+status operators, `t`/`f` boolean filter values, and readline's unmutable echo.
+Do not add a seventh without a reason of the same kind. Never write a comment
+restating what the line does.
 
 **Zod descriptions are agent-facing documentation.** `.describe()` on every field.
 Write what an agent needs to choose correctly, not what a type checker needs.
@@ -62,6 +63,7 @@ may write to stdout, because the wizard runs with no transport attached.
 | `src/server.ts` | McpServer, `instructions`, registration |
 | `src/setup.ts` | Wizard |
 | `src/tools/` | One module per domain |
+| `src/tools/workPackageFields.ts` | Write-argument schema and its field/link mapping |
 
 ## OpenProject APIv3 traps
 
