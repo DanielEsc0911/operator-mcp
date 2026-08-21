@@ -26,11 +26,16 @@ export class OpenProjectClient {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }
 
+    // An OpenProject personal API key authenticates over HTTP Basic with the
+    // literal username "apikey". Bearer is OAuth2 access tokens only, and a
+    // personal key sent that way is rejected as unauthenticated.
+    const credentials = Buffer.from(`apikey:${this.config.apiKey}`).toString("base64");
+
     let response: Response;
     try {
       response = await fetch(url, {
         method,
-        headers: { Authorization: `Bearer ${this.config.apiKey}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Basic ${credentials}`, "Content-Type": "application/json" },
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });

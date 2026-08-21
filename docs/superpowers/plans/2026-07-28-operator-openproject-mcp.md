@@ -212,7 +212,8 @@ may write to stdout, because the wizard runs with no transport attached.
 
 ## OpenProject APIv3 traps
 
-- Auth is `Authorization: Bearer <apiKey>`.
+- Auth is `Authorization: Basic base64("apikey:" + <apiKey>)`.
+  (Corrected 2026-08-19: originally `Bearer <apiKey>` — OAuth2-only, 401s for a personal API key.)
 - `filters` is a URL-encoded JSON array: `[{"assignee":{"operator":"=","values":["me"]}}]`
 - Open and closed are *operators*, not values: `{"status":{"operator":"o","values":[]}}`
 - `offset` is a 1-based **page number**, not a record offset. `pageSize` is items per page.
@@ -4383,7 +4384,7 @@ Amend the affected unit test to match reality, and note the correction in `CLAUD
 Then delete the work package the suite created, through the escape hatch it was designed for:
 
 ```bash
-curl -X DELETE -H "Authorization: Bearer $OPENPROJECT_API_KEY" \
+curl -X DELETE -u "apikey:$OPENPROJECT_API_KEY" \
   "$OPENPROJECT_URL/api/v3/work_packages/<id>"
 ```
 

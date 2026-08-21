@@ -30,13 +30,15 @@ afterEach(() => {
 });
 
 describe("request", () => {
-  it("sends a bearer token to the versioned api path", async () => {
+  it("authenticates the versioned api path as basic apikey:<key>", async () => {
     fetchMock.mockResolvedValue(respond({ id: 1 }));
     await new OpenProjectClient(config).request("GET", "/users/me");
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url.toString()).toBe("https://op.acme.com/api/v3/users/me");
-    expect(init.headers.Authorization).toBe("Bearer secret");
+    const [scheme, credentials] = init.headers.Authorization.split(" ");
+    expect(scheme).toBe("Basic");
+    expect(Buffer.from(credentials, "base64").toString()).toBe("apikey:secret");
     expect(init.method).toBe("GET");
   });
 

@@ -163,7 +163,9 @@ rather than a numeric id, so nothing depends on the cache being warm.
 
 Details that shape the implementation and are easy to get wrong:
 
-- **Auth:** `Authorization: Bearer <apiKey>`.
+- **Auth:** `Authorization: Basic base64("apikey:" + <apiKey>)`.
+  (Corrected 2026-08-19: this spec originally said `Bearer <apiKey>`, which is
+  OAuth2-only and 401s for a personal API key.)
 - **Filters** are a URL-encoded JSON array of single-key objects:
   `filters=[{"assignee":{"operator":"=","values":["me"]}}]`
 - **Status open/closed** uses operators, not values: `{"status":{"operator":"o","values":[]}}`
