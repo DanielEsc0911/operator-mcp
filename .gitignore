@@ -2,3 +2,7 @@ node_modules/
 dist/
 *.log
 .env
+
+# Machine-local and regenerable
+.codegraph/
+.claude/settings.local.json
