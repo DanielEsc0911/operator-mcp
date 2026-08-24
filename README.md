@@ -13,7 +13,7 @@ session after.
 
 ```
 You: what's on my plate?
-Agent: 3 work packages assigned to you in Vultur:
+Agent: 3 work packages assigned to you in Acme:
        #1284  Bug   In progress  Fix login redirect loop
        #1301  Task  New          Migrate invoice export
        #1312  Task  New          Review Q3 access audit
