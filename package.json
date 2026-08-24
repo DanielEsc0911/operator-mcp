@@ -1,16 +1,28 @@
 {
   "name": "operator-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server that lets agents work inside your OpenProject instance, following your workplace's written conventions",
   "type": "module",
-  "bin": { "operator-mcp": "dist/index.js" },
-  "files": ["dist", "templates"],
-  "engines": { "node": ">=20" },
+  "bin": {
+    "operator-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT",
   "author": "Daniel Escalona <daescalona@proton.me>",
   "homepage": "https://github.com/DanielEsc0911/operator-mcp#readme",
-  "repository": { "type": "git", "url": "git+https://github.com/DanielEsc0911/operator-mcp.git" },
-  "bugs": { "url": "https://github.com/DanielEsc0911/operator-mcp/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanielEsc0911/operator-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DanielEsc0911/operator-mcp/issues"
+  },
   "keywords": [
     "mcp",
     "model-context-protocol",

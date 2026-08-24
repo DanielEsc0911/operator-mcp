@@ -5,6 +5,7 @@ import { OpenProjectClient, type Identity } from "./client.js";
 import { normalizeUrl, profileDir, resolveProfile, saveConfig } from "./config.js";
 import { TEMPLATE_PATH } from "./conventions.js";
 import { humanMessage } from "./errors.js";
+import { runInstall } from "./install.js";
 
 export async function verifyCredentials(
   url: string,
@@ -23,13 +24,6 @@ export function scaffoldConventions(path: string): string | null {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   copyFileSync(TEMPLATE_PATH, path);
   return path;
-}
-
-export function mcpConfigSnippet(profile: string): string {
-  const isDefault = profile === "default";
-  const name = isDefault ? "openproject" : `openproject-${profile}`;
-  const args = isDefault ? ["-y", "operator-mcp"] : ["-y", "operator-mcp", "--profile", profile];
-  return JSON.stringify({ mcpServers: { [name]: { command: "npx", args } } }, null, 2);
 }
 
 const ETX = 3;
@@ -105,9 +99,7 @@ export async function runSetup(argv: string[]): Promise<void> {
     const manual = scaffoldConventions(join(profileDir(profile), "conventions.md"));
     console.log(manual ? `  ✓ Starter conventions written to ${manual}` : "  · Existing conventions kept");
 
-    console.log("\n  Add this to your MCP client config:\n");
-    console.log(mcpConfigSnippet(profile));
-    console.log("");
+    await runInstall(argv, rl);
   } finally {
     rl.close();
   }

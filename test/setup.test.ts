@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { verifyCredentials, scaffoldConventions, mcpConfigSnippet } from "../src/setup.js";
+import { verifyCredentials, scaffoldConventions } from "../src/setup.js";
 
 function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -60,21 +60,5 @@ describe("scaffoldConventions", () => {
     writeFileSync(path, "# Mine\n");
     expect(scaffoldConventions(path)).toBeNull();
     expect(readFileSync(path, "utf8")).toBe("# Mine\n");
-  });
-});
-
-describe("mcpConfigSnippet", () => {
-  it("emits a copyable block for the default profile", () => {
-    expect(JSON.parse(mcpConfigSnippet("default"))).toEqual({
-      mcpServers: { openproject: { command: "npx", args: ["-y", "operator-mcp"] } },
-    });
-  });
-
-  it("names and flags a non-default profile so two workplaces can coexist", () => {
-    expect(JSON.parse(mcpConfigSnippet("acme"))).toEqual({
-      mcpServers: {
-        "openproject-acme": { command: "npx", args: ["-y", "operator-mcp", "--profile", "acme"] },
-      },
-    });
   });
 });

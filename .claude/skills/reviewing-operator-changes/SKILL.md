@@ -12,7 +12,7 @@ quietly breaks. Walk the list against the diff, then run the commands.
 
 ```bash
 npx tsc --noEmit    # must be silent
-npm test            # 16 files, 171 tests, ~2s
+npm test            # 18 files, 192 tests, ~2s
 ```
 
 Both must pass before the change is described as done. Report the actual output —
@@ -27,11 +27,12 @@ ask, do not add.
 
 **stdout belongs to the transport.** The stdio server speaks JSON-RPC on stdout; one
 stray `console.log` on a path the server can reach corrupts the stream and the client
-disconnects. Diagnostics use `process.stderr.write`. Only `src/setup.ts` may write to
-stdout, because the wizard runs with no transport attached.
+disconnects. Diagnostics use `process.stderr.write`. Only `src/setup.ts` and
+`src/install.ts` may write to stdout, because both run as CLI commands with no
+transport attached.
 
 ```bash
-grep -rn "console\." src/ | grep -v "^src/setup.ts"   # must be empty
+grep -rn "console\." src/ | grep -vE "^src/(setup|install)\.ts"   # must be empty
 ```
 
 **No `delete_*` tool.** Destruction goes through `api_request`, where it cannot
@@ -87,7 +88,7 @@ Beyond the invariants, check the change for:
 
 | In the diff | Means |
 |---|---|
-| `console.log` outside `setup.ts` | Will break the stdio transport |
+| `console.log` outside `setup.ts`/`install.ts` | Will break the stdio transport |
 | A new entry in `dependencies` | Stop and ask the user |
 | `try`/`catch` inside a tool handler | `handler` already does this |
 | A tool named `delete_*` / `remove_*` / `destroy_*` | Route through `api_request` |

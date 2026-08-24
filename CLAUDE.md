@@ -89,8 +89,9 @@ guarded in their own tool.
 
 **stdout belongs to the transport.** The stdio server speaks JSON-RPC on stdout; a
 stray `console.log` anywhere the server can reach corrupts the stream and the client
-disconnects. Diagnostics use `process.stderr.write`. Only `src/setup.ts` may write to
-stdout, because the wizard runs with no transport attached.
+disconnects. Diagnostics use `process.stderr.write`. Only `src/setup.ts` and
+`src/install.ts` may write to stdout, because both run as CLI commands with no
+transport attached.
 
 **Tests mock `fetch`.** `test/` never reaches the network. Live smoke tests live in
 `test-live/` and run only when `OPENPROJECT_URL` and `OPENPROJECT_API_KEY` are set.
@@ -120,6 +121,8 @@ stdout, because the wizard runs with no transport attached.
 | `src/resolve.ts` | Name-or-id → APIv3 href |
 | `src/server.ts` | McpServer, `instructions`, registration |
 | `src/setup.ts` | Wizard |
+| `src/clients.ts` | Agent-client registry: detect, register, manual snippet |
+| `src/install.ts` | `install` command: pick clients, register, report |
 | `src/tools/` | One module per domain |
 | `src/tools/workPackageFields.ts` | Write-argument schema and its field/link mapping |
 | `test/support/harness.ts` | In-memory MCP client used by every tool test |
