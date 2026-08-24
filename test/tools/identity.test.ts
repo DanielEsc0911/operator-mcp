@@ -73,7 +73,7 @@ describe("whoami", () => {
     const result = await callTool(client, "whoami");
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Not configured. Run: npx openproject-mcp setup");
+    expect(result.text).toBe("Not configured. Run: npx operator-mcp setup");
   });
 });
 

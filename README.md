@@ -7,7 +7,7 @@ workplace's written conventions.
 ## Setup
 
 ```bash
-npx openproject-mcp setup
+npx operator-mcp setup
 ```
 
 The wizard asks for your instance URL and an API key, checks them, and prints the
@@ -16,7 +16,7 @@ block to paste into your MCP client:
 ```json
 {
   "mcpServers": {
-    "openproject": { "command": "npx", "args": ["-y", "openproject-mcp"] }
+    "openproject": { "command": "npx", "args": ["-y", "operator-mcp"] }
   }
 }
 ```
@@ -30,8 +30,8 @@ feed work with no further configuration.
 Each workplace is a profile with its own credentials and its own rules:
 
 ```bash
-npx openproject-mcp setup --profile acme
-npx openproject-mcp setup --profile personal
+npx operator-mcp setup --profile acme
+npx operator-mcp setup --profile personal
 ```
 
 Register both:
@@ -39,8 +39,8 @@ Register both:
 ```json
 {
   "mcpServers": {
-    "openproject-acme": { "command": "npx", "args": ["-y", "openproject-mcp", "--profile", "acme"] },
-    "openproject-personal": { "command": "npx", "args": ["-y", "openproject-mcp", "--profile", "personal"] }
+    "openproject-acme": { "command": "npx", "args": ["-y", "operator-mcp", "--profile", "acme"] },
+    "openproject-personal": { "command": "npx", "args": ["-y", "operator-mcp", "--profile", "personal"] }
   }
 }
 ```
@@ -48,7 +48,7 @@ Register both:
 ## Conventions
 
 Every profile carries a markdown manual at
-`~/.config/openproject-mcp/<profile>/conventions.md`. It is sent to the agent at
+`~/.config/operator-mcp/<profile>/conventions.md`. It is sent to the agent at
 the start of every session, so your rules apply without anyone restating them:
 
 ```markdown

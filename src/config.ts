@@ -22,7 +22,7 @@ export function normalizeUrl(raw: string): string {
 }
 
 export function profileDir(profile: string): string {
-  return join(homedir(), ".config", "openproject-mcp", profile);
+  return join(homedir(), ".config", "operator-mcp", profile);
 }
 
 export function resolveProfile(argv: string[], env: NodeJS.ProcessEnv): string {

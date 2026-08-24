@@ -28,7 +28,7 @@ export function scaffoldConventions(path: string): string | null {
 export function mcpConfigSnippet(profile: string): string {
   const isDefault = profile === "default";
   const name = isDefault ? "openproject" : `openproject-${profile}`;
-  const args = isDefault ? ["-y", "openproject-mcp"] : ["-y", "openproject-mcp", "--profile", profile];
+  const args = isDefault ? ["-y", "operator-mcp"] : ["-y", "operator-mcp", "--profile", profile];
   return JSON.stringify({ mcpServers: { [name]: { command: "npx", args } } }, null, 2);
 }
 

@@ -1,6 +1,6 @@
 # OPerator
 
-MCP server exposing an OpenProject instance to agents. Published as `openproject-mcp`.
+MCP server exposing an OpenProject instance to agents. Published as `operator-mcp`.
 TypeScript, ESM, `@modelcontextprotocol/sdk` + `zod`, tested with vitest.
 
 ## Run it

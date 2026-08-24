@@ -32,11 +32,11 @@ export async function createServer(config: Config): Promise<McpServer> {
 
   const bytes = manual ? Buffer.byteLength(manual) : 0;
   if (bytes > MANUAL_WARNING_BYTES) {
-    process.stderr.write(`openproject-mcp: conventions manual is ${bytes} bytes and is sent on every session.\n`);
+    process.stderr.write(`operator-mcp: conventions manual is ${bytes} bytes and is sent on every session.\n`);
   }
 
   const server = new McpServer(
-    { name: "openproject", version: "0.1.0" },
+    { name: "openproject", version: "1.0.0" },
     { instructions: buildInstructions(config, identity, manual) },
   );
 

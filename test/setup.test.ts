@@ -66,14 +66,14 @@ describe("scaffoldConventions", () => {
 describe("mcpConfigSnippet", () => {
   it("emits a copyable block for the default profile", () => {
     expect(JSON.parse(mcpConfigSnippet("default"))).toEqual({
-      mcpServers: { openproject: { command: "npx", args: ["-y", "openproject-mcp"] } },
+      mcpServers: { openproject: { command: "npx", args: ["-y", "operator-mcp"] } },
     });
   });
 
   it("names and flags a non-default profile so two workplaces can coexist", () => {
     expect(JSON.parse(mcpConfigSnippet("acme"))).toEqual({
       mcpServers: {
-        "openproject-acme": { command: "npx", args: ["-y", "openproject-mcp", "--profile", "acme"] },
+        "openproject-acme": { command: "npx", args: ["-y", "operator-mcp", "--profile", "acme"] },
       },
     });
   });

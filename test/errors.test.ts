@@ -37,7 +37,7 @@ describe("describeHttpError", () => {
 
 describe("humanMessage", () => {
   it("renders each typed error", () => {
-    expect(humanMessage(new ConfigError())).toBe("Not configured. Run: npx openproject-mcp setup");
+    expect(humanMessage(new ConfigError())).toBe("Not configured. Run: npx operator-mcp setup");
     expect(humanMessage(new ReadOnlyError())).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
     expect(humanMessage(new OpenProjectError(404, "Work package 1234 not found"))).toBe("Work package 1234 not found");
   });
