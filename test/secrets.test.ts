@@ -8,7 +8,6 @@ import workPackage from "./fixtures/workPackage.json" with { type: "json" };
 
 const API_KEY = "k3y-that-must-not-leak";
 const PASSWORD = "url-password";
-const originalHome = process.env.HOME;
 let fetchMock: ReturnType<typeof vi.fn>;
 
 function respond(body: unknown, status = 200): Response {
@@ -16,7 +15,9 @@ function respond(body: unknown, status = 200): Response {
 }
 
 beforeEach(() => {
-  process.env.HOME = mkdtempSync(join(tmpdir(), "operator-"));
+  const home = mkdtempSync(join(tmpdir(), "operator-"));
+  vi.stubEnv("HOME", home);
+  vi.stubEnv("USERPROFILE", home);
   vi.stubEnv("XDG_CONFIG_HOME", "");
   vi.stubEnv("APPDATA", "");
   fetchMock = vi.fn(async (url: URL) =>
@@ -32,7 +33,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
-  process.env.HOME = originalHome;
 });
 
 describe("credentials never reach the agent", () => {

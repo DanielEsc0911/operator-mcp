@@ -5,17 +5,16 @@ import { join } from "node:path";
 import { configHome, normalizeUrl, profileDir, resolveProfile, loadConfig, saveConfig, assertSecureUrl } from "../src/config.js";
 
 let home: string;
-const originalHome = process.env.HOME;
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "operator-"));
-  process.env.HOME = home;
+  vi.stubEnv("HOME", home);
+  vi.stubEnv("USERPROFILE", home);
   vi.stubEnv("XDG_CONFIG_HOME", "");
   vi.stubEnv("APPDATA", "");
 });
 
 afterEach(() => {
-  process.env.HOME = originalHome;
   vi.unstubAllEnvs();
 });
 
