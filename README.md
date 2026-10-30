@@ -1,57 +1,84 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/assets/hero/readme-hero-dark.svg">
-  <img src="docs/brand/assets/hero/readme-hero-light.svg" width="1280" alt="OPerator — your agent, patched through to OpenProject.">
-</picture>
+<p align="center">
+  <a href="https://operator-mcp.pages.dev">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DanielEsc0911/operator-mcp/main/docs/brand/assets/hero/readme-hero-dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/DanielEsc0911/operator-mcp/main/docs/brand/assets/hero/readme-hero-light.png">
+      <img src="https://raw.githubusercontent.com/DanielEsc0911/operator-mcp/main/docs/brand/assets/hero/readme-hero-dark.png" width="840" alt="OPerator: your agent, patched through to OpenProject.">
+    </picture>
+  </a>
+</p>
 
-# OPerator
+<p align="center">
+  <b>An MCP server that patches your coding agent through to OpenProject.</b><br>
+  It reads your work, updates your tasks, and follows your team's rules.
+</p>
 
-[![npm](https://img.shields.io/npm/v/operator-mcp.svg)](https://www.npmjs.com/package/operator-mcp)
-[![license](https://img.shields.io/npm/l/operator-mcp.svg)](./LICENSE)
+<p align="center">
+  <a href="https://www.npmjs.com/package/operator-mcp"><img src="https://img.shields.io/npm/v/operator-mcp?color=FFB020&labelColor=16131F" alt="npm version"></a>
+  <a href="https://github.com/DanielEsc0911/operator-mcp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/DanielEsc0911/operator-mcp/ci.yml?branch=main&label=CI&labelColor=16131F" alt="CI status"></a>
+  <a href="https://github.com/DanielEsc0911/operator-mcp/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/operator-mcp?color=0C7D73&labelColor=16131F" alt="MIT licence"></a>
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#what-your-agent-can-do">What it does</a> ·
+  <a href="#your-agent-cant-delete-anything-by-design">Safety</a> ·
+  <a href="https://operator-mcp.pages.dev">Website</a>
+</p>
+
+---
 
 Your coding agent can read your whole repository and still has to ask *"which
 ticket is this?"*. It can't see your OpenProject, so you paste work packages into
-the chat by hand, and the house rules (branch names, who closes what) get
-restated every session.
+the chat by hand, and the house rules (branch names, who closes what) get restated
+every session.
 
-OPerator is an MCP server that patches your agent through to your OpenProject
-instance. It reads and updates work packages, triages notifications and logs
-time, and it follows your workplace's written conventions while doing so.
+OPerator connects the line. Your agent reads and updates work packages, triages
+notifications and logs time, and it follows your workplace's written conventions
+while doing so.
 
-```
-You: what's on my plate?
+```text
+You:   what's on my plate?
 Agent: 3 work packages assigned to you in Acme:
        #1284  Bug   In progress  Fix login redirect loop
        #1301  Task  New          Migrate invoice export
        #1312  Task  New          Review Q3 access audit
 ```
 
-## Quickstart
+## Install
 
-On macOS or Linux (x64 or arm64):
+On macOS or Linux (x64 or arm64), one line. No Node.js, no sudo:
 
 ```bash
 curl -fsSL https://operator-mcp.pages.dev/install.sh | sh
 ```
 
-You don't need Node.js or sudo for this. The script downloads one gzipped binary,
-checks it against the release's SHA-256, puts it in `~/.local/bin` and starts the
-setup wizard. `sh -s -- --no-setup` installs and stops there.
-`OPERATOR_VERSION=1.2.0` pins a release and `OPERATOR_INSTALL_DIR` picks another
-folder. To update, run the same line again.
+The script downloads one gzipped binary, checks it against the release's SHA-256,
+puts it in `~/.local/bin` and starts the setup wizard. To update, run the same line
+again.
 
-**Have Node.js 22 or newer?** You can skip the download, since npm fetches the
-package on demand. This is also the way to install on Windows and Alpine:
+| Option | Effect |
+|---|---|
+| `sh -s -- --no-setup` | Install and stop there, without the wizard |
+| `OPERATOR_VERSION=1.2.0` | Pin a release |
+| `OPERATOR_INSTALL_DIR` | Install into another folder |
+
+**Have Node.js 22 or newer?** npm fetches the package on demand. This is also the
+way to install on Windows and Alpine:
 
 ```bash
 npx operator-mcp setup
 ```
 
-**Or download the binary yourself** from the
-[latest release](https://github.com/DanielEsc0911/operator-mcp/releases/latest).
-The files are named `operator-mcp-<linux|darwin>-<x64|arm64>.gz`, and
-`SHA256SUMS` covers each `.gz`. Unpack the file, make it executable and put it
-on your `PATH`. macOS marks browser downloads as quarantined, so clear that flag
-once:
+<details>
+<summary><b>Or download the binary yourself</b></summary>
+
+<br>
+
+Grab it from the [latest release](https://github.com/DanielEsc0911/operator-mcp/releases/latest).
+The files are named `operator-mcp-<linux|darwin>-<x64|arm64>.gz`, and `SHA256SUMS`
+covers each `.gz`. Unpack the file, make it executable and put it on your `PATH`.
+macOS marks browser downloads as quarantined, so clear that flag once:
 
 ```bash
 gunzip operator-mcp-darwin-arm64.gz
@@ -60,70 +87,68 @@ xattr -d com.apple.quarantine operator-mcp-darwin-arm64
 ./operator-mcp-darwin-arm64 setup
 ```
 
-## The wizard
+</details>
 
-`operator-mcp setup` takes about a minute. The installer starts it for you:
+### The wizard
 
-1. **Where does your OpenProject live?** Enter the address you log in at,
-   for example `https://openproject.acme.com`. Plain `http://` is refused
-   unless the host is loopback.
-2. **Your API key.** The wizard gives you the direct link,
-   `<your-url>/my/access_tokens` (on older instances: *My account → Access
-   token*). The key is masked while you type and never leaves your machine.
-3. **Line check.** The wizard checks the key against your instance before
-   saving anything: `Line's open: Ada Lovelace · 12 projects`.
-4. **Default project.** Pick one from a numbered list, type an identifier, or
-   choose none.
-5. **Agents.** Every agent found on the machine shows up in a pre-ticked
-   checklist. Press Enter to register them all.
-6. **Doctor.** The same checks `operator-mcp doctor` runs, inline.
+`operator-mcp setup` takes about a minute, and the installer starts it for you. It
+asks where your OpenProject lives, takes an API key, checks the line before saving
+anything, and patches every agent it finds:
 
-Then **restart your agent** and ask it *"what's on my plate?"*. That's all the
-setup there is. Run `operator-mcp doctor` (or `npx operator-mcp doctor`) any
-time to check the connection.
+```text
+  Where does your OpenProject live?
+  › https://openproject.acme.com
 
-### Verifying it worked
+  Your API key. Make one at https://openproject.acme.com/my/access_tokens
+  (older instances: My account → Access token). It stays on this machine.
+  › •••••••••••••
 
-| Agent | Check |
-|---|---|
-| Claude Code | `/mcp` lists `openproject` as connected |
-| Claude Desktop | *Settings → Developer* shows `openproject` running |
-| Codex CLI | `codex mcp list` shows `openproject` |
-| Gemini CLI | `/mcp` lists `openproject` |
-| Cursor | *Settings → MCP* shows `openproject` enabled |
-| opencode | `/mcp` lists `openproject` |
+  Line's open  done   Ada Lovelace (ada@example.com) · 12 projects
 
-If the tools still aren't there, see [Troubleshooting](#troubleshooting).
+  Which agents should OPerator patch into?
+    [x] 1  Claude Code
+    [x] 2  Codex CLI
+    [x] 3  Gemini CLI
+    [x] 4  Cursor
 
-## Registering with agents
+  Patching in  done   Claude Code  ~/.claude.json
+               done   Codex CLI    ~/.codex/config.toml
+               done   Gemini CLI   ~/.gemini/settings.json
+               done   Cursor       ~/.cursor/mcp.json
+```
 
-`setup` does this for you at the end. Run it standalone whenever you install a new
-agent, or want to add a second profile:
+Plain `http://` is refused unless the host is loopback. Along the way you pick a
+default project (or none), and the wizard finishes with the same checks
+`operator-mcp doctor` runs. Then **restart your agent** and ask it *"what's on my
+plate?"*. Run `operator-mcp doctor` (or `npx operator-mcp doctor`) any time to check
+the connection.
+
+## Works with your agents
+
+`setup` registers agents at the end. Run `install` on its own whenever you add a new
+agent or a second profile:
 
 ```bash
 npx operator-mcp install          # detect agents, ask which to register
 npx operator-mcp install --yes    # register every detected agent, no prompt
 ```
 
-It detects these, writes the entry, and backs up any file it changes:
+It writes only OPerator's own entry, leaves your other servers untouched, and backs
+up any file it changes.
 
-| Agent | Where it writes |
-|---|---|
-| **Claude Code** | delegates to `claude mcp add --scope user` |
-| **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), `%APPDATA%\Claude\claude_desktop_config.json` (Windows). There is no Linux build, so it isn't offered there |
-| **Codex CLI** | `~/.codex/config.toml` |
-| **Gemini CLI** | `~/.gemini/settings.json` |
-| **Cursor** | `~/.cursor/mcp.json` |
-| **opencode** | `~/.config/opencode/opencode.json` |
+| Agent | Where it writes | How to check it worked |
+|---|---|---|
+| **Claude Code** | `claude mcp add --scope user` | `/mcp` lists `openproject` as connected |
+| **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), `%APPDATA%\Claude\claude_desktop_config.json` (Windows); no Linux build, so not offered there | *Settings → Developer* shows `openproject` running |
+| **Codex CLI** | `~/.codex/config.toml` | `codex mcp list` shows `openproject` |
+| **Gemini CLI** | `~/.gemini/settings.json` | `/mcp` lists `openproject` |
+| **Cursor** | `~/.cursor/mcp.json` | *Settings → MCP* shows `openproject` enabled |
+| **opencode** | `~/.config/opencode/opencode.json` | `/mcp` lists `openproject` |
 
-The installed binary registers itself by its absolute path, which Claude
-Desktop needs because it starts servers with a minimal `PATH`. If you
-use `npx` instead, Claude Desktop must be able to find Node on its own
-`PATH`. When it can't, install the binary or put the absolute path of `npx`
-in the entry.
-
-Existing servers in those files are left untouched — only OPerator's own entry is
-written.
+The installed binary registers itself by its absolute path, which Claude Desktop
+needs because it starts servers with a minimal `PATH`. With `npx` instead, Claude
+Desktop must find Node on its own `PATH`; when it can't, install the binary or put
+the absolute path of `npx` in the entry.
 
 ### Registering by hand
 
@@ -210,12 +235,12 @@ check your client's docs for which file it reads.
 </details>
 
 Credentials never appear in these files. They live in
-`~/.config/operator-mcp/<profile>/config.json`, written with `0600` permissions,
-so your MCP config stays safe to check into a repo.
+`~/.config/operator-mcp/<profile>/config.json`, written with `0600` permissions, so
+your MCP config stays safe to check into a repo.
 
 ## What your agent can do
 
-| | |
+| Area | Tools |
 |---|---|
 | **Identity** | `whoami` |
 | **Discovery** | `list_projects` · `list_users` · `get_work_package` · `search_work_packages` · `my_work` |
@@ -225,20 +250,10 @@ so your MCP config stays safe to check into a repo.
 | **Conventions** | `conventions` · `add_convention` · `remove_convention` |
 | **Escape hatch** | `api_request` |
 
-The API key is yours, so the server already knows who you are — `my_work` and your
+The API key is yours, so the server already knows who you are: `my_work` and your
 notification feed need no further configuration.
 
-## Your agent can't delete anything. By design.
-
-No tool deletes. OPerator has no `delete_*` tool at all, so an agent cannot
-delete a work package because it misread a vague instruction. The generic
-`api_request` tool also refuses `DELETE` unless you set
-`OPENPROJECT_ALLOW_DELETE=1` in the server's environment, and an agent can't
-set that for itself. If you want the agent to report without touching
-anything, [read-only mode](#read-only-agents) refuses every write before it
-leaves the machine.
-
-## Conventions — teaching your agent how you work
+## Conventions: teaching your agent how you work
 
 Every profile carries a markdown manual at
 `~/.config/operator-mcp/<profile>/conventions.md`. It is handed to the agent at the
@@ -255,19 +270,27 @@ start of every session, so your rules apply without anyone restating them:
 - Never close a work package yourself — set `Developed`, QA closes it.
 ```
 
-`setup` writes a starter file you can edit. Or just tell an agent a rule in
-conversation and it records it with `add_convention`, so the rule outlives the
-session. Rules are only ever appended; removing one takes an explicit instruction
-from you, and the file is backed up first.
+`setup` writes a starter file you can edit. Or tell an agent a rule in conversation
+and it records it with `add_convention`, so the rule outlives the session. Rules are
+only ever appended; removing one takes an explicit instruction from you, and the
+file is backed up first.
 
-**Sharing with a team:** point everyone at one file.
+**Sharing with a team:** point everyone at one file, check it into your repository,
+and the manual becomes versioned, reviewed in merge requests, and identical for
+everyone.
 
 ```bash
 OPENPROJECT_CONVENTIONS_PATH=/path/to/repo/conventions.md
 ```
 
-Check that file into your repository and the manual becomes versioned, reviewed in
-merge requests, and identical for everyone.
+## Your agent can't delete anything. By design.
+
+OPerator has no `delete_*` tool at all, so an agent cannot delete a work package
+because it misread a vague instruction. The generic `api_request` tool also refuses
+`DELETE` unless you set `OPENPROJECT_ALLOW_DELETE=1` in the server's environment,
+and an agent can't set that for itself. If you want the agent to report without
+touching anything, [read-only mode](#read-only-agents) refuses every write before
+it leaves the machine.
 
 ## Two workplaces at once
 
@@ -278,8 +301,8 @@ npx operator-mcp setup --profile acme
 npx operator-mcp setup --profile personal
 ```
 
-Each registers under its own server name — `openproject-acme`,
-`openproject-personal` — so both can be connected at the same time and your agent
+Each registers under its own server name, `openproject-acme` and
+`openproject-personal`, so both can be connected at the same time and your agent
 never confuses one instance for the other.
 
 ## Read-only agents
@@ -291,8 +314,7 @@ Add this to the server's entry in your MCP config:
 ```
 
 Every create, update, comment, time entry, watch change, and convention edit is
-refused before a request leaves the machine. Reads work normally. Useful for an
-agent you want reporting on the project but not touching it.
+refused before a request leaves the machine. Reads work normally.
 
 ## Configuration
 
@@ -312,13 +334,23 @@ Environment variables win over the stored profile, which makes CI easy: set
 
 ## Troubleshooting
 
-**The agent doesn't see OpenProject at all.**
-Running `setup` alone is not enough on older versions — it saved credentials but
+<details>
+<summary><b>The agent doesn't see OpenProject at all</b></summary>
+
+<br>
+
+Running `setup` alone is not enough on older versions: it saved credentials but
 never told your agent the server existed. Run `npx operator-mcp install`, then
 restart the agent. Almost every "it can't find my projects" report is this.
 
-**Registered, but the tools still don't appear.**
-Restart the agent completely — most clients only read their MCP config at startup.
+</details>
+
+<details>
+<summary><b>Registered, but the tools still don't appear</b></summary>
+
+<br>
+
+Restart the agent completely; most clients only read their MCP config at startup.
 Then confirm the server starts on its own:
 
 ```bash
@@ -328,19 +360,47 @@ npx -y operator-mcp
 It should sit there silently waiting for JSON-RPC on stdin. Press Ctrl+C. Any error
 message it prints instead is the real problem.
 
-**"Not configured. Run: npx operator-mcp setup"**
+</details>
+
+<details>
+<summary><b>"Not configured. Run: npx operator-mcp setup"</b></summary>
+
+<br>
+
 The agent found the server but no credentials for the profile it asked for. If you
 registered a `--profile` server, run `setup --profile <name>` for that same profile.
 
-**"API key rejected"**
+</details>
+
+<details>
+<summary><b>"API key rejected"</b></summary>
+
+<br>
+
 The token was revoked or mistyped. Generate a new one at **My account → Access
 tokens → API** and re-run `setup`.
 
-**"Cannot reach https://…"**
+</details>
+
+<details>
+<summary><b>"Cannot reach https://…"</b></summary>
+
+<br>
+
 The instance URL is wrong, or it's behind a VPN this machine isn't on. Open the URL
 in a browser from the same machine to confirm.
 
-**Node version.** The `npx` path requires Node 22 or newer (`node --version`). The installed binary needs no Node.
+</details>
+
+<details>
+<summary><b>Node version</b></summary>
+
+<br>
+
+The `npx` path requires Node 22 or newer (`node --version`). The installed binary
+needs no Node.
+
+</details>
 
 ## Development
 
@@ -356,4 +416,9 @@ Two runtime dependencies. See `CLAUDE.md` for the working rules.
 
 MIT © Daniel Escalona
 
-OPerator is an independent project, not affiliated with OpenProject GmbH.
+<br>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DanielEsc0911/operator-mcp/main/docs/brand/assets/favicon/180.png" width="44" alt="Op, the OPerator mascot"><br>
+  <sub>OPerator is an independent project, not affiliated with OpenProject GmbH.</sub>
+</p>
