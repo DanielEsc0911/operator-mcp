@@ -195,8 +195,8 @@ describe("allowDelete", () => {
 describe("saveConfig", () => {
   it.skipIf(process.platform === "win32")("writes owner-only permissions", () => {
     const path = saveConfig("acme", { url: "https://op.acme.com", apiKey: "secret" });
+    expect(JSON.parse(readFileSync(path, "utf8")).apiKey).toBe("secret");
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(statSync(profileDir("acme")).mode & 0o777).toBe(0o700);
-    expect(JSON.parse(readFileSync(path, "utf8")).apiKey).toBe("secret");
   });
 });
