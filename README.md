@@ -246,6 +246,8 @@ agent you want reporting on the project but not touching it.
 | `OPENPROJECT_DEFAULT_PROJECT` | Project used when a tool's `project` is omitted. |
 | `OPENPROJECT_CONVENTIONS_PATH` | Read the manual from somewhere else. |
 | `OPENPROJECT_READ_ONLY` | Set to `1` to refuse every write. |
+| `OPENPROJECT_ALLOW_DELETE` | Set to `1` to let `api_request` send `DELETE`. Off by default. Environment only. |
+| `OPENPROJECT_ALLOW_INSECURE_HTTP` | Set to `1` to allow a plain `http://` URL to a non-loopback host. The API key then travels unencrypted. Environment only. |
 
 Environment variables win over the stored profile, which makes CI easy: set
 `OPENPROJECT_URL` and `OPENPROJECT_API_KEY` and skip `setup` entirely.
@@ -280,7 +282,7 @@ tokens → API** and re-run `setup`.
 The instance URL is wrong, or it's behind a VPN this machine isn't on. Open the URL
 in a browser from the same machine to confirm.
 
-**Node version.** Requires Node 20 or newer — `node --version`.
+**Node version.** Requires Node 22 or newer — `node --version`.
 
 ## Development
 
