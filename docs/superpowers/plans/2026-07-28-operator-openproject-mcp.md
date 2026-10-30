@@ -1481,7 +1481,7 @@ const identity = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 describe("buildInstructions", () => {
   it("names the user, instance and profile", () => {
     expect(buildInstructions(config, identity, null)).toContain(
-      'You are Daniel Escalona (ada@example.com) on https://op.acme.com, profile "acme".',
+      'You are Ada Lovelace (ada@example.com) on https://op.acme.com, profile "acme".',
     );
   });
 

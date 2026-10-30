@@ -1980,7 +1980,7 @@ git commit -m "feat: operator-mcp doctor diagnoses an installation"
 - [ ] **Step 1: Replace the persona everywhere**
 
 ```bash
-grep -rl 'daescalona@proton.me' test/ | xargs sed -i 's/Daniel Escalona/Ada Lovelace/g; s/daescalona@proton\.me/ada@example.com/g'
+# (S12 done: test fixtures use Ada Lovelace / ada@example.com.)
 grep -rn 'daescalona\|Daniel Escalona' test/    # must print nothing
 ```
 
