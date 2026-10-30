@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.stubEnv("APPDATA", "");
   fetchMock = vi.fn(async (url: URL) =>
     url.pathname.endsWith("/users/me")
-      ? respond({ id: 12, name: "Daniel", email: "d@e.me" })
+      ? respond({ id: 12, name: "Ada", email: "ada@example.com" })
       : url.pathname.endsWith("/work_packages/1234")
         ? respond(workPackage)
         : respond({ message: "Unauthorized" }, 401),

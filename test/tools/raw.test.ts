@@ -11,7 +11,7 @@ function respond(body: unknown, status = 200): Response {
 }
 
 beforeEach(() => {
-  fetchMock = vi.fn().mockResolvedValue(respond({ id: 12, name: "Daniel Escalona", email: "d@e.me" }));
+  fetchMock = vi.fn().mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "ada@example.com" }));
   vi.stubGlobal("fetch", fetchMock);
 });
 

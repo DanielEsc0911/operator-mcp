@@ -152,10 +152,10 @@ describe("collection", () => {
 
 describe("me", () => {
   it("resolves identity once and caches it", async () => {
-    fetchMock.mockResolvedValue(respond({ id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" }));
+    fetchMock.mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "ada@example.com" }));
     const client = new OpenProjectClient(config);
 
-    expect(await client.me()).toEqual({ id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" });
+    expect(await client.me()).toEqual({ id: 12, name: "Ada Lovelace", email: "ada@example.com" });
     await client.me();
 
     expect(fetchMock).toHaveBeenCalledOnce();

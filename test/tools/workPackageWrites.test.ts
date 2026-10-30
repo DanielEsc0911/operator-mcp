@@ -10,7 +10,7 @@ function respond(body: unknown, status = 200): Response {
   });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const TYPES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "Bug" }] } };
 const STATUSES = { total: 1, count: 1, _embedded: { elements: [{ id: 9, name: "In progress" }] } };
 
@@ -184,7 +184,7 @@ describe("list_activities", () => {
         _embedded: {
           elements: [
             { id: 1, _type: "Activity", createdAt: "2026-07-20T08:00:00Z", details: [{ raw: "Status set to New" }], _links: { user: { href: "/api/v3/users/5", title: "Ana Ruiz" } } },
-            { id: 2, _type: "Activity::Comment", createdAt: "2026-07-28T10:00:00Z", comment: { raw: "Pushed the fix." }, _links: { user: { href: "/api/v3/users/12", title: "Daniel Escalona" } } },
+            { id: 2, _type: "Activity::Comment", createdAt: "2026-07-28T10:00:00Z", comment: { raw: "Pushed the fix." }, _links: { user: { href: "/api/v3/users/12", title: "Ada Lovelace" } } },
           ],
         },
       },
@@ -194,7 +194,7 @@ describe("list_activities", () => {
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
-    expect(result[1]).toMatchObject({ id: 2, user: "Daniel Escalona", comment: "Pushed the fix." });
+    expect(result[1]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
   });
 });
 

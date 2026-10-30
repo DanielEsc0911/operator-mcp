@@ -7,7 +7,7 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const TYPES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "Bug" }] } };
 const STATUSES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "In progress" }] } };
 const RESULTS = { total: 1, count: 1, _embedded: { elements: [workPackage] } };
@@ -45,7 +45,7 @@ describe("get_work_package", () => {
 
     expect(result).toMatchObject({
       id: 1234, subject: "Fix login redirect", type: "Bug", status: "In progress",
-      assignee: "Daniel Escalona", lockVersion: 7, url: "https://op.acme.com/work_packages/1234",
+      assignee: "Ada Lovelace", lockVersion: 7, url: "https://op.acme.com/work_packages/1234",
     });
     expect(result.description).toContain("Users land on /dashboard");
   });

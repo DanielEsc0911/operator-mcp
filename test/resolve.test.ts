@@ -90,7 +90,7 @@ describe("resolveId", () => {
 
 describe("resolveUserHref", () => {
   it("turns 'me' into the authenticated user", async () => {
-    fetchMock.mockResolvedValue(respond({ id: 12, name: "Daniel Escalona", email: "d@e.me" }));
+    fetchMock.mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "ada@example.com" }));
     expect(await resolveUserHref(client(), "me")).toBe("/api/v3/users/12");
   });
 

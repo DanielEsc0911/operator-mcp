@@ -9,7 +9,7 @@ function respond(body: unknown, status = 200): Response {
   });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const FEED = { total: 1, count: 1, _embedded: { elements: [notification] } };
 
 let fetchMock: ReturnType<typeof vi.fn>;

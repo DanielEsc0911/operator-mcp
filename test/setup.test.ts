@@ -18,7 +18,7 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -137,7 +137,7 @@ describe("runSetup --non-interactive", () => {
     const { streams, text } = capture();
     const argv = ["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"];
     expect(await runSetup(argv, streams)).toBe(0);
-    expect(text()).toContain("Daniel Escalona");
+    expect(text()).toContain("Ada Lovelace");
     expect(describeExisting("ci")).toContain("https://op.example.com");
   });
 
