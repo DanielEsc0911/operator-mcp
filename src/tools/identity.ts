@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { segment } from "../client.js";
 import { readConventions } from "../conventions.js";
 import { flattenProject } from "../hal.js";
 import { handler, type ToolContext } from "./shared.js";
@@ -65,7 +66,7 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
     handler(async ({ project, query }: { project?: string; query?: string }) => {
       const target = project ?? config.defaultProject;
       const { elements } = target
-        ? await client.collection(`/projects/${target}/available_assignees`, { pageSize: 200 })
+        ? await client.collection(`/projects/${segment(target)}/available_assignees`, { pageSize: 200 })
         : await client.collection("/principals", { pageSize: 200 });
       const users = elements.map((user) => ({ id: user.id, name: user.name, email: user.email }));
       if (!query) return users;

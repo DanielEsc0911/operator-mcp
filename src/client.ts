@@ -8,6 +8,10 @@ export type Identity = { id: number; name: string; email: string };
 
 const TIMEOUT_MS = 30_000;
 
+export function segment(value: string | number): string {
+  return encodeURIComponent(String(value));
+}
+
 export class OpenProjectClient {
   #identity?: Identity;
 
@@ -21,7 +25,11 @@ export class OpenProjectClient {
     if (!this.config.url || !this.config.apiKey) throw new ConfigError();
     if (this.config.readOnly && method !== "GET") throw new ReadOnlyError();
 
-    const url = new URL(`/api/v3${path}`, this.config.url);
+    const root = `${this.config.url}/api/v3`;
+    const url = new URL(`${root}${path}`);
+    if (!url.href.startsWith(`${root}/`)) {
+      throw new Error(`Refusing a request outside ${root}. Pass a path relative to /api/v3, like /work_packages/12.`);
+    }
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }

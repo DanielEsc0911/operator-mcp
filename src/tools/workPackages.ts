@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Filter, OpenProjectClient } from "../client.js";
+import { segment, type Filter, type OpenProjectClient } from "../client.js";
 import { flattenWorkPackage } from "../hal.js";
 import { resolveId } from "../resolve.js";
 import { handler, type ToolContext } from "./shared.js";
@@ -40,7 +40,7 @@ export async function buildSearchFilters(client: OpenProjectClient, args: Search
 }
 
 function collectionPath(project?: string): string {
-  return project ? `/projects/${project}/work_packages` : "/work_packages";
+  return project ? `/projects/${segment(project)}/work_packages` : "/work_packages";
 }
 
 export function registerWorkPackageTools(server: McpServer, { client }: ToolContext): void {
