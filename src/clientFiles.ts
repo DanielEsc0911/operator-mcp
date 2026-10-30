@@ -16,7 +16,8 @@ export function editJson(path: string, edit: (document: Record<string, any>) => 
   let document: Record<string, any> = {};
   if (existsSync(path)) {
     try {
-      document = JSON.parse(readFileSync(path, "utf8"));
+      const text = readFileSync(path, "utf8");
+      if (text.trim()) document = JSON.parse(text);
     } catch {
       throw new Error(`${path} is not valid JSON — fix or move it, then run: npx operator-mcp install`);
     }

@@ -84,6 +84,18 @@ describe("claude-code", () => {
   });
 });
 
+describe("antigravity", () => {
+  it("writes the agy config, filling a blank file", () => {
+    const root = home(".gemini/config");
+    const path = join(root, ".gemini/config/mcp_config.json");
+    writeFileSync(path, "");
+    const client = findClient("antigravity")!;
+    expect(detectClients(root)).toContain(client);
+    client.register(target(root));
+    expect(readJson(path).mcpServers.openproject).toEqual({ command: "npx", args: ["-y", "operator-mcp"] });
+  });
+});
+
 describe("gemini", () => {
   it("creates settings.json when the file does not exist yet", () => {
     const root = home(".gemini");
