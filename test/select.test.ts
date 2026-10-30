@@ -2,7 +2,7 @@ import { PassThrough } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { useLang } from "../src/i18n/index.js";
 import { SetupAborted } from "../src/prompts.js";
-import { multiSelect, select } from "../src/select.js";
+import { multiSelect } from "../src/select.js";
 import { displayWidth, style } from "../src/ui.js";
 
 const UP = "\x1b[A";
@@ -22,18 +22,10 @@ function terminal(columns = 80, rows = 24) {
 const plain = (text: string) => text.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "");
 const AGENTS = ["Claude Code", "Codex CLI", "Cursor"].map((label) => ({ label }));
 
-describe("select", () => {
-  it("moves with arrows and j/k and returns the row under the cursor", async () => {
-    const { stdin, out, s, press } = terminal();
-    const answer = select(stdin, out, s, "Project", [{ label: "Acme", hint: "acme" }, { label: "Billing" }, { label: "None" }]);
-    press(DOWN, DOWN, DOWN, UP, "k", "j", "\r");
-    expect(await answer).toBe(2);
-    expect(stdin.setRawMode).toHaveBeenLastCalledWith(false);
-  });
-
+describe("the shared key loop", () => {
   it("restores the terminal and aborts on ctrl-c", async () => {
     const { stdin, out, s, press, text } = terminal();
-    const answer = select(stdin, out, s, "Project", AGENTS);
+    const answer = multiSelect(stdin, out, s, "Agents", AGENTS);
     press("\x03");
     await expect(answer).rejects.toBeInstanceOf(SetupAborted);
     expect(stdin.isRaw).toBe(false);
@@ -44,7 +36,7 @@ describe("select", () => {
     const { stdin, out, s, press } = terminal();
     const before = vi.fn();
     stdin.on("keypress", before);
-    const answer = select(stdin, out, s, "Project", AGENTS);
+    const answer = multiSelect(stdin, out, s, "Agents", AGENTS);
     press("\r");
     await answer;
     expect(before).not.toHaveBeenCalled();

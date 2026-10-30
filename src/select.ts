@@ -3,8 +3,8 @@ import { t } from "./i18n/index.js";
 import { SetupAborted } from "./prompts.js";
 import { displayWidth, fit, pad, type Output, type Style } from "./ui.js";
 
-type Input = NodeJS.ReadStream & { isRaw?: boolean };
-type Key = { name?: string; ctrl?: boolean };
+export type Input = NodeJS.ReadStream & { isRaw?: boolean };
+export type Key = { name?: string; ctrl?: boolean; meta?: boolean };
 type Listener = (text: string, key: Key) => void;
 export type Option = { label: string; hint?: string };
 
@@ -34,13 +34,18 @@ function frame({ question, options, marked }: Menu, cursor: number, out: Output,
   return lines.map((line) => fit(line, out));
 }
 
-function hint(parts: string[], out: Output): string {
+export function hint(parts: string[], out: Output): string {
   const room = (out.columns || 80) - 5;
   while (parts.length > 2 && displayWidth(parts.join(" · ")) > room) parts.shift();
   return parts.join(" · ");
 }
 
-function listen<T>(input: Input, out: Output, draw: () => string[], onKey: (key: Key, text: string) => T | undefined): Promise<T> {
+export function listen<T>(
+  input: Input,
+  out: Output,
+  draw: () => string[],
+  onKey: (key: Key, text: string, repaint: () => void) => T | undefined,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     emitKeypressEvents(input);
     const borrowed = input.listeners("keypress") as Listener[];
@@ -50,13 +55,16 @@ function listen<T>(input: Input, out: Output, draw: () => string[], onKey: (key:
     input.resume();
 
     let height = 0;
+    let open = true;
     const paint = () => {
+      if (!open) return;
       const lines = draw();
       const up = height > 1 ? `\x1b[${height - 1}A` : "";
       out.write(`${height ? `\r${up}\x1b[J` : "\x1b[?25l"}${lines.join("\n")}`);
       height = lines.length;
     };
     const finish = (settle: () => void) => {
+      open = false;
       input.off("keypress", onKeypress);
       input.setRawMode(wasRaw);
       for (const listener of borrowed) input.on("keypress", listener);
@@ -65,7 +73,7 @@ function listen<T>(input: Input, out: Output, draw: () => string[], onKey: (key:
     };
     const onKeypress: Listener = (text, key = {}) => {
       if (key.ctrl && key.name === "c") return finish(() => reject(new SetupAborted()));
-      const result = onKey(key, text);
+      const result = onKey(key, text, paint);
       if (result === undefined) return paint();
       finish(() => resolve(result));
     };
@@ -74,25 +82,14 @@ function listen<T>(input: Input, out: Output, draw: () => string[], onKey: (key:
   });
 }
 
-function move(cursor: number, key: Key, total: number): number {
+export function move(cursor: number, key: Key, total: number): number {
   if (key.name === "up" || key.name === "k") return (cursor - 1 + total) % total;
   if (key.name === "down" || key.name === "j") return (cursor + 1) % total;
   return cursor;
 }
 
-function summary(out: Output, s: Style, question: string, answer: string): void {
+export function summary(out: Output, s: Style, question: string, answer: string): void {
   out.write(`  ${s.bold(question)}  ${s.accent(answer)}\n`);
-}
-
-export async function select(input: Input, out: Output, s: Style, question: string, options: Option[]): Promise<number> {
-  let cursor = 0;
-  const menu = { question, options };
-  const chosen = await listen(input, out, () => frame(menu, cursor, out, s), (key) => {
-    if (key.name === "return" || key.name === "enter") return cursor;
-    cursor = move(cursor, key, options.length);
-  });
-  summary(out, s, question, options[chosen].label);
-  return chosen;
 }
 
 export async function multiSelect(input: Input, out: Output, s: Style, question: string, options: Option[]): Promise<number[]> {

@@ -11,6 +11,7 @@ import {
   nonInteractiveInput,
   scaffoldConventions,
   verifyCredentials,
+  writableProjects,
 } from "../src/credentials.js";
 import { runSetup } from "../src/setup.js";
 
@@ -51,7 +52,6 @@ describe("verifyCredentials", () => {
     expect(await verifyCredentials("https://op.acme.com", "secret")).toEqual({
       identity: ME,
       projectCount: 7,
-      projects: [],
     });
   });
 
@@ -63,6 +63,29 @@ describe("verifyCredentials", () => {
   it("propagates a readable message for an unreachable host", async () => {
     fetchMock.mockRejectedValue(new TypeError("getaddrinfo ENOTFOUND"));
     await expect(verifyCredentials("https://op.invalid", "secret")).rejects.toThrow("Cannot reach https://op.invalid");
+  });
+});
+
+describe("writableProjects", () => {
+  it("asks for projects where the user can create work packages, seven at a time", async () => {
+    fetchMock.mockResolvedValue(respond({ total: 8, count: 1, _embedded: { elements: [{ name: "Acme", identifier: "acme" }] } }));
+    expect(await writableProjects({ url: "https://op.acme.com", apiKey: "k" })("")).toEqual({
+      total: 8,
+      projects: [{ name: "Acme", identifier: "acme" }],
+    });
+    const url: URL = fetchMock.mock.calls[0][0];
+    expect(url.pathname).toBe("/api/v3/projects");
+    expect(url.searchParams.get("pageSize")).toBe("7");
+    expect(JSON.parse(url.searchParams.get("filters")!)).toEqual([
+      { user_action: { operator: "=", values: ["work_packages/create"] } },
+    ]);
+  });
+
+  it("filters by name or identifier when given a query", async () => {
+    fetchMock.mockResolvedValue(respond({ total: 0, count: 0, _embedded: { elements: [] } }));
+    await writableProjects({ url: "https://op.acme.com", apiKey: "k" })("  acm ");
+    const url: URL = fetchMock.mock.calls[0][0];
+    expect(JSON.parse(url.searchParams.get("filters")!)[1]).toEqual({ name_and_identifier: { operator: "~", values: ["acm"] } });
   });
 });
 
@@ -198,5 +221,37 @@ describe("runSetup over a profile 1.2.0 left behind", () => {
     expect(text()).toContain("Where does your OpenProject live? e.g. openproject.acme.com");
     expect(text()).toContain("https://openproject.acme.com/my/access_tokens");
     expect(describeExisting("default")).toBe("https://openproject.acme.com · …");
+  });
+
+  it("says plainly when there is no project to write to, and saves no default", async () => {
+    const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home);
+    saveConfig("default", { url: "https://op.example.com", apiKey: "supersecretkey", defaultProject: "old" });
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 0, count: 0, _embedded: { elements: [] } }),
+    );
+    const { streams, text } = typed("", "");
+
+    expect(await runSetup(["setup"], streams as any)).toBe(0);
+    expect(text()).toContain("No projects where you can add work packages");
+    expect(text()).not.toContain("Default project");
+    expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject).toBeUndefined();
+  });
+
+  it("asks for a typed identifier when the instance cannot list writable projects", async () => {
+    const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home);
+    saveConfig("default", { url: "https://op.example.com", apiKey: "supersecretkey" });
+    fetchMock.mockImplementation(async (url: URL) => {
+      if (url.pathname === "/api/v3/users/me") return respond(ME);
+      return url.searchParams.has("filters") ? respond({ message: "unknown filter" }, 400) : respond({ total: 3, count: 0, _embedded: { elements: [] } });
+    });
+    const { streams, text } = typed("", "billing", "");
+
+    expect(await runSetup(["setup"], streams as any)).toBe(0);
+    expect(text()).toContain("Default project, for when you don't name one (Project identifier)");
+    expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject).toBe("billing");
   });
 });

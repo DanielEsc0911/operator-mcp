@@ -4,15 +4,16 @@ import { createInterface, type Interface } from "node:readline/promises";
 import type { Streams } from "./cli.js";
 import type { Client } from "./clients.js";
 import { assertSecureUrl, normalizeUrl, profileDir, resolveProfile, saveConfig } from "./config.js";
-import { describeExisting, keyHint, nonInteractiveInput, scaffoldConventions, storedCredentials, verifyCredentials } from "./credentials.js";
-import type { Credentials, Verified } from "./credentials.js";
+import { describeExisting, keyHint, nonInteractiveInput, scaffoldConventions, storedCredentials, verifyCredentials, writableProjects } from "./credentials.js";
+import type { Credentials, ProjectPage, Verified } from "./credentials.js";
 import { doctorChecks, printChecks } from "./doctor.js";
 import { humanMessage } from "./errors.js";
 import { t } from "./i18n/index.js";
 import { patchAgents } from "./install.js";
 import { outro } from "./outro.js";
 import { SetupAborted, ask, askHidden, choose } from "./prompts.js";
-import { canSelect, select } from "./select.js";
+import { searchSelect } from "./searchSelect.js";
+import { canSelect } from "./select.js";
 import { version } from "./server.js";
 import { greet, lamp, step, style, tilde, type Output, type Style } from "./ui.js";
 
@@ -69,17 +70,21 @@ function save(profile: string, credentials: Credentials, defaultProject: string 
   step(out, s, t().manual, t().done, manual ? `${tilde(manual, home)} ${s.muted(`· ${t().manualNew}`)}` : t().manualKept);
 }
 
-async function pickProject({ projects }: Verified, rl: Interface, streams: Streams, { out, s }: Line): Promise<string | undefined> {
-  if (projects.length === 0) return undefined;
-  out.write("\n");
+async function pickProject(credentials: Credentials, rl: Interface, streams: Streams, { out, s }: Line): Promise<string | undefined> {
   const text = t();
+  const search = writableProjects(credentials);
+  const first = await search("").catch(() => null);
+  out.write("\n");
+  if (first?.total === 0) return void out.write(`  ${s.muted(text.noWritableProjects)}\n\n`);
   let picked: string;
-  if (canSelect(streams)) {
-    const rows = [...projects.map(({ name, identifier }) => ({ label: name, hint: identifier })), { label: text.projectNone }, { label: text.projectOther }];
-    const index = await select(streams.stdin, out, s, text.projectQuestion, rows);
-    picked = projects[index]?.identifier ?? (index === projects.length ? "" : await ask(rl, `  ${text.projectIdentifier} › `));
+  if (!first) {
+    picked = await ask(rl, `  ${text.projectQuestion} ${s.muted(`(${text.projectIdentifier})`)} › `);
+  } else if (canSelect(streams)) {
+    const page = ({ total, projects }: ProjectPage) => ({ total, rows: projects.map(({ name, identifier }) => ({ label: name, hint: identifier })) });
+    const row = await searchSelect(streams.stdin, out, s, text.projectQuestion, text.projectNone, (query) => search(query).then(page), page(first));
+    picked = row?.hint ?? "";
   } else {
-    picked = await choose(rl, out, s, text.projectQuestion, projects.map(({ name, identifier }) => [name, identifier]));
+    picked = await choose(rl, out, s, text.projectQuestion, first.projects.map(({ name, identifier }) => [name, identifier]));
   }
   out.write("\n");
   return picked || undefined;
@@ -94,8 +99,8 @@ async function interactive(argv: string[], streams: Streams, rl: Interface, prof
     [facts.config, tilde(profileDir(profile), home)],
     [facts.version, version],
   ]);
-  const { url, apiKey, ...found } = (await keptConnection(profile, rl, line)) ?? (await promptCredentials(rl, streams, line));
-  const defaultProject = await pickProject(found, rl, streams, line);
+  const { url, apiKey } = (await keptConnection(profile, rl, line)) ?? (await promptCredentials(rl, streams, line));
+  const defaultProject = await pickProject({ url, apiKey }, rl, streams, line);
   save(profile, { url, apiKey }, defaultProject, line);
   line.out.write("\n");
   const agents: Client[] = await patchAgents(argv, streams, rl, home);
