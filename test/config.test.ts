@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, statSync, readFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { normalizeUrl, profileDir, resolveProfile, loadConfig, saveConfig, assertSecureUrl } from "../src/config.js";
+import { configHome, normalizeUrl, profileDir, resolveProfile, loadConfig, saveConfig, assertSecureUrl } from "../src/config.js";
 
 let home: string;
 const originalHome = process.env.HOME;
@@ -10,10 +10,33 @@ const originalHome = process.env.HOME;
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "operator-"));
   process.env.HOME = home;
+  vi.stubEnv("XDG_CONFIG_HOME", "");
 });
 
 afterEach(() => {
   process.env.HOME = originalHome;
+  vi.unstubAllEnvs();
+});
+
+describe("configHome", () => {
+  it("uses XDG_CONFIG_HOME when it is set", () => {
+    expect(configHome({ XDG_CONFIG_HOME: "/xdg" }, "linux")).toBe(join("/xdg", "operator-mcp"));
+  });
+
+  it("falls back to ~/.config on Linux and macOS", () => {
+    expect(configHome({}, "darwin")).toBe(join(home, ".config", "operator-mcp"));
+  });
+
+  it("uses APPDATA on Windows", () => {
+    expect(configHome({ APPDATA: "C:\\Users\\ada\\AppData\\Roaming", XDG_CONFIG_HOME: "/xdg" }, "win32")).toBe(
+      join("C:\\Users\\ada\\AppData\\Roaming", "operator-mcp"),
+    );
+  });
+
+  it("places every profile under it", () => {
+    vi.stubEnv("XDG_CONFIG_HOME", join(home, "xdg"));
+    expect(profileDir("acme")).toBe(join(home, "xdg", "operator-mcp", "acme"));
+  });
 });
 
 describe("normalizeUrl", () => {

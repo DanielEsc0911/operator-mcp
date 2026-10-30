@@ -43,8 +43,13 @@ export function assertSecureUrl(url: string, env: NodeJS.ProcessEnv): void {
   );
 }
 
+export function configHome(env: NodeJS.ProcessEnv = process.env, platform = process.platform): string {
+  if (platform === "win32" && env.APPDATA) return join(env.APPDATA, "operator-mcp");
+  return join(env.XDG_CONFIG_HOME || join(homedir(), ".config"), "operator-mcp");
+}
+
 export function profileDir(profile: string): string {
-  return join(homedir(), ".config", "operator-mcp", profile);
+  return join(configHome(), profile);
 }
 
 export function resolveProfile(argv: string[], env: NodeJS.ProcessEnv): string {
