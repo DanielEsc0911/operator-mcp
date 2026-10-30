@@ -13,7 +13,7 @@ import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
 const MANUAL_WARNING_BYTES = 10_000;
-const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+export const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
 
 export function buildInstructions(config: Config, identity: Identity | null, manual: string | null): string {
   const lines = [
