@@ -95,8 +95,7 @@ export function greet(out: Output, s: Style, title: string, facts: [string, stri
 
 export function step(out: Output, s: Style, label: string, status: string, detail: string): void {
   const shown = status === "fail" ? s.alarm(pad(status, STATUS_WIDTH)) : s.patch(pad(status, STATUS_WIDTH));
-  const line = `  ${s.bold(pad(label, LABEL_WIDTH))} ${shown}  ${detail}`;
-  out.write(s.fancy ? `\r\x1b[K${fit(line, out)}\n` : `${line}\n`);
+  out.write(`${s.fancy ? "\r\x1b[K" : ""}  ${s.bold(pad(label, LABEL_WIDTH))} ${shown}  ${detail}\n`);
 }
 
 function lamps(s: Style, frame: number): string {
@@ -125,6 +124,7 @@ export function checkLine(out: Output, s: Style, ok: boolean, line: string, next
 
 export function card(out: Output, s: Style, lines: string[]): void {
   const width = Math.max(...lines.map(displayWidth)) + 4;
+  if (width + 5 > (out.columns || 80)) return void out.write(lines.map((line) => `  ${line}\n`).join(""));
   const edge = (left: string, right: string) => `  ${s.muted(`${left}${"─".repeat(width)}${right}`)}\n`;
   out.write(edge("╭", "╮"));
   for (const line of ["", ...lines, ""]) {

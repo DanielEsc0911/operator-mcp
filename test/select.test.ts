@@ -80,10 +80,10 @@ describe("multiSelect", () => {
     const answer = multiSelect(stdin, out, s, "Which agents should OPerator patch into?", many);
     press(...Array(12).fill(DOWN), "\r");
     await answer;
-    const lines = plain(text()).split(/\n|\r/);
-    expect(Math.max(...lines.map(displayWidth))).toBeLessThanOrEqual(29);
-    expect(plain(text())).toContain("Agent number 13");
-    expect(plain(text())).not.toContain("Agent number 13 with a long name");
+    const frames = plain(text().slice(0, text().lastIndexOf("\x1b[?25h")));
+    expect(Math.max(...frames.split(/\n|\r/).map(displayWidth))).toBeLessThanOrEqual(29);
+    expect(frames).toContain("Agent number 13");
+    expect(frames).not.toContain("Agent number 13 with a long name");
   });
 
   it("speaks Spanish when asked", async () => {

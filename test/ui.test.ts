@@ -42,11 +42,11 @@ describe("plain output", () => {
 describe("narrow terminals", () => {
   const plain = (text: string) => text.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "");
 
-  it("cuts a redrawn step line to the width, keeping colour codes whole", () => {
+  it("cuts the spinner line to the width, keeping colour codes whole", async () => {
     let text = "";
     const out = { isTTY: true, columns: 40, write: (chunk: string) => ((text += chunk), true) } as any;
-    step(out, style(out, {}), "Line's open", "done", "Ada Lovelace (ada@example.com) · 12 projects");
-    const line = plain(text).replace(/^\r/, "").trimEnd();
+    await lamp(out, style(out, {}), "Line check", "openproject.acme.com · a very long detail", Promise.resolve());
+    const line = plain(text.split("\r")[1]);
     expect(displayWidth(line)).toBe(39);
     expect(line.endsWith("…")).toBe(true);
     expect(text).toContain("\x1b[1m");
@@ -57,6 +57,15 @@ describe("narrow terminals", () => {
     expect(displayWidth("e\u0301")).toBe(1);
     expect(displayWidth("日本")).toBe(4);
     expect(fit("日本語のテキスト", { columns: 8 } as any)).toBe("日本語…\x1b[0m");
+  });
+});
+
+describe("card", () => {
+  it("drops its frame when the terminal is narrower than the card", () => {
+    let text = "";
+    const out = { isTTY: false, columns: 20, write: (chunk: string) => ((text += chunk), true) } as any;
+    card(out, style(out, {}), ["a line longer than twenty"]);
+    expect(text).toBe("  a line longer than twenty\n");
   });
 });
 

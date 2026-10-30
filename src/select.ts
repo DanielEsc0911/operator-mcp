@@ -29,9 +29,15 @@ function frame({ question, options, marked }: Menu, cursor: number, out: Output,
     const box = marked && index < options.length ? `${marked.has(index) ? s.patch("[x]") : s.muted("[ ]")} ` : "";
     lines.push(`  ${pointer} ${box}${hint ? `${pad(label, width)}  ${s.muted(hint)}` : label}`);
   }
-  const range = end - start < rows.length ? ` · ${start + 1}–${end}/${rows.length}` : "";
-  lines.push(`    ${s.muted((marked ? t().multiHint : t().selectHint) + range)}`);
+  const range = end - start < rows.length ? [`${start + 1}–${end}/${rows.length}`] : [];
+  lines.push(`    ${s.muted(hint([...(marked ? t().multiHint : t().selectHint).split(" · "), ...range], out))}`);
   return lines.map((line) => fit(line, out));
+}
+
+function hint(parts: string[], out: Output): string {
+  const room = (out.columns || 80) - 5;
+  while (parts.length > 2 && displayWidth(parts.join(" · ")) > room) parts.shift();
+  return parts.join(" · ");
 }
 
 function listen<T>(input: Input, out: Output, draw: () => string[], onKey: (key: Key, text: string) => T | undefined): Promise<T> {
@@ -75,7 +81,7 @@ function move(cursor: number, key: Key, total: number): number {
 }
 
 function summary(out: Output, s: Style, question: string, answer: string): void {
-  out.write(`${fit(`  ${s.bold(question)}  ${s.muted(answer)}`, out)}\n`);
+  out.write(`  ${s.bold(question)}  ${s.accent(answer)}\n`);
 }
 
 export async function select(input: Input, out: Output, s: Style, question: string, options: Option[]): Promise<number> {
