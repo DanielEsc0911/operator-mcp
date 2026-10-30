@@ -34,6 +34,7 @@
     "build": "tsc",
     "test": "vitest run",
     "test:live": "vitest run --config vitest.live.config.ts",
+    "test:install": "node test-install/run.mjs",
     "brand": "node scripts/brand.mjs",
     "prepublishOnly": "npm run build"
   },
