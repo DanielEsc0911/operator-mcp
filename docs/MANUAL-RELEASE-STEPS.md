@@ -36,8 +36,11 @@ anything Windows-only that the first run shows, then merge.
 
 npmjs.com → `operator-mcp` → Settings → Trusted Publisher → GitHub Actions:
 owner `DanielEsc0911`, repository `operator-mcp`, workflow `release.yml` (the filename
-only), environment `release`. The publish job runs in that GitHub environment, and npm
-refuses the publish with `403 OIDC permission denied` when the entry does not match it.
+only), environment `release`, and under **Allowed actions** tick **allow npm publish**
+(leave *allow npm dist-tag* off; the workflow never runs `npm dist-tag`). The publish
+job runs in the `release` environment and runs a direct `npm publish`, so npm refuses
+it with `403 OIDC permission denied for this action` when the environment differs or
+direct publishing is not allowed.
 The job already has `id-token: write` and runs `npm publish --provenance`. Optional:
 GitHub → Settings → Environments → `release` → required reviewers, to approve each
 publish by hand.
