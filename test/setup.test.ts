@@ -26,6 +26,7 @@ beforeEach(() => {
   fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
   vi.stubEnv("XDG_CONFIG_HOME", mkdtempSync(join(tmpdir(), "operator-setup-")));
+  vi.stubEnv("APPDATA", "");
 });
 
 afterEach(() => {

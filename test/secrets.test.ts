@@ -18,6 +18,7 @@ function respond(body: unknown, status = 200): Response {
 beforeEach(() => {
   process.env.HOME = mkdtempSync(join(tmpdir(), "operator-"));
   vi.stubEnv("XDG_CONFIG_HOME", "");
+  vi.stubEnv("APPDATA", "");
   fetchMock = vi.fn(async (url: URL) =>
     url.pathname.endsWith("/users/me")
       ? respond({ id: 12, name: "Daniel", email: "d@e.me" })

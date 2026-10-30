@@ -11,6 +11,7 @@ beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "operator-"));
   process.env.HOME = home;
   vi.stubEnv("XDG_CONFIG_HOME", "");
+  vi.stubEnv("APPDATA", "");
 });
 
 afterEach(() => {

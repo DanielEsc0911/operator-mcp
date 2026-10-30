@@ -26,6 +26,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   home = mkdtempSync(join(tmpdir(), "operator-doctor-"));
   vi.stubEnv("XDG_CONFIG_HOME", join(home, ".config"));
+  vi.stubEnv("APPDATA", "");
   text = "";
   const stdout = new PassThrough();
   stdout.on("data", (chunk: Buffer) => (text += chunk));
