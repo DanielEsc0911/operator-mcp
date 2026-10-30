@@ -6,7 +6,14 @@ export const TEMPLATE_PATH = fileURLToPath(new URL("../templates/conventions.md"
 const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
 const BULLET = /^\s*[-*]\s+/;
 
+const SECTION_MAX = 80;
+const RULE_MAX = 500;
+
 type Section = { start: number; end: number };
+
+function oneLine(text: string, max: number): string {
+  return text.replace(/\s+/g, " ").trim().replace(/^(?:[#>*-]+\s*)+/, "").slice(0, max).trim();
+}
 
 function findSection(lines: string[], name: string): Section | null {
   const wanted = name.trim().toLowerCase();
@@ -27,9 +34,16 @@ export function readConventions(path: string): string | null {
   return existsSync(path) ? readFileSync(path, "utf8") : null;
 }
 
-export function addRule(path: string, section: string, rule: string): { section: string; rule: string; path: string } {
+export function addRule(
+  path: string,
+  rawSection: string,
+  rawRule: string,
+): { section: string; rule: string; path: string } {
+  const section = oneLine(rawSection, SECTION_MAX);
+  const rule = oneLine(rawRule, RULE_MAX);
+  if (!section || !rule) throw new Error("Both section and rule need visible text. Pass a short heading and a one-line rule.");
   const text = readConventions(path) ?? "";
-  const bullet = `- ${rule.trim()}`;
+  const bullet = `- ${rule}`;
   const lines = text.split("\n");
   const found = findSection(lines, section);
 
@@ -48,18 +62,18 @@ export function addRule(path: string, section: string, rule: string): { section:
 
 export function removeRule(
   path: string,
-  section: string,
-  rule: string,
+  rawSection: string,
+  rawRule: string,
 ): { removed: boolean; backupPath?: string; bullets: string[] } {
   const text = readConventions(path);
   if (text === null) return { removed: false, bullets: [] };
 
   const lines = text.split("\n");
-  const found = findSection(lines, section);
+  const found = findSection(lines, oneLine(rawSection, SECTION_MAX));
   if (!found) return { removed: false, bullets: [] };
 
   const bullets = lines.slice(found.start + 1, found.end).filter((line) => BULLET.test(line)).map(bulletText);
-  const target = rule.trim();
+  const target = oneLine(rawRule, RULE_MAX);
   const index = lines.findIndex(
     (line, offset) => offset > found.start && offset < found.end && BULLET.test(line) && bulletText(line) === target,
   );
