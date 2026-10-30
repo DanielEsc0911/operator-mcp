@@ -108,7 +108,8 @@ Before the first tag, `/install.sh` redirects (302) to a release asset that 404s
 ## 8. Optional: re-record the demo against a real instance
 
 `docs/brand/demo/session.txt` was recorded against a local mock. To replace it, record
-`curl … | sh` at 80 columns (see the Chunk 4/5 notes in `docs/progress/2026-10-29-fresh-coat.md`),
+`curl … | sh` at 80 columns with `HOME` (and `XDG_CONFIG_HOME`) pointed at a throwaway
+directory, so the recording never touches your real profiles (see the Chunk 4/5 notes in `docs/progress/2026-10-29-fresh-coat.md`),
 then `cd ../operator-landing-page && npm run sync-brand` (it rewrites your host to
 `openproject.acme.com`).
 

@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-30
+
+### Fixed
+
+- `install.sh` no longer prints `/dev/tty: No such device or address` when no
+  terminal is attached (CI, containers, piped runs).
+- Setup creates the starter conventions manual with one exclusive create, so it
+  can never overwrite a manual written between the check and the write.
+- The setup step for a new manual fits 80 columns in English and Spanish; its
+  note now reads *template* / *plantilla*.
+
+### Internal
+
+- Every test file runs against a throwaway `HOME`, `USERPROFILE`,
+  `XDG_CONFIG_HOME` and `APPDATA`, so a test can never write to your real
+  profiles.
+- The installer test server refuses paths outside its release directory.
+- A live test runs the project picker's writable-projects search on a real instance.
+
 ## [1.3.0] - 2026-10-30
 
 ### Added
