@@ -148,7 +148,7 @@ describe("assertSecureUrl", () => {
 });
 
 describe("credential file mode", () => {
-  it("warns on stderr when the file is readable by others, and still loads it", () => {
+  it.skipIf(process.platform === "win32")("warns on stderr when the file is readable by others, and still loads it", () => {
     const path = saveConfig("acme", { url: "https://op.acme.com", apiKey: "k" });
     chmodSync(path, 0o644);
     const write = vi.spyOn(process.stderr, "write").mockReturnValue(true);
@@ -174,7 +174,7 @@ describe("allowDelete", () => {
 });
 
 describe("saveConfig", () => {
-  it("writes owner-only permissions", () => {
+  it.skipIf(process.platform === "win32")("writes owner-only permissions", () => {
     const path = saveConfig("acme", { url: "https://op.acme.com", apiKey: "secret" });
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(statSync(profileDir("acme")).mode & 0o777).toBe(0o700);

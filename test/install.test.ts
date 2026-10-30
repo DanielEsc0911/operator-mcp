@@ -39,11 +39,13 @@ describe("registerAll", () => {
 
 describe("every client", () => {
   it("offers manual instructions that name the package", () => {
+    vi.stubEnv("APPDATA", "");
     const context = target();
     for (const client of offeredClients(context.home)) {
       expect(client.manual(context)).toContain("operator-mcp");
       expect(client.configPath(context.home)).toContain(context.home);
     }
+    vi.unstubAllEnvs();
   });
 });
 
@@ -64,7 +66,7 @@ describe("patchAgents", () => {
     rl.close();
     expect(patched.map((client) => client.id)).toEqual(["cursor"]);
     expect(text).toContain("Patching in  done   Cursor");
-    expect(text).toContain("~/.cursor/mcp.json");
+    expect(text).toContain(join("~", ".cursor", "mcp.json"));
     expect(JSON.parse(readFileSync(join(home, ".cursor/mcp.json"), "utf8")).mcpServers.openproject).toBeDefined();
   });
 });
