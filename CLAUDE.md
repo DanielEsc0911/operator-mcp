@@ -25,8 +25,8 @@ When two designs both work, ship the one with fewer moving parts.
 functions, one responsibility each, obvious data flow. Comments are rare and earn
 their place: a comment explains something the code *cannot* — an external API's
 counterintuitive contract, a workaround, a constraint from outside the file. Never
-write a comment that restates the line below it. There are exactly six comments in
-`src/`; each records an OpenProject or Node constraint. Do not add a seventh without
+write a comment that restates the line below it. There are exactly eight comments in
+`src/`; each records an OpenProject, Node or agent-client constraint. Do not add a ninth without
 a reason of the same kind.
 
 ## Navigating this project — use CodeGraph
@@ -89,9 +89,10 @@ guarded in their own tool.
 
 **stdout belongs to the transport.** The stdio server speaks JSON-RPC on stdout; a
 stray `console.log` anywhere the server can reach corrupts the stream and the client
-disconnects. Diagnostics use `process.stderr.write`. Only `src/setup.ts` and
-`src/install.ts` may write to stdout, because both run as CLI commands with no
-transport attached.
+disconnects. Diagnostics use `process.stderr.write`. Terminal commands (`cli.ts`,
+`setup.ts`, `install.ts`, `doctor.ts`, `prompts.ts`, later `ui.ts`) never touch
+`process.stdout` or `console` directly: they write to the `Streams` that `runCli`
+hands them. `test/importGraph.test.ts` fails if `server.ts` can reach any of them.
 
 **Tests mock `fetch`.** `test/` never reaches the network. Live smoke tests live in
 `test-live/` and run only when `OPENPROJECT_URL` and `OPENPROJECT_API_KEY` are set.
@@ -119,9 +120,15 @@ transport attached.
 | `src/hal.ts` | HAL+JSON → flat objects. Pure |
 | `src/conventions.ts` | The workplace manual: read, append, remove, back up |
 | `src/resolve.ts` | Name-or-id → APIv3 href |
-| `src/server.ts` | McpServer, `instructions`, registration |
-| `src/setup.ts` | Wizard |
-| `src/clients.ts` | Agent-client registry: detect, register, manual snippet |
+| `src/server.ts` | McpServer, `instructions`, registration, `version` |
+| `src/index.ts` | Shebang plus `runCli(process.argv.slice(2), process)` |
+| `src/cli.ts` | Routing by first positional, `--help`, `--version`, Node floor, top-level catch |
+| `src/serve.ts` | Starts the stdio server — the default command |
+| `src/setup.ts` | Wizard, interactive and `--non-interactive` |
+| `src/prompts.ts` | `ask`, `askHidden` (raw-mode masked input), `SetupAborted` |
+| `src/doctor.ts` | `doctor` command: config file, reachability, key, agent entries |
+| `src/clients.ts` | Agent-client registry: detect, register, read back, manual snippet |
+| `src/clientFiles.ts` | JSON/TOML read and merge for agent config files, with backups |
 | `src/install.ts` | `install` command: pick clients, register, report |
 | `src/tools/` | One module per domain |
 | `src/tools/workPackageFields.ts` | Write-argument schema and its field/link mapping |
