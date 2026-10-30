@@ -114,6 +114,32 @@ try {
   const fancy = await container("registry.fedoraproject.org/fedora:latest", `${install} -s -- --no-setup`, { env: tty, tty: true });
   check("a colour terminal gets colour (control)", fancy.code === 0 && fancy.output.includes("\x1b[38;5;172m"), fancy.output);
 
+  const narrow = await container("registry.fedoraproject.org/fedora:latest", `stty cols 40; ${install} -s -- --no-setup`, { env: tty, tty: true });
+  const strip = (text) => text.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "");
+  const redrawn = narrow.output.split("\n").filter((line) => line.includes("\x1b[K"));
+  const frames = strip(narrow.output).split("\n");
+  check(
+    "40 columns: every redrawn frame fits and each step leaves one line",
+    narrow.code === 0 &&
+      redrawn.length >= 4 &&
+      redrawn.every((line) => strip(line).split("\r").every((frame) => [...frame].length <= 39)) &&
+      frames.filter((line) => line.includes("Dialing")).length === 1,
+    narrow.output,
+  );
+
+  const spanish = await container("registry.fedoraproject.org/fedora:latest", `${install} -s -- --no-setup`, {
+    env: { ...tty, LANG: "es_ES.UTF-8" },
+    tty: true,
+  });
+  check("LANG=es speaks Spanish", spanish.code === 0 && /Marcando/.test(spanish.output) && /Cuando quieras/.test(spanish.output), spanish.output);
+
+  const upgrade = await container(
+    "registry.fedoraproject.org/fedora:latest",
+    `printf '{"mcpServers":{"openproject":{"command":"npx","args":["-y","operator-mcp"]}}}' > ~/.claude.json; ${install} -s -- --no-setup`,
+    { env },
+  );
+  check("a 1.2.0 npx install is reported as an upgrade", upgrade.code === 0 && upgrade.output.includes(`Upgrading     npx → ${version}`), upgrade.output);
+
   const alpine = await container("docker.io/library/alpine:latest", `wget -qO- ${origin}/install.sh | sh; echo "exit=$?"`, { env });
   check("Alpine gets the musl refusal and the npx line", /uses musl/.test(alpine.output) && /npx -y operator-mcp setup/.test(alpine.output) && /exit=1/.test(alpine.output), alpine.output);
 
