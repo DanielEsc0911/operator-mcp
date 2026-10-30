@@ -113,14 +113,16 @@ tool versions. Nothing in CI or `npm test` needs Inkscape.
 | Token | Light | Dark | Terminal (256) | Use |
 |---|---|---|---|---|
 | `ink` / `paper` | `#16131F` on `#FBF6EC` | `#FBF6EC` on `#16131F` | default fg | text, base cells |
-| `signal` | `#A15C00` (text) / `#FFB020` (fill) | `#FFB020` | 136 | accent: lamps, headset, links, primary button |
+| `signal` | `#A15C00` (text) / `#FFB020` (fill) | `#FFB020` | 172 | accent: lamps, headset, links, primary button |
 | `patch` | `#0C7D73` | `#2EC4B6` | 30 | secondary: cables, success |
 | `alarm` | `#C8372D` | `#FF6B5E` | 167 | errors only |
 | `muted` | `#6E6A7C` | `#9A96A8` | 243 | secondary text |
 
 Every text/background pair meets WCAG AA (4.5:1 body, 3:1 large/UI). The
 terminal accent must read on both light and dark terminals — verify, and pick
-the nearest slot that does if 214 fails on white.
+the nearest slot that does if 214 fails on white. *Amended in Chunk 4:* the accent is slot 172 (2.86 on
+white, 7.36 on black) by ruling over 136, which passed but read olive; it is
+used only bold, for labels, lamps and the mark.
 
 ### 4.4 Type and voice
 
@@ -145,6 +147,11 @@ Before any installer or wizard work, a throwaway spike proves the binary path:
 from `saveConfig`, (4) `readline/promises` prompts. If any fails and cannot be
 fixed in a line or two, the binary path is cut, the curl installer becomes a
 thin wrapper that requires Node and runs `npx`, and this spec is amended.
+
+*Result (Chunk 4, Linux, Bun 1.4.4):* all four pass after one fix — the server
+read `../package.json` and `templates/conventions.md` beside the module, which
+do not exist inside a Bun binary, so both now live in source. The binary is
+~110 MB, not ~55–60 MB: Bun's runtime grew. Accepted; the binary path stands.
 
 ### 5.1 `curl -fsSL https://operator-mcp.pages.dev/install.sh | sh`
 
@@ -173,7 +180,7 @@ POSIX `sh`, macOS + Linux, x64 + arm64. No sudo, ever — it installs to
 ```
 
 Then `exec operator-mcp setup </dev/tty`. The TTY test is
-`[ -r /dev/tty ] && : </dev/tty 2>/dev/null` — not `[ -t 0 ]`, because under
+`[ -r /dev/tty ] && (: </dev/tty) 2>/dev/null` (the subshell matters: a failed redirection on `:` ends a POSIX shell) — not `[ -t 0 ]`, because under
 `curl | sh` stdin is the pipe. Without a TTY (CI, containers) it skips setup and
 prints the next command. On musl (Alpine) it stops before downloading and prints
 the `npx` path instead. `releases/latest` skips prereleases and 404s until the

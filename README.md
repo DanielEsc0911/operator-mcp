@@ -24,14 +24,42 @@ Agent: 3 work packages assigned to you in Acme:
        #1312  Task  New          Review Q3 access audit
 ```
 
-## Quickstart
+## Install
 
-One command. It asks for your credentials, then registers OPerator with every
-agent it finds on your machine.
+One command on macOS or Linux (x64 or arm64). It needs no Node.js, never asks
+for sudo, puts a single binary in `~/.local/bin`, checks it against the release's
+SHA-256, then starts setup:
+
+```bash
+curl -fsSL https://operator-mcp.pages.dev/install.sh | sh
+```
+
+`sh -s -- --no-setup` installs and stops. `OPERATOR_VERSION=1.2.0` pins a
+release, `OPERATOR_INSTALL_DIR` picks another folder. Re-running it updates.
+
+**Have Node.js 22 or newer?** Skip the download; npm fetches it on demand, and
+this is also the way on Windows and Alpine:
 
 ```bash
 npx operator-mcp setup
 ```
+
+**Or download the binary yourself** from the
+[latest release](https://github.com/DanielEsc0911/operator-mcp/releases/latest)
+(`operator-mcp-<linux|darwin>-<x64|arm64>`, with `SHA256SUMS`), make it
+executable, and put it on your `PATH`. A browser marks macOS downloads as
+quarantined, so clear that once:
+
+```bash
+chmod +x operator-mcp-darwin-arm64
+xattr -d com.apple.quarantine operator-mcp-darwin-arm64
+./operator-mcp-darwin-arm64 setup
+```
+
+## Quickstart
+
+`setup` asks for your credentials, then registers OPerator with every agent it
+finds on your machine. The installer runs it for you.
 
 You'll be asked for two things:
 
@@ -83,7 +111,8 @@ written.
 
 For an agent OPerator doesn't detect, or if you'd rather write the config
 yourself. Every MCP client wants the same two facts: run `npx`, with the arguments
-`-y operator-mcp`.
+`-y operator-mcp` — or, if you installed the binary, run its absolute path
+(`~/.local/bin/operator-mcp`, expanded) with no arguments.
 
 <details>
 <summary><b>Claude Code</b></summary>
