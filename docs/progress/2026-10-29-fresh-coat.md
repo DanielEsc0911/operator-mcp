@@ -16,7 +16,7 @@ plan and why, and anything left open.
 | Chunk 1 — Security patch (1.1.2) | done | 54ef089..HEAD |
 | Chunk 2 — CLI, doctor, CI, community files | done | ad9e4d5..HEAD |
 | Chunk 3 — Brand | done | d59e995..HEAD |
-| Chunk 4 — Binaries + curl installer | pending | |
+| Chunk 4 — Binaries + curl installer | done | daa8f53..HEAD |
 | Chunk 5 — Wizard restyle + clients + capture | pending | |
 | Chunk 6 — Landing page build | pending | |
 | Chunk 7 — Polish, budgets, cross-repo verification | pending | |
@@ -47,3 +47,12 @@ plan and why, and anything left open.
 - **Consuming `op.cells`:** 16 lines × 16 role letters; print two lines per row with `▀`/`▄`/`█` (nexo `mark_lines` pattern, `base` = default fg). `install.sh` should embed the cells as a heredoc (Chunk 4 can copy them from the file). For `ui.ts`, the simplest path that also survives the Bun binary: have `brand.mjs` additionally emit a generated `src/brandCells.ts` (`export const OP_CELLS = [...]`) so no runtime file read and `docs/` stays out of the tarball.
 - **Deviations:** spec §4.3 amended — signal text `#B86A00`→`#A15C00` and light patch `#0E8F84`→`#0C7D73` (both failed 4.5:1); terminal 214/37/203/245 → 136/30/167/243 (failed on white). Mark is an outline face, not a filled head: the filled version read as a dark blob on light grounds. Lockup/hero ship as separate `-light`/`-dark` files. Banner taglines use Instrument Sans with a system fallback (GitHub SVGs get no web fonts). CodeGraph unavailable again.
 - **Verify:** `npm run brand && git diff --exit-code docs/brand/assets/**/*.svg docs/brand/assets/terminal` clean; `npm test` 23 files / 254 passed; `npx tsc --noEmit` silent; `node scripts/pack-check.mjs` ok, 30 files (unchanged). Looked at mark 16/32/180 px, hero light+dark, card, terminal on white and black.
+
+### Chunk 4 — Binaries and the curl installer (2026-10-30)
+
+- **Spike (Bun 1.4.4, Linux x64), all pass after one fix:** (1) `initialize` + `tools/list` over stdio → 20 tools; (2) masked key never echoes, Ctrl-C exits 130 with termios restored; (3) config dir 0700, `config.json` and `conventions.md` 0600; (4) readline prompts work. The fix: `../package.json` and `templates/conventions.md` don't exist inside `$bunfs`, so `version` is a constant in `server.ts` (server.test still checks it against package.json; MANUAL-RELEASE-STEPS 7.2 says to bump it) and the starter manual is `STARTER_MANUAL` in `conventions.ts`; `templates/` removed. **Binary: 104.8 MiB (110 MB)**, not ~55–60; spec amended.
+- **`serverCommand(profile, runtime = process)`** → `{ command: execPath, args: [--profile p] }` under Bun, else `npx -y operator-mcp …`; every client uses it. Doctor already prints the registered command line.
+- **Installer** `install/install.sh`: `--no-setup`, `-h`; env `OPERATOR_VERSION`, `OPERATOR_INSTALL_DIR`, `OPERATOR_BASE` (latest resolved via the `/releases/latest` redirect). Mark heredoc and `src/brandCells.ts` are written by `npm run brand`. Accent slot 172 (2.86 white / 7.36 black), bar in patch teal.
+- **Chunk 5 capture:** `OPERATOR_TEST_BINARY=<compiled binary> node test-install/run.mjs --serve` (fixture on 127.0.0.1:8780; omit the env to compile one), then in a pty at 80 cols: `curl -fsSL http://127.0.0.1:8780/install.sh | OPERATOR_BASE=http://127.0.0.1:8780/releases sh`. No `script` binary on this host: a Python `pty.fork` driver worked. Mock OpenProject must return `email` on `/users/me`.
+- **Deviations:** TTY test is `(: </dev/tty) 2>/dev/null` — without the subshell a failed redirection on `:` kills sh (found by the Fedora run; spec amended). Binaries ship uncompressed. Release action versions `upload-artifact@v6` / `download-artifact@v7` unverified online. Windows tests: config/secrets now stub `USERPROFILE` with `HOME`. CodeGraph unavailable again. macOS checks run only in CI (`macos` job).
+- **Verify:** `npm test` 23 files / 256 passed; `tsc --noEmit` silent; build ok; `npm run test:install` 7/7 (Fedora, Debian install + `--version`, bad checksum installs nothing, NO_COLOR has no ESC, colour control, Alpine musl refusal, shellcheck); actionlint clean; `npm run brand` byte-identical; pack-check 29 files.
