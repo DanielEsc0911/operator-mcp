@@ -143,6 +143,15 @@ Branch `wizard-polish-i18n` from `main`. Push it and open a PR; CI must be green
 
 **Verify:** `npm test && npx tsc --noEmit && npm run build && npm run test:install`, shellcheck, `npm run brand` byte-identical, pack-check; pty runs in both languages at 40 and 80 columns, read by eye; PR CI green.
 
+## Chunk 8b — Searchable, writable-only project picker (spec §10 F6), same branch and PR
+
+- [ ] **8b.1** Writable projects only — find the right APIv3 source (load `openproject-apiv3`), test it against fixtures, document any non-obvious contract in that skill.
+- [ ] **8b.2** `searchSelect` in `src/select.ts` (or a sibling file if `select.ts` would pass ~150 lines): a query line, live-filtered window of ~7 rows, debounced server-side search, ↑/↓ + Enter, **None** first, Esc clears the query; typed fallback when not a TTY; English and Spanish.
+- [ ] **8b.3** Spanish copy fixes from the judge: key hint says **Enter** (not *Intro*); facts table *Instalado* / *Versión*; upgrade line reads *from npx → 1.3.0* / *desde npx → 1.3.0*.
+- [ ] **8b.4** Recapture the four `docs/brand/demo/session*.txt` transcripts (picker now shows search); update `CHANGELOG.md` 1.3.0 and README.
+
+**Verify:** `npm test && npx tsc --noEmit && npm run build && npm run test:install`; pty runs in both languages at 40 and 80 columns with a mock instance holding 200 projects of which few are writable; PR #5 CI green.
+
 ## Chunk 9 — Landing page in Spanish (spec §10 F5)
 
 - [ ] **9.1** Astro i18n: `/` English, `/es/` Spanish; every string in a typed dictionary; `hreflang` alternates, `<html lang>`, sitemap with both.
