@@ -151,7 +151,7 @@ thin wrapper that requires Node and runs `npx`, and this spec is amended.
 *Result (Chunk 4, Linux, Bun 1.4.4):* all four pass after one fix — the server
 read `../package.json` and `templates/conventions.md` beside the module, which
 do not exist inside a Bun binary, so both now live in source. The binary is
-~110 MB, not ~55–60 MB: Bun's runtime grew. Accepted; the binary path stands.
+~110 MB, not ~55–60 MB: Bun's runtime grew. Accepted; the binary path stands. Releases ship it gzipped: 51.8 MB (49.4 MiB) for linux-x64, measured in Chunk 5.
 
 ### 5.1 `curl -fsSL https://operator-mcp.pages.dev/install.sh | sh`
 
