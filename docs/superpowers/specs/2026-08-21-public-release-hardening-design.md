@@ -92,6 +92,38 @@ Severity: **H** = must fix before publishing · **M** = fix in this release ·
 | B13 | L | A startup failure surfaces as a raw stack trace. | `src/index.ts` | Catch at the top level, print one clear stderr line, exit 1. |
 | B14 | L | `engines` is advisory; on an old Node the failure is a cryptic syntax error. | `src/index.ts` | Check `process.versions.node` at entry and print an actionable message. |
 
+### 3.2a Register status (2026-10-29, Fresh Coat)
+
+| Row | Status | Commit |
+|---|---|---|
+| S1 | done | 53e4f49 |
+| S2 | done | 54ef089 |
+| S3 | done | 53e4f49 |
+| S4 | done | 54ef089 |
+| S5 | done | 54ef089 |
+| S6 | done | 54ef089 |
+| S7 | done | 9920902 |
+| S8 | done | 44cd899 |
+| S9 | done | 0a50bda |
+| S10 | deferred | — |
+| S11 | done | `.gitignore` before Fresh Coat |
+| S12 | open | — (author email still in 9 test files) |
+| S13 | wontfix | — |
+| B1 | done | 6d47eb8 |
+| B2 | done | 6d47eb8 |
+| B3 | done | b737b61 |
+| B4 | done | b737b61 |
+| B5 | done | 670d2a6 |
+| B6 | done | 670d2a6 |
+| B7 | done | 670d2a6 |
+| B8 | done | 87b2d12 |
+| B9 | moot | agent auto-registration (`install`) replaced the snippet |
+| B10 | done | ad9e4d5 |
+| B11 | done | 1711c8b |
+| B12 | moot | rename already landed |
+| B13 | done | 6d47eb8 |
+| B14 | done | 6d47eb8 (floor 22, not 24) |
+
 ### 3.3 Missing for a public repository
 
 Everything in this table is absent today.
