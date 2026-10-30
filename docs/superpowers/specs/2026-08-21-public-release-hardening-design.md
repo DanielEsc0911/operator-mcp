@@ -107,7 +107,7 @@ Severity: **H** = must fix before publishing · **M** = fix in this release ·
 | S9 | done | 0a50bda |
 | S10 | deferred | — |
 | S11 | done | `.gitignore` before Fresh Coat |
-| S12 | open | — (author email still in 9 test files) |
+| S12 | done | d59e995 |
 | S13 | wontfix | — |
 | B1 | done | 6d47eb8 |
 | B2 | done | 6d47eb8 |
