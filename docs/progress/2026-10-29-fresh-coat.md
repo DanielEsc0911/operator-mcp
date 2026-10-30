@@ -15,7 +15,7 @@ plan and why, and anything left open.
 | Spec v1 + plan | done | |
 | Chunk 1 — Security patch (1.1.2) | done | 54ef089..HEAD |
 | Chunk 2 — CLI, doctor, CI, community files | done | ad9e4d5..HEAD |
-| Chunk 3 — Brand | pending | |
+| Chunk 3 — Brand | done | d59e995..HEAD |
 | Chunk 4 — Binaries + curl installer | pending | |
 | Chunk 5 — Wizard restyle + clients + capture | pending | |
 | Chunk 6 — Landing page build | pending | |
@@ -38,3 +38,12 @@ plan and why, and anything left open.
 - **Deviations:** CodeGraph tools unavailable; Grep/Read used. Added `Client.entry()` (doctor reads back what each agent runs) and split JSON/TOML helpers into `clientFiles.ts` to stay under 150 lines. Comment count in CLAUDE.md corrected six → eight (it was already eight; none added). Non-interactive setup does not register agents; it prints `operator-mcp install --yes`. Release uses `gh release create` instead of a third-party action. Biome **not** added: 2.5.15 recommended rules report 4 errors / 63 warnings on today's code, so no minimal config passes. A few tests (doctor "no key" case, `ask`) were written after the code.
 - **Open for 3–5:** `setup.ts` is 120 lines — Chunk 5's restyle should put look in `ui.ts` and keep `setup.ts` as flow; `prompts.ts` lacks `choose`/`confirmList` (spec §5.2). `runInstall(argv, streams, rl?)` still prompts with free text. `Streams.stdin` is a `ReadStream`; `askHidden` falls back to `ask` when not a TTY. Release has a placeholder comment for Chunk 4's `binaries` job. Windows CI never run locally (tests stub `APPDATA`; pre-existing tests rely on `HOME`, which Windows `homedir()` ignores — expect fixes on first CI run). S12 (author email in 9 test files) still open. `<CONTACT>` in CODE_OF_CONDUCT.md awaits the owner.
 - **Verify:** `npm test` 23 files / 254 passed; `npx tsc --noEmit` silent; `npm run build` ok; `node scripts/pack-check.mjs` 30 files ok; `--help`/`--version` (1.1.2) ok; `node dist/index.js --profile setup` answered an `initialize` as the server; `podman run --rm -v "$PWD":/repo:Z -w /repo docker.io/rhysd/actionlint:latest` clean; gitleaks container: no leaks.
+
+### Chunk 3 — Brand (2026-10-29)
+
+- **Shipped:** S12 (fixtures now Ada Lovelace / `ada@example.com`; register ticked). Seeds `docs/brand/seed/op.grid` (outline-face operator, amber headset, teal blush + mic lamp) and `wordmark.svg` (Bricolage Grotesque Bold, opsz 96, outlined via fontTools + HarfBuzz in the scratchpad; no font committed). `scripts/brand.mjs` (`npm run brand`) → `docs/brand/assets/{mark,lockup,hero,social,favicon,terminal}`; `scripts/brand-raster.sh` → card PNG, favicon 16/32/48/180/512 + ICO. `docs/brand/README.md` holds the rules. README: `<picture>` hero + not-affiliated footer line.
+- **Palette (measured, on #FBF6EC / #16131F):** ink/paper 17.00; signal text `#A15C00` 4.82, fill `#FFB020` 10.01 dark (1.70 on paper: decorative only); patch `#0C7D73` 4.65 / `#2EC4B6` 8.45; alarm 4.83 / 6.55; muted 4.85 / 6.37.
+- **Terminal slots:** signal **136** (3.34 white / 6.29 black), patch **30**, alarm **167**, muted **243**, base = default fg. 214 failed on white (1.84).
+- **Consuming `op.cells`:** 16 lines × 16 role letters; print two lines per row with `▀`/`▄`/`█` (nexo `mark_lines` pattern, `base` = default fg). `install.sh` should embed the cells as a heredoc (Chunk 4 can copy them from the file). For `ui.ts`, the simplest path that also survives the Bun binary: have `brand.mjs` additionally emit a generated `src/brandCells.ts` (`export const OP_CELLS = [...]`) so no runtime file read and `docs/` stays out of the tarball.
+- **Deviations:** spec §4.3 amended — signal text `#B86A00`→`#A15C00` and light patch `#0E8F84`→`#0C7D73` (both failed 4.5:1); terminal 214/37/203/245 → 136/30/167/243 (failed on white). Mark is an outline face, not a filled head: the filled version read as a dark blob on light grounds. Lockup/hero ship as separate `-light`/`-dark` files. Banner taglines use Instrument Sans with a system fallback (GitHub SVGs get no web fonts). CodeGraph unavailable again.
+- **Verify:** `npm run brand && git diff --exit-code docs/brand/assets/**/*.svg docs/brand/assets/terminal` clean; `npm test` 23 files / 254 passed; `npx tsc --noEmit` silent; `node scripts/pack-check.mjs` ok, 30 files (unchanged). Looked at mark 16/32/180 px, hero light+dark, card, terminal on white and black.

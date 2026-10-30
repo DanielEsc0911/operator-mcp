@@ -113,10 +113,10 @@ tool versions. Nothing in CI or `npm test` needs Inkscape.
 | Token | Light | Dark | Terminal (256) | Use |
 |---|---|---|---|---|
 | `ink` / `paper` | `#16131F` on `#FBF6EC` | `#FBF6EC` on `#16131F` | default fg | text, base cells |
-| `signal` | `#B86A00` (text) / `#FFB020` (fill) | `#FFB020` | 214 | accent: lamps, headset, links, primary button |
-| `patch` | `#0E8F84` | `#2EC4B6` | 37 | secondary: cables, success |
-| `alarm` | `#C8372D` | `#FF6B5E` | 203 | errors only |
-| `muted` | `#6E6A7C` | `#9A96A8` | 245 | secondary text |
+| `signal` | `#A15C00` (text) / `#FFB020` (fill) | `#FFB020` | 136 | accent: lamps, headset, links, primary button |
+| `patch` | `#0C7D73` | `#2EC4B6` | 30 | secondary: cables, success |
+| `alarm` | `#C8372D` | `#FF6B5E` | 167 | errors only |
+| `muted` | `#6E6A7C` | `#9A96A8` | 243 | secondary text |
 
 Every text/background pair meets WCAG AA (4.5:1 body, 3:1 large/UI). The
 terminal accent must read on both light and dark terminals — verify, and pick
