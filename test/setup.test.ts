@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
@@ -94,6 +94,7 @@ describe("scaffoldConventions", () => {
     const path = join(mkdtempSync(join(tmpdir(), "operator-scaffold-")), "conventions.md");
     expect(scaffoldConventions(path)).toBe(path);
     expect(readFileSync(path, "utf8")).toContain("## Git / GitLab");
+    if (process.platform !== "win32") expect(statSync(path).mode & 0o777).toBe(0o600);
   });
 
   it("creates any missing parent directory", () => {
