@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OpenProjectClient, type Identity } from "./client.js";
 import type { Config } from "./config.js";
@@ -12,6 +13,7 @@ import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
 const MANUAL_WARNING_BYTES = 10_000;
+const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
 
 export function buildInstructions(config: Config, identity: Identity | null, manual: string | null): string {
   const lines = [
@@ -36,7 +38,7 @@ export async function createServer(config: Config): Promise<McpServer> {
   }
 
   const server = new McpServer(
-    { name: "openproject", version: "1.0.0" },
+    { name: "openproject", version },
     { instructions: buildInstructions(config, identity, manual) },
   );
 
