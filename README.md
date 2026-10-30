@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/assets/hero/readme-hero-dark.svg">
+  <img src="docs/brand/assets/hero/readme-hero-light.svg" width="1280" alt="OPerator — your agent, patched through to OpenProject.">
+</picture>
+
 # OPerator
 
 [![npm](https://img.shields.io/npm/v/operator-mcp.svg)](https://www.npmjs.com/package/operator-mcp)
@@ -297,3 +302,5 @@ Two runtime dependencies. See `CLAUDE.md` for the working rules.
 ## License
 
 MIT © Daniel Escalona
+
+OPerator is an independent project, not affiliated with OpenProject GmbH.
