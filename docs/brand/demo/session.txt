@@ -90,7 +90,7 @@
     [38;5;243m↑↓ move · type to search · Enter choose[0m[4A[J[?25h  [1mDefault project, for when you don't name one[0m  [38;5;172mCustomer Portal[0m
 
 [K  [1mSaved        [0m [38;5;30mdone [0m  ~/.config/operator-mcp/default/config.json
-[K  [1mManual       [0m [38;5;30mdone [0m  ~/.config/operator-mcp/default/conventions.md [38;5;243m· your house rules[0m
+[K  [1mManual       [0m [38;5;30mdone [0m  ~/.config/operator-mcp/default/conventions.md [38;5;243m· template[0m
 
 [?25l  [1mWhich agents should OPerator patch into?[0m
   [38;5;172m›[0m [38;5;30m[x][0m Claude Code

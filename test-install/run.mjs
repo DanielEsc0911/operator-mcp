@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const BUN = "bun@1.4.4";
@@ -41,7 +41,12 @@ function serve(dir, binaries, port) {
     if (path.startsWith("/releases/tag/")) return response.end("release page");
     const [, , , tag, name] = path.split("/");
     if (name === `${ASSET}.gz` && binaries[tag]) return send(response, binaries[tag]);
-    send(response, join(dir, path.replace(/^\/releases\//, "")));
+    const file = resolve(dir, "." + decodeURIComponent(path.replace(/^\/releases/, "")));
+    if (!file.startsWith(dir + sep)) {
+      response.writeHead(403);
+      return response.end("forbidden");
+    }
+    send(response, file);
   });
   return new Promise((resolve) => server.listen(port, "127.0.0.1", () => resolve(server)));
 }
@@ -107,6 +112,9 @@ try {
     /does not match its SHA-256/.test(corrupt.output) && /exit=1/.test(corrupt.output) && /No such file/.test(corrupt.output),
     corrupt.output,
   );
+
+  const quiet = await container("registry.fedoraproject.org/fedora:latest", `${install} -s -- --no-setup 2>&1 >/dev/null`, { env });
+  check("no terminal: nothing on stderr mentions /dev/tty", quiet.code === 0 && !quiet.output.includes("/dev/tty"), quiet.output);
 
   const tty = { ...env, TERM: "xterm-256color", LANG: "C.UTF-8" };
   const plain = await container("registry.fedoraproject.org/fedora:latest", `${install} -s -- --no-setup`, { env: { ...tty, NO_COLOR: "1" }, tty: true });

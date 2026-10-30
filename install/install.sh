@@ -53,7 +53,7 @@ usage() {
 }
 
 columns() {
-    size=$(stty size </dev/tty 2>/dev/null || true)
+    size=$( (stty size </dev/tty) 2>/dev/null || true)
     case ${size#* } in
         '' | 0 | *[!0-9]*) echo 80 ;;
         *) echo "${size#* }" ;;

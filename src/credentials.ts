@@ -33,9 +33,13 @@ export function writableProjects(credentials: Credentials): (query: string) => P
 }
 
 export function scaffoldConventions(path: string): string | null {
-  if (existsSync(path)) return null;
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  writeFileSync(path, STARTER_MANUAL, { mode: 0o600 });
+  try {
+    writeFileSync(path, STARTER_MANUAL, { flag: "wx", mode: 0o600 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return null;
+    throw error;
+  }
   return path;
 }
 

@@ -50,7 +50,7 @@ export const es: Catalog = {
   keepIt: "¿Mantienes esta conexión? [S/n] ",
   saved: "Guardado",
   manual: "Manual",
-  manualNew: "tus normas de la casa",
+  manualNew: "plantilla",
   manualKept: "se mantienen tus convenciones",
   projectQuestion: "Proyecto por defecto, para cuando no nombres ninguno",
   projectNone: "Ninguno",

@@ -86,7 +86,7 @@
     ↑↓ move · type to search · Enter choose[4A[J[?25h  Default project, for when you don't name one  Customer Portal
 
   Saved         done   ~/.config/operator-mcp/default/config.json
-  Manual        done   ~/.config/operator-mcp/default/conventions.md · your house rules
+  Manual        done   ~/.config/operator-mcp/default/conventions.md · template
 
 [?25l  Which agents should OPerator patch into?
   › [x] Claude Code

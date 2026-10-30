@@ -12,7 +12,7 @@ import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
 const MANUAL_WARNING_BYTES = 10_000;
-export const version = "1.3.0";
+export const version = "1.3.1";
 
 export function buildInstructions(config: Config, identity: Identity | null, manual: string | null): string {
   const lines = [

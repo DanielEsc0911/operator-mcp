@@ -46,7 +46,7 @@ export const en = {
   keepIt: "Keep this connection? [Y/n] ",
   saved: "Saved",
   manual: "Manual",
-  manualNew: "your house rules",
+  manualNew: "template",
   manualKept: "existing conventions kept",
   projectQuestion: "Default project, for when you don't name one",
   projectNone: "None",
