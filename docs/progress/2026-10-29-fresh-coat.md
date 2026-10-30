@@ -22,6 +22,7 @@ plan and why, and anything left open.
 | Chunk 7 — Polish, budgets, cross-repo verification | done | 8c3cf25..HEAD; landing 7f47993..6e5baa0 |
 | Chunk 8 — 1.3.0 CLI (F1–F5) | done | 13f18b7..HEAD, PR #5 |
 | Chunk 8b — Writable-project picker (F6) | done | efa631c..HEAD, PR #5 |
+| Chunk 9 — Landing page in Spanish | done | landing PR #1 (branch `spanish`, 252d322..9d397ca) |
 
 ## Hand-off notes
 
@@ -111,3 +112,12 @@ plan and why, and anything left open.
 - **Captures:** `docs/brand/demo/session{,-plain,-es,-es-plain}.txt` (80 cols, typed `cus` ↓ Enter → Customer Portal). Scratchpad `mock-op.mjs` serves 200 projects, 8 writable, and honours both filters; `frames.py` replays the picker frames through pyte. I read EN/ES at 40 and 80 columns plus the ES upgrade run.
 - **For Chunk 9:** the transcripts now contain the query line `/ ▏…` and the repaints while typing (`ESC[nA ESC[J`). New Spanish strings: "escribe para buscar", "buscando…", "sin coincidencias", "Instalado", "Versión", "desde npx →".
 - **Verify:** `npm test` 27 files / 304; tsc silent; build ok; `test:install` 10/10; brand byte-identical; pack-check 38 files; PR #5 CI all green (ubuntu/macOS/windows × 22/24, installer, audit, secrets, CodeQL).
+
+### Chunk 9 — Landing page in Spanish (2026-10-30)
+
+- **Landing PR:** https://github.com/DanielEsc0911/operator-landing-page/pull/1 (branch `spanish`, not merged: `main` deploys, 1.3.0 unreleased). Preview: https://spanish.operator-landing-page-c2p.pages.dev (`/` and `/es/` load).
+- **i18n:** Astro i18n (`/`, `/es/`), `src/i18n/en.ts` + `es.ts: Dict` (missing key fails `astro check`), island strings in `src/i18n/strings.ts` picked by `<html lang>`. Pages share `layouts/Page.astro`. canonical, hreflang en/es/x-default, `og:locale`, sitemap with both. Header EN/ES link + dismissible hint from `navigator.languages`, localStorage in try/catch, no redirect. CLI terms reused (Ya tienes línea, Línea abierta, ¿qué tengo pendiente?, normas de la casa, conectar).
+- **Replay:** sync-brand copies `session.txt` + `session-es.txt`; the width guard now strips the trailing `\r` of CRLF captures (it measured 0 before). Player: `ESC[nA` cursor-up, 260 ms per redraw frame, no per-line delay while repainting. Tests assert the final screen keeps only the picked project.
+- **Copy (EN):** arrow-key agent picker, search among writable projects, bare host → https, re-run to upgrade, Spanish FAQ. Tool names/descriptions stay English with a note on `/es/`; sync-tools re-run against this branch's dist (server 1.3.0, 20 tools).
+- **Deviations:** the `ESC[nA` commit (252d322) imports `i18n/ui` added in the next commit (not bisectable). The 89-col "Manual … tus normas de la casa" row is the CLI's own whole step line, not a rewrite effect. Tests reused the user's running `astro preview` on :4321 (serves this repo's `dist`).
+- **Verify:** `npm run build && npm test` 31 passed; astro check 0 errors; Lighthouse mobile 98/100/100/100, desktop 100×4 on `/` and `/es/`; PR CI (check, build, Playwright, Lighthouse) and Cloudflare Pages green. Screenshots: scratchpad `es-shots/es-{1440,1024,390}-{light,dark}.png`.
