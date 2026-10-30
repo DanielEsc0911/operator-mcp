@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OpenProjectClient, type Identity } from "./client.js";
 import type { Config } from "./config.js";
@@ -13,7 +12,7 @@ import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
 const MANUAL_WARNING_BYTES = 10_000;
-export const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+export const version = "1.1.2";
 
 export function buildInstructions(config: Config, identity: Identity | null, manual: string | null): string {
   const lines = [

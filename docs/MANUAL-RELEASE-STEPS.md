@@ -345,7 +345,8 @@ a patch bump.
   ```bash
   npm version patch -m "chore: release v%s"      # 1.0.1, commits and tags
   # add a "## [1.0.1]" section to CHANGELOG.md describing what changed
-  git add CHANGELOG.md && git commit --amend --no-edit
+  # set the same version in src/server.ts (`export const version`); npm test fails until you do
+  git add CHANGELOG.md src/server.ts && git commit --amend --no-edit
   git tag -f v1.0.1
   git push origin main --follow-tags
   ```
@@ -409,7 +410,7 @@ a patch bump.
   ```bash
   npm pack operator-mcp@1.0.1 && tar -tzf operator-mcp-1.0.1.tgz
   ```
-  Only `package/dist/`, `package/templates/`, `README.md`, `LICENSE`,
+  Only `package/dist/`, `README.md`, `LICENSE`,
   `CHANGELOG.md`, `package.json`. No `src/`, no `test/`, no `.github/`.
 
 ---

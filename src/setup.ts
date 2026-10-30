@@ -1,10 +1,10 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createInterface, type Interface } from "node:readline/promises";
 import type { Streams } from "./cli.js";
 import { OpenProjectClient, type Identity } from "./client.js";
 import { assertSecureUrl, normalizeUrl, profileDir, resolveProfile, saveConfig } from "./config.js";
-import { TEMPLATE_PATH } from "./conventions.js";
+import { STARTER_MANUAL } from "./conventions.js";
 import { humanMessage } from "./errors.js";
 import { runInstall } from "./install.js";
 import { SetupAborted, ask, askHidden } from "./prompts.js";
@@ -26,7 +26,7 @@ export async function verifyCredentials(
 export function scaffoldConventions(path: string): string | null {
   if (existsSync(path)) return null;
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  copyFileSync(TEMPLATE_PATH, path);
+  writeFileSync(path, STARTER_MANUAL, { mode: 0o600 });
   return path;
 }
 

@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-const REQUIRED = ["package.json", "README.md", "LICENSE", "dist/index.js", "dist/cli.js", "templates/conventions.md"];
+const REQUIRED = ["package.json", "README.md", "LICENSE", "dist/index.js", "dist/cli.js"];
 const FORBIDDEN = [/^src\//, /^test/, /^docs\//, /^scripts\//, /^\.github\//, /^\.claude\//, /^\.codegraph\//, /\.env/, /\.tgz$/];
 
 const [{ files }] = JSON.parse(
