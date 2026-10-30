@@ -35,8 +35,12 @@ anything Windows-only that the first run shows, then merge.
 ## 3. Configure npm Trusted Publishing
 
 npmjs.com → `operator-mcp` → Settings → Trusted Publisher → GitHub Actions:
-owner `DanielEsc0911`, repository `operator-mcp`, workflow `release.yml`, no environment.
-The release job already has `id-token: write` and runs `npm publish --provenance`.
+owner `DanielEsc0911`, repository `operator-mcp`, workflow `release.yml` (the filename
+only), environment `release`. The publish job runs in that GitHub environment, and npm
+refuses the publish with `403 OIDC permission denied` when the entry does not match it.
+The job already has `id-token: write` and runs `npm publish --provenance`. Optional:
+GitHub → Settings → Environments → `release` → required reviewers, to approve each
+publish by hand.
 
 ## 4. Tag 1.2.1 and push the tag
 
