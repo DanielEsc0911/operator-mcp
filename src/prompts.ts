@@ -1,9 +1,10 @@
 import type { Interface } from "node:readline/promises";
-import type { Output, Style } from "./ui.js";
+import { t } from "./i18n/index.js";
+import { pad, type Output, type Style } from "./ui.js";
 
 export class SetupAborted extends Error {
   constructor() {
-    super("Setup cancelled. Nothing was saved.");
+    super(t().aborted);
   }
 }
 
@@ -91,8 +92,8 @@ export async function choose(
 ): Promise<string> {
   out.write(`  ${s.bold(question)}\n`);
   const width = Math.max(...options.map(([label]) => [...label].length));
-  options.forEach(([label, value], index) => out.write(`    ${s.accent(String(index + 1))}  ${label.padEnd(width)}  ${s.muted(value)}\n`));
-  out.write(`    ${s.accent("0")}  ${s.muted("none")}\n`);
+  options.forEach(([label, value], index) => out.write(`    ${s.accent(String(index + 1))}  ${pad(label, width)}  ${s.muted(value)}\n`));
+  out.write(`    ${s.accent("0")}  ${s.muted(t().noneOption)}\n`);
   const answer = await ask(rl, PROMPT);
   if (answer === "" || answer === "0") return "";
   return options[Number(answer) - 1]?.[1] ?? answer;
@@ -100,15 +101,15 @@ export async function choose(
 
 export async function confirmList(rl: Interface, out: Output, s: Style, question: string, items: string[]): Promise<number[]> {
   const chosen = new Set(items.keys());
-  out.write(`  ${s.bold(question)}\n  ${s.muted("Enter accepts · type numbers to switch one off or on · all · none")}\n`);
+  out.write(`  ${s.bold(question)}\n  ${s.muted(t().typedHint)}\n`);
   for (;;) {
     items.forEach((item, index) =>
       out.write(`    ${chosen.has(index) ? s.patch("[x]") : s.muted("[ ]")} ${index + 1}  ${item}\n`),
     );
     const answer = (await ask(rl, PROMPT)).toLowerCase();
     if (answer === "") return [...chosen].sort();
-    if (answer === "none") chosen.clear();
-    if (answer === "all") items.forEach((_, index) => chosen.add(index));
+    if (t().typedNone.test(answer)) chosen.clear();
+    if (t().typedAll.test(answer)) items.forEach((_, index) => chosen.add(index));
     for (const token of answer.split(/[\s,]+/)) {
       const index = Number(token) - 1;
       if (!(index in items)) continue;

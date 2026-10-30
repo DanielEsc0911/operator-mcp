@@ -5,11 +5,13 @@ import { offeredClients, detectClients, selfCommand, serverCommand, serverName, 
 import type { Streams } from "./cli.js";
 import { resolveProfile } from "./config.js";
 import { humanMessage } from "./errors.js";
+import { t } from "./i18n/index.js";
 import { listed } from "./outro.js";
 import { confirmList } from "./prompts.js";
-import { step, style, tilde, type Output, type Style } from "./ui.js";
+import { canSelect, multiSelect } from "./select.js";
+import { pad, step, style, tilde, type Output, type Style } from "./ui.js";
 
-export type Outcome = { client: Client; error?: string };
+export type Outcome = { client: Client; updated: boolean; error?: string };
 
 const spawnRunner: Runner = (command, args) => {
   const result = spawnSync(command, args, { stdio: ["ignore", "ignore", "pipe"], encoding: "utf8" });
@@ -19,11 +21,12 @@ const spawnRunner: Runner = (command, args) => {
 
 export function registerAll(clients: Client[], target: Target): Outcome[] {
   return clients.map((client) => {
+    const updated = client.entry(target.home, target.name) !== null;
     try {
       client.register(target);
-      return { client };
+      return { client, updated };
     } catch (error) {
-      return { client, error: humanMessage(error) };
+      return { client, updated, error: humanMessage(error) };
     }
   });
 }
@@ -31,19 +34,24 @@ export function registerAll(clients: Client[], target: Target): Outcome[] {
 const indent = (text: string, spaces: number) => text.replace(/^/gm, " ".repeat(spaces));
 
 function report(outcomes: Outcome[], target: Target, out: Output, s: Style): void {
+  const text = t();
   const width = Math.max(...outcomes.map(({ client }) => client.label.length)) + 2;
-  outcomes.forEach(({ client, error }, index) => {
-    const label = index === 0 ? "Patching in" : "";
-    const where = error ?? tilde(client.configPath(target.home), target.home);
-    step(out, s, label, error ? "fail" : "done", `${client.label.padEnd(width)}${s.muted(where)}`);
-    if (error) out.write(`${indent(`Add it yourself:\n${indent(client.manual(target), 2)}`, 22)}\n`);
+  const verbWidth = Math.max(text.added.length, text.updated.length) + 2;
+  outcomes.forEach(({ client, updated, error }, index) => {
+    const label = index === 0 ? text.patchingIn : "";
+    const where = error ?? `${pad(updated ? text.updated : text.added, verbWidth)}${tilde(client.configPath(target.home), target.home)}`;
+    step(out, s, label, error ? text.fail : text.done, `${pad(client.label, width)}${s.muted(where)}`);
+    if (error) out.write(`${indent(`${text.addYourself}\n${indent(client.manual(target), 2)}`, 22)}\n`);
   });
 }
 
 async function pick(detected: Client[], argv: string[], streams: Streams, rl: Interface, s: Style): Promise<Client[]> {
   if (argv.includes("--yes") || !streams.stdin.isTTY) return detected;
   const labels = detected.map((client) => client.label);
-  const chosen = await confirmList(rl, streams.stdout, s, "Which agents should OPerator patch into?", labels);
+  const question = t().agentsQuestion;
+  const chosen = canSelect(streams)
+    ? await multiSelect(streams.stdin, streams.stdout, s, question, labels.map((label) => ({ label })))
+    : await confirmList(rl, streams.stdout, s, question, labels);
   streams.stdout.write("\n");
   return chosen.map((index) => detected[index]);
 }
@@ -51,25 +59,26 @@ async function pick(detected: Client[], argv: string[], streams: Streams, rl: In
 export async function patchAgents(argv: string[], streams: Streams, rl: Interface, home = homedir()): Promise<Client[]> {
   const out = streams.stdout;
   const s = style(out);
+  const text = t();
   const profile = resolveProfile(argv, process.env);
   const target: Target = { home, name: serverName(profile), ...serverCommand(profile), run: spawnRunner };
 
   const detected = detectClients(home);
   if (detected.length === 0) {
-    out.write(`  ${s.bold("No agent found on this machine.")} Register OPerator by hand in yours:\n\n`);
+    out.write(`  ${s.bold(text.noAgent)} ${text.byHand}\n\n`);
     for (const client of offeredClients(home)) out.write(`  ${s.accent(client.label)}\n${indent(client.manual(target), 4)}\n\n`);
     return [];
   }
 
   const chosen = await pick(detected, argv, streams, rl, s);
-  if (chosen.length === 0) return (out.write("  Nothing registered.\n"), []);
+  if (chosen.length === 0) return (out.write(`  ${text.nothingRegistered}\n`), []);
   const outcomes = registerAll(chosen, target);
   report(outcomes, target, out, s);
 
   const missed = offeredClients(home).filter((client) => !detected.includes(client));
   if (missed.length > 0) {
-    out.write(`\n  ${s.muted(`Not installed here: ${missed.map((client) => client.label).join(", ")}.`)}\n`);
-    out.write(`  ${s.muted(`Install one later, then run: ${selfCommand()} install`)}\n`);
+    out.write(`\n  ${s.muted(text.notInstalled(missed.map((client) => client.label).join(", ")))}\n`);
+    out.write(`  ${s.muted(text.installLater(selfCommand()))}\n`);
   }
   return outcomes.filter((outcome) => !outcome.error).map((outcome) => outcome.client);
 }
@@ -82,8 +91,8 @@ export async function runInstall(argv: string[], streams: Streams): Promise<numb
     out.write("\n");
     const patched = await patchAgents(argv, streams, rl);
     if (patched.length === 0) return 0;
-    out.write(`\n  Check the line any time: ${s.bold(`${selfCommand()} doctor`)}\n`);
-    out.write(`  Restart ${listed(patched.map((client) => client.label))}, then ask: ${s.accent("what's on my plate?")}\n\n`);
+    out.write(`\n  ${t().checkAnyTime} ${s.bold(`${selfCommand()} doctor`)}\n`);
+    out.write(`  ${t().restartThenAsk(listed(patched.map((client) => client.label)))} ${s.accent(t().question)}\n\n`);
     return 0;
   } finally {
     rl.close();

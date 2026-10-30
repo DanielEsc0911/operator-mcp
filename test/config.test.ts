@@ -33,6 +33,14 @@ describe("configHome", () => {
     );
   });
 
+  it("on Windows keeps reading ~/.config/operator-mcp, where 1.2.0 saved it, until the APPDATA home exists", () => {
+    const appData = join(home, "AppData", "Roaming");
+    mkdirSync(join(home, ".config", "operator-mcp", "default"), { recursive: true });
+    expect(configHome({ APPDATA: appData }, "win32")).toBe(join(home, ".config", "operator-mcp"));
+    mkdirSync(join(appData, "operator-mcp"), { recursive: true });
+    expect(configHome({ APPDATA: appData }, "win32")).toBe(join(appData, "operator-mcp"));
+  });
+
   it("places every profile under it", () => {
     vi.stubEnv("XDG_CONFIG_HOME", join(home, "xdg"));
     expect(profileDir("acme")).toBe(join(home, "xdg", "operator-mcp", "acme"));

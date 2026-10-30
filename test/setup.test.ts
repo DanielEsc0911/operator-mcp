@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
@@ -150,5 +150,53 @@ describe("runSetup --non-interactive", () => {
       runSetup(["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"], streams),
     ).rejects.toThrow("API key rejected");
     expect(describeExisting("ci")).toBeNull();
+  });
+});
+
+describe("runSetup over a profile 1.2.0 left behind", () => {
+  function typed(...answers: string[]) {
+    let text = "";
+    const stdin = new PassThrough() as any;
+    const stdout = new PassThrough() as any;
+    stdout.on("data", (chunk: Buffer) => {
+      text += chunk;
+      if (/(\] |› )$/.test(String(chunk)) && answers.length) setImmediate(() => stdin.write(`${answers.shift()}\n`));
+    });
+    return { streams: { stdin, stdout, stderr: stdout }, text: () => text };
+  }
+
+  it("keeps the connection after re-verifying it, then updates the agent's npx entry", async () => {
+    const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home);
+    mkdirSync(join(home, ".cursor"));
+    writeFileSync(join(home, ".cursor", "mcp.json"), JSON.stringify({ mcpServers: { openproject: { command: "npx", args: ["-y", "operator-mcp"] } } }));
+    saveConfig("default", { url: "https://op.example.com", apiKey: "supersecretkey" });
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 0, count: 0, _embedded: { elements: [] } }),
+    );
+    const { streams, text } = typed("", "");
+
+    expect(await runSetup(["setup"], streams as any)).toBe(0);
+    expect(text()).toContain("This profile is already connected: https://op.example.com · …tkey");
+    expect(text()).not.toContain("Where does your OpenProject live?");
+    expect(text()).toContain("Line's open");
+    expect(text()).toMatch(/Cursor\s+updated/);
+  });
+
+  it("asks for a new connection when told not to keep it, and takes a bare host", async () => {
+    const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home);
+    saveConfig("default", { url: "https://old.example.com", apiKey: "supersecretkey" });
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 0, count: 0, _embedded: { elements: [] } }),
+    );
+    const { streams, text } = typed("n", "openproject.acme.com", "newkey");
+
+    expect(await runSetup(["setup"], streams as any)).toBe(0);
+    expect(text()).toContain("Where does your OpenProject live? e.g. openproject.acme.com");
+    expect(text()).toContain("https://openproject.acme.com/my/access_tokens");
+    expect(describeExisting("default")).toBe("https://openproject.acme.com · …");
   });
 });

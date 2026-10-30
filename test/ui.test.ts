@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { findClient } from "../src/clients.js";
 import { listed, outro } from "../src/outro.js";
-import { card, greet, lamp, markLines, step, style, tilde } from "../src/ui.js";
+import { card, displayWidth, fit, greet, lamp, markLines, step, style, tilde } from "../src/ui.js";
 
 function sink(isTTY: boolean) {
   let text = "";
@@ -26,7 +26,7 @@ describe("plain output", () => {
     expect(await lamp(out, s, "Line check", "op.example.com", Promise.resolve(7))).toBe(7);
     outro(out, s, [findClient("cursor")!], true);
     expect(text()).not.toContain("\x1b");
-    expect(text()).toContain("  Saved        done   ~/.config");
+    expect(text()).toContain("  Saved         done   ~/.config");
     expect(text()).toContain("Restart Cursor, then ask:");
     expect(text()).toContain("#1284  Bug   In progress  Fix login redirect loop");
   });
@@ -36,6 +36,27 @@ describe("plain output", () => {
     card(out, style(out, {}), ["short", "a much longer line"]);
     const widths = new Set(text().trimEnd().split("\n").map((line) => [...line].length));
     expect(widths.size).toBe(1);
+  });
+});
+
+describe("narrow terminals", () => {
+  const plain = (text: string) => text.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "");
+
+  it("cuts a redrawn step line to the width, keeping colour codes whole", () => {
+    let text = "";
+    const out = { isTTY: true, columns: 40, write: (chunk: string) => ((text += chunk), true) } as any;
+    step(out, style(out, {}), "Line's open", "done", "Ada Lovelace (ada@example.com) · 12 projects");
+    const line = plain(text).replace(/^\r/, "").trimEnd();
+    expect(displayWidth(line)).toBe(39);
+    expect(line.endsWith("…")).toBe(true);
+    expect(text).toContain("\x1b[1m");
+  });
+
+  it("measures accented and wide characters by the cells they take", () => {
+    expect(displayWidth("Línea abierta")).toBe(13);
+    expect(displayWidth("e\u0301")).toBe(1);
+    expect(displayWidth("日本")).toBe(4);
+    expect(fit("日本語のテキスト", { columns: 8 } as any)).toBe("日本語…\x1b[0m");
   });
 });
 
