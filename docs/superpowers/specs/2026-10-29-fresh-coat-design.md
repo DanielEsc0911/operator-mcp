@@ -153,9 +153,9 @@ read `../package.json` and `templates/conventions.md` beside the module, which
 do not exist inside a Bun binary, so both now live in source. The binary is
 ~110 MB, not ~55–60 MB: Bun's runtime grew. Accepted; the binary path stands. Releases ship it gzipped: 51.8 MB (49.4 MiB) for linux-x64, measured in Chunk 5.
 
-### 5.1 `curl -fsSL https://operator-mcp.pages.dev/install.sh | sh`
+### 5.1 `curl -fsSL https://operator.daer.dev/install.sh | sh`
 
-`operator-mcp.pages.dev` is the Pages default domain and a single constant; a
+`operator.daer.dev` is the Pages default domain and a single constant; a
 custom domain later changes one line. The landing page serves `/install.sh` as a
 302 (`_redirects`) to `github.com/DanielEsc0911/operator-mcp/releases/latest/download/install.sh`,
 so the script's source of truth stays in this public repo at `install/install.sh`.

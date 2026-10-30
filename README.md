@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://operator-mcp.pages.dev">
+  <a href="https://operator.daer.dev">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DanielEsc0911/operator-mcp/main/docs/brand/assets/hero/readme-hero-dark.png">
       <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/DanielEsc0911/operator-mcp/main/docs/brand/assets/hero/readme-hero-light.png">
@@ -23,7 +23,7 @@
   <a href="#install">Install</a> ·
   <a href="#what-your-agent-can-do">What it does</a> ·
   <a href="#your-agent-cant-delete-anything-by-design">Safety</a> ·
-  <a href="https://operator-mcp.pages.dev">Website</a>
+  <a href="https://operator.daer.dev">Website</a>
 </p>
 
 ---
@@ -50,7 +50,7 @@ Agent: 3 work packages assigned to you in Acme:
 On macOS or Linux (x64 or arm64), one line. No Node.js, no sudo:
 
 ```bash
-curl -fsSL https://operator-mcp.pages.dev/install.sh | sh
+curl -fsSL https://operator.daer.dev/install.sh | sh
 ```
 
 The script downloads one gzipped binary, checks it against the release's SHA-256,

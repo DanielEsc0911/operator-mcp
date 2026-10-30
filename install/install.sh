@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install the OPerator standalone binary into ~/.local/bin, then run its setup:
-#     curl -fsSL https://operator-mcp.pages.dev/install.sh | sh
-#     curl -fsSL https://operator-mcp.pages.dev/install.sh | sh -s -- --no-setup
+#     curl -fsSL https://operator.daer.dev/install.sh | sh
+#     curl -fsSL https://operator.daer.dev/install.sh | sh -s -- --no-setup
 # OPERATOR_VERSION pins a release, OPERATOR_INSTALL_DIR moves the binary,
 # OPERATOR_BASE points at another download host. Never needs sudo.
 set -eu
@@ -27,7 +27,7 @@ else
 fi
 
 usage() {
-    echo "Usage: curl -fsSL https://operator-mcp.pages.dev/install.sh | sh -s -- [--no-setup]"
+    echo "Usage: curl -fsSL https://operator.daer.dev/install.sh | sh -s -- [--no-setup]"
     echo
     echo "  --no-setup   install the binary and stop; run 'operator-mcp setup' later"
     echo

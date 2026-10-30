@@ -65,18 +65,28 @@ GitHub → Actions → `release`. Check that:
 
 ## 6. Publish the landing page
 
-```bash
-cd ../operator-landing-page
-gh repo create DanielEsc0911/operator-landing-page --private --source . --push
-```
+The repo is `git@github.com:DanielEsc0911/operator-landing-page.git` (private) and
+deploys with Cloudflare Pages' Git integration: every push to `main` goes to
+production, and every other branch or PR gets its own preview URL. No secrets live
+in GitHub.
 
-Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → pick the repo.
-Framework preset Astro; build command `npm run build`; output directory `dist`;
-environment variable `NODE_VERSION` = `22`. Project name `operator-mcp` gives
-`https://operator-mcp.pages.dev`.
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**.
+   Authorize the Cloudflare GitHub app for `operator-landing-page` only. **Do not
+   create the project with `wrangler` first**: a Direct Upload project can never be
+   switched to Git later.
+2. Build settings: framework preset **Astro**, build command `npm run build`, output
+   directory `dist`, production branch `main`. The build image reads `.nvmrc` (22);
+   set `NODE_VERSION` = `22` only if the build log shows another version.
+3. Pages project → **Custom domains → Set up a custom domain** → `operator.daer.dev`.
+   The zone is in the same Cloudflare account, so the CNAME and certificate are
+   created for you.
+4. GitHub → repo **Settings → Branches → Add rule** for `main`: require a pull request
+   and require the `test` status check from the `ci` workflow (build, Playwright + axe, Lighthouse). Cloudflare
+   cannot wait for GitHub checks, so this rule is what keeps an untested change off
+   production: only merged, green PRs reach `main`.
+5. Optional: Pages project → **Metrics → Web Analytics** (cookieless, already allowed by
+   the CSP in `public/_headers`).
 
-Optional: Pages project → Metrics → enable Web Analytics (cookieless, already allowed by
-the CSP in `public/_headers`). Optional custom domain: Pages project → Custom domains.
 **If the domain changes**, change the one install-line constant in each repo:
 `SITE_URL` in `operator-landing-page/src/site.ts`, and the `curl` line in
 `operator-mcp/README.md` and the usage lines at the top of `install/install.sh`. Re-run
@@ -87,7 +97,7 @@ the CSP in `public/_headers`). Optional custom domain: Pages project → Custom 
 After step 5 and step 6:
 
 ```bash
-curl -fsSL https://operator-mcp.pages.dev/install.sh | sh
+curl -fsSL https://operator.daer.dev/install.sh | sh
 ```
 
 Before the first tag, `/install.sh` redirects (302) to a release asset that 404s; that is expected.
