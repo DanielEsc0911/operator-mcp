@@ -7,13 +7,19 @@ The code is done on branch `fresh-coat` (operator-mcp) and `main` (operator-land
 security fixes (URL escape, plain-HTTP keys, path injection). Until a release ships,
 every `npx operator-mcp` user runs the unpatched version.
 
-## 1. Fill the contact address
+## 1. Turn on private reporting and keep your email private
 
-Edit `CODE_OF_CONDUCT.md`: replace `<CONTACT>` with an address you read.
+`SECURITY.md` and `CODE_OF_CONDUCT.md` both send reports to GitHub's private
+form, not to an email address. The form only works once it is switched on:
+
+- **Repo → Settings → Code security → Private vulnerability reporting → Enable.**
+- **github.com/settings/emails:** tick *Keep my email addresses private* and
+  *Block command line pushes that expose my email*.
+- Commit with your GitHub no-reply address from now on:
 
 ```bash
-git switch fresh-coat
-$EDITOR CODE_OF_CONDUCT.md && git commit -am "docs: code of conduct contact"
+id=$(gh api users/DanielEsc0911 --jq .id)
+git config user.email "${id}+DanielEsc0911@users.noreply.github.com"
 ```
 
 ## 2. Review and merge `fresh-coat` into `main`

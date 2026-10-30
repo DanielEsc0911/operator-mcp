@@ -23,7 +23,6 @@ Every task's requirements implicitly include this section.
 - Never write a `delete_*` tool. Deletion is reachable only through `api_request`.
 - Every mutating operation must be blocked when `config.readOnly` is true.
 - Tests never contact a real OpenProject instance. `test/` mocks `fetch`; the live smoke suite lives in `test-live/` and is excluded from the default Vitest run.
-- Author commits with `git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me"` — this repository has no committer identity configured.
 
 ## File Structure
 
@@ -421,7 +420,7 @@ Expected: no output.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: scaffolding, CLAUDE.md, and profile configuration"
 ```
 
@@ -467,7 +466,7 @@ git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
     "status": { "href": "/api/v3/statuses/7", "title": "In progress" },
     "priority": { "href": "/api/v3/priorities/9", "title": "High" },
     "project": { "href": "/api/v3/projects/3", "title": "Website" },
-    "assignee": { "href": "/api/v3/users/12", "title": "Daniel Escalona" },
+    "assignee": { "href": "/api/v3/users/12", "title": "Ada Lovelace" },
     "author": { "href": "/api/v3/users/5", "title": "Ana Ruiz" },
     "parent": { "href": "/api/v3/work_packages/1200", "title": "Auth overhaul" }
   }
@@ -537,7 +536,7 @@ describe("flattenWorkPackage", () => {
       status: "In progress",
       priority: "High",
       project: "Website",
-      assignee: "Daniel Escalona",
+      assignee: "Ada Lovelace",
       author: "Ana Ruiz",
       parent: 1200,
       dueDate: "2026-08-03",
@@ -724,7 +723,7 @@ If the JSON import assertion syntax errors, the installed TypeScript predates `w
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: flatten HAL+JSON resources into plain objects"
 ```
 
@@ -948,10 +947,10 @@ describe("collection", () => {
 
 describe("me", () => {
   it("resolves identity once and caches it", async () => {
-    fetchMock.mockResolvedValue(respond({ id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" }));
+    fetchMock.mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "ada@example.com" }));
     const client = new OpenProjectClient(config);
 
-    expect(await client.me()).toEqual({ id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" });
+    expect(await client.me()).toEqual({ id: 12, name: "Ada Lovelace", email: "ada@example.com" });
     await client.me();
 
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -1106,7 +1105,7 @@ Expected: all tests pass, no type errors.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: typed errors and the OpenProject HTTP client"
 ```
 
@@ -1364,7 +1363,7 @@ Expected: PASS, 13 tests.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: read, append to, and safely prune the conventions manual"
 ```
 
@@ -1477,12 +1476,12 @@ const config: Config = {
   readOnly: false,
 };
 
-const identity = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const identity = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 
 describe("buildInstructions", () => {
   it("names the user, instance and profile", () => {
     expect(buildInstructions(config, identity, null)).toContain(
-      'You are Daniel Escalona (daescalona@proton.me) on https://op.acme.com, profile "acme".',
+      'You are Daniel Escalona (ada@example.com) on https://op.acme.com, profile "acme".',
     );
   });
 
@@ -1531,7 +1530,7 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 
 const PROJECTS = {
   total: 2,
@@ -1566,8 +1565,8 @@ describe("whoami", () => {
     const client = await connect({ ...testConfig, defaultProject: "website" });
 
     expect((await callTool(client, "whoami")).json()).toEqual({
-      user: "Daniel Escalona",
-      email: "daescalona@proton.me",
+      user: "Ada Lovelace",
+      email: "ada@example.com",
       userId: 12,
       instanceUrl: "https://op.acme.com",
       profile: "test",
@@ -1627,7 +1626,7 @@ describe("list_projects", () => {
 describe("list_users", () => {
   const assignees = {
     total: 1, count: 1,
-    _embedded: { elements: [{ id: 12, name: "Daniel Escalona", email: "daescalona@proton.me", _links: {} }] },
+    _embedded: { elements: [{ id: 12, name: "Ada Lovelace", email: "ada@example.com", _links: {} }] },
   };
 
   it("uses available_assignees when a project is given", async () => {
@@ -1635,7 +1634,7 @@ describe("list_users", () => {
     const client = await connect();
 
     expect((await callTool(client, "list_users", { project: "website" })).json()).toEqual([
-      { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" },
+      { id: 12, name: "Ada Lovelace", email: "ada@example.com" },
     ]);
   });
 
@@ -1817,7 +1816,7 @@ Expected: a single JSON-RPC response on stdout whose `result.instructions` menti
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: MCP server with conventions instructions and identity tools"
 ```
 
@@ -1854,7 +1853,7 @@ function respond(body: unknown, status = 200): Response {
 }
 
 beforeEach(() => {
-  fetchMock = vi.fn().mockResolvedValue(respond({ id: 12, name: "Daniel Escalona", email: "d@e.me" }));
+  fetchMock = vi.fn().mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "d@e.me" }));
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -1999,7 +1998,7 @@ Expected: PASS.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: api_request escape hatch for uncovered APIv3 endpoints"
 ```
 
@@ -2124,7 +2123,7 @@ describe("resolveId", () => {
 
 describe("resolveUserHref", () => {
   it("turns 'me' into the authenticated user", async () => {
-    fetchMock.mockResolvedValue(respond({ id: 12, name: "Daniel Escalona", email: "d@e.me" }));
+    fetchMock.mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "d@e.me" }));
     expect(await resolveUserHref(client(), "me")).toBe("/api/v3/users/12");
   });
 
@@ -2174,7 +2173,7 @@ function respond(body: unknown): Response {
 
 beforeEach(() => {
   clearMetadataCache();
-  fetchMock = vi.fn().mockResolvedValue(respond({ id: 12, name: "Daniel Escalona", email: "d@e.me" }));
+  fetchMock = vi.fn().mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "d@e.me" }));
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -2350,7 +2349,7 @@ Expected: PASS.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: metadata lookup and name-to-href resolution"
 ```
 
@@ -2384,7 +2383,7 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const TYPES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "Bug" }] } };
 const STATUSES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "In progress" }] } };
 const RESULTS = { total: 1, count: 1, _embedded: { elements: [workPackage] } };
@@ -2422,7 +2421,7 @@ describe("get_work_package", () => {
 
     expect(result).toMatchObject({
       id: 1234, subject: "Fix login redirect", type: "Bug", status: "In progress",
-      assignee: "Daniel Escalona", lockVersion: 7, url: "https://op.acme.com/work_packages/1234",
+      assignee: "Ada Lovelace", lockVersion: 7, url: "https://op.acme.com/work_packages/1234",
     });
     expect(result.description).toContain("Users land on /dashboard");
   });
@@ -2708,7 +2707,7 @@ Expected: PASS.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: work package read tools with plain-argument filtering"
 ```
 
@@ -2744,7 +2743,7 @@ function respond(body: unknown, status = 200): Response {
   });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const TYPES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "Bug" }] } };
 const STATUSES = { total: 1, count: 1, _embedded: { elements: [{ id: 9, name: "In progress" }] } };
 
@@ -2918,7 +2917,7 @@ describe("list_activities", () => {
         _embedded: {
           elements: [
             { id: 1, _type: "Activity", createdAt: "2026-07-20T08:00:00Z", details: [{ raw: "Status set to New" }], _links: { user: { href: "/api/v3/users/5", title: "Ana Ruiz" } } },
-            { id: 2, _type: "Activity::Comment", createdAt: "2026-07-28T10:00:00Z", comment: { raw: "Pushed the fix." }, _links: { user: { href: "/api/v3/users/12", title: "Daniel Escalona" } } },
+            { id: 2, _type: "Activity::Comment", createdAt: "2026-07-28T10:00:00Z", comment: { raw: "Pushed the fix." }, _links: { user: { href: "/api/v3/users/12", title: "Ada Lovelace" } } },
           ],
         },
       },
@@ -2928,7 +2927,7 @@ describe("list_activities", () => {
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
-    expect(result[1]).toMatchObject({ id: 2, user: "Daniel Escalona", comment: "Pushed the fix." });
+    expect(result[1]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
   });
 });
 
@@ -3152,7 +3151,7 @@ Expected: PASS.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: work package creation, updates, comments, activity and relations"
 ```
 
@@ -3187,7 +3186,7 @@ function respond(body: unknown, status = 200): Response {
   });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const FEED = { total: 1, count: 1, _embedded: { elements: [notification] } };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -3451,7 +3450,7 @@ The `mark_notifications_read` test for `all` asserts on `filtersOf()`, which rea
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: notification triage and watching"
 ```
 
@@ -3484,7 +3483,7 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const ACTIVITIES = { total: 1, count: 1, _embedded: { elements: [{ id: 3, name: "Development" }] } };
 const ENTRY = { id: 501, hours: "PT2H30M", spentOn: "2026-07-28", _links: {} };
 
@@ -3665,7 +3664,7 @@ Expected: PASS.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: log time with ISO 8601 duration conversion"
 ```
 
@@ -3713,7 +3712,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { connect, callTool, testConfig } from "../support/harness.js";
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 
 const MANUAL = `# ACME — OpenProject conventions
 
@@ -3973,7 +3972,7 @@ This test needs `fetch` stubbed the way the other suites do it; copy the `before
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: conventions tools, resource, and confirmed removal"
 ```
 
@@ -4011,7 +4010,7 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -4218,7 +4217,7 @@ If the key echoes, the readline internals differ in this Node version. Fall back
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "feat: interactive setup wizard and bin routing"
 ```
 
@@ -4537,7 +4536,7 @@ Expected: all tests pass, no type errors, `dist/` written.
 
 ```bash
 git add -A
-git -c user.name="Daniel Escalona" -c user.email="daescalona@proton.me" \
+git \
   commit -m "docs: README and live smoke suite against a real instance"
 ```
 
