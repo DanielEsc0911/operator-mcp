@@ -1,6 +1,7 @@
 import { PassThrough } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
-import { SetupAborted, readHidden } from "../src/prompts.js";
+import { createInterface } from "node:readline/promises";
+import { SetupAborted, ask, readHidden } from "../src/prompts.js";
 
 function fakeTty() {
   const stdin = new PassThrough() as any;
@@ -52,5 +53,24 @@ describe("readHidden", () => {
     stdin.write("\u0003");
     await expect(answer).rejects.toBeInstanceOf(SetupAborted);
     expect(stdin.setRawMode).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe("ask", () => {
+  it("trims the answer", async () => {
+    const input = new PassThrough();
+    const rl = createInterface({ input, output: new PassThrough() });
+    const answer = ask(rl, "URL: ");
+    input.write("  https://op.example.com  \n");
+    expect(await answer).toBe("https://op.example.com");
+    rl.close();
+  });
+
+  it("turns ctrl-c into SetupAborted", async () => {
+    const rl = createInterface({ input: new PassThrough(), output: new PassThrough() });
+    const answer = ask(rl, "URL: ");
+    rl.emit("SIGINT");
+    await expect(answer).rejects.toBeInstanceOf(SetupAborted);
+    rl.close();
   });
 });

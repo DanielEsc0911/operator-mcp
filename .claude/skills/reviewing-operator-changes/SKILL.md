@@ -12,7 +12,7 @@ quietly breaks. Walk the list against the diff, then run the commands.
 
 ```bash
 npx tsc --noEmit    # must be silent
-npm test            # 18 files, 192 tests, ~2s
+npm test            # 23 files, 254 tests, ~3s
 ```
 
 Both must pass before the change is described as done. Report the actual output —
@@ -27,12 +27,12 @@ ask, do not add.
 
 **stdout belongs to the transport.** The stdio server speaks JSON-RPC on stdout; one
 stray `console.log` on a path the server can reach corrupts the stream and the client
-disconnects. Diagnostics use `process.stderr.write`. Only `src/setup.ts` and
-`src/install.ts` may write to stdout, because both run as CLI commands with no
-transport attached.
+disconnects. Diagnostics use `process.stderr.write`. Terminal commands (`cli.ts`, `setup.ts`,
+`install.ts`, `doctor.ts`, `prompts.ts`) write only to the `Streams` that `runCli`
+hands them; `test/importGraph.test.ts` fails if `server.ts` can reach one.
 
 ```bash
-grep -rn "console\." src/ | grep -vE "^src/(setup|install)\.ts"   # must be empty
+grep -rn "console\.\|process\.stdout" src/   # must be empty
 ```
 
 **No `delete_*` tool.** Destruction goes through `api_request`, where it cannot
@@ -59,10 +59,11 @@ grep -rn "from \"\\.\\.*/[^\"]*\"" src/ | grep -v "\.js\"" | grep -v "\.json\""
 **Every zod field has `.describe()`.** These are agent-facing docs, not type-checker
 noise. A field an agent cannot choose a value for is a broken tool.
 
-**Comments are rare and earn their place.** There are exactly six in `src/`:
+**Comments are rare and earn their place.** There are exactly eight in `src/`:
 `lockVersion` locking, `offset` being a page number, ISO 8601 durations, the `o`/`c`
-status operators, `t`/`f` boolean filter values, and readline's unmutable echo. Each
-records an external constraint the code cannot express. A seventh needs a reason of
+status operators, `t`/`f` boolean filter values, readline's unmutable echo, the
+`apikey` Basic-auth username, and the claude CLI owning its config format. Each
+records an external constraint the code cannot express. A ninth needs a reason of
 the same kind. Delete any comment that restates what the line does.
 
 **Tests never reach the network.** `test/` mocks `fetch`. Anything needing a real
@@ -88,7 +89,7 @@ Beyond the invariants, check the change for:
 
 | In the diff | Means |
 |---|---|
-| `console.log` outside `setup.ts`/`install.ts` | Will break the stdio transport |
+| `console.log` or `process.stdout` anywhere in `src/` | Will break the stdio transport |
 | A new entry in `dependencies` | Stop and ask the user |
 | `try`/`catch` inside a tool handler | `handler` already does this |
 | A tool named `delete_*` / `remove_*` / `destroy_*` | Route through `api_request` |
