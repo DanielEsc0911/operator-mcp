@@ -1,0 +1,106 @@
+
+  OPerator  instalador
+  ---------------------
+  Sistema       Fedora Linux 44 (KDE Plasma Desktop Edition) - x86_64
+  Instalada     todavía no
+  Descarga      1.3.0
+  Destino       ~/.local/bin
+
+  Comprobando   listo  127.0.0.1:8780 responde
+  Marcando      listo  operator-mcp-linux-x64 - 49.2 MB
+  Verificando   listo  SHA-256 coincide
+  Conectando    listo  ~/.local/bin/operator-mcp
+
+  Conectándote con la configuración...
+
+
+  OPerator  configuración
+  ─────────────────────
+  Perfil        default
+  Carpeta       ~/.config/operator-mcp/default
+  Versión       1.3.0
+
+  ¿Dónde está tu OpenProject? p. ej. openproject.acme.com
+[1G[0J  › [5Ghttp://127.0.0.1:8781
+
+  Tu clave de API. Créala en http://127.0.0.1:8781/my/access_tokens
+  (en versiones antiguas: Mi cuenta → Token de acceso). No sale de este equipo.
+  › •••••••••••••
+
+  Línea abierta listo  Ada Lovelace (ada@example.com) · 12 proyectos
+
+[?25l  Proyecto por defecto, para cuando no nombres ninguno
+  › Acme Platform                    acme-platform
+    Billing                          billing
+    Customer Portal                  customer-portal
+    Data Warehouse                   data-warehouse
+    Design System                    design-system
+    Infrastructure                   infra
+    Mobile App                       mobile
+    Onboarding                       onboarding
+    Security Audit                   security-audit
+    Ninguno
+    Otro — escribe un identificador
+    ↑↓ mover · Intro elegir[12A[J  Proyecto por defecto, para cuando no nombres ninguno
+    Acme Platform                    acme-platform
+  › Billing                          billing
+    Customer Portal                  customer-portal
+    Data Warehouse                   data-warehouse
+    Design System                    design-system
+    Infrastructure                   infra
+    Mobile App                       mobile
+    Onboarding                       onboarding
+    Security Audit                   security-audit
+    Ninguno
+    Otro — escribe un identificador
+    ↑↓ mover · Intro elegir[12A[J  Proyecto por defecto, para cuando no nombres ninguno
+    Acme Platform                    acme-platform
+    Billing                          billing
+  › Customer Portal                  customer-portal
+    Data Warehouse                   data-warehouse
+    Design System                    design-system
+    Infrastructure                   infra
+    Mobile App                       mobile
+    Onboarding                       onboarding
+    Security Audit                   security-audit
+    Ninguno
+    Otro — escribe un identificador
+    ↑↓ mover · Intro elegir[12A[J[?25h  Proyecto por defecto, para cuando no nombres ninguno  Customer Portal
+
+  Guardado      listo  ~/.config/operator-mcp/default/config.json
+  Manual        listo  ~/.config/operator-mcp/default/conventions.md · tus normas de la casa
+
+[?25l  ¿En qué agentes conecto OPerator?
+  › [x] Claude Code
+    [x] Cursor
+    Confirmar
+    ↑↓ mover · Espacio marcar · Intro confirmar[4A[J[?25h  ¿En qué agentes conecto OPerator?  Claude Code, Cursor
+
+  Conectando    listo  Claude Code  añadido      ~/.claude.json
+                listo  Cursor       añadido      ~/.cursor/mcp.json
+
+  No instalados aquí: Codex CLI, Gemini CLI, opencode.
+  Cuando instales uno, ejecuta: operator-mcp install
+
+  ✓ Configuración en ~/.config/operator-mcp/default/config.json
+  ✓ http://127.0.0.1:8781 responde
+  ✓ Clave de API aceptada — Ada Lovelace (ada@example.com)
+  ✓ Claude Code ejecuta: ~/.local/bin/operator-mcp
+  ✓ Cursor ejecuta: ~/.local/bin/operator-mcp
+
+  ╭────────────────────────────────────────────────────────────────────────╮
+  │                                                                        │
+  │  Ya tienes línea.                                                      │
+  │                                                                        │
+  │  Reinicia Claude Code y Cursor y pregunta:                             │
+  │    ¿qué tengo pendiente?                                               │
+  │                                                                        │
+  │  Responde con tus paquetes de trabajo reales:                          │
+  │    #1284  Error  En curso  Arreglar el bucle de redirección del login  │
+  │    #1301  Tarea  Nueva     Migrar la exportación de facturas           │
+  │    #1312  Tarea  Nueva     Revisar la auditoría de accesos del T3      │
+  │                                                                        │
+  │  Revisa la línea cuando quieras:  operator-mcp doctor                  │
+  │                                                                        │
+  ╰────────────────────────────────────────────────────────────────────────╯
+

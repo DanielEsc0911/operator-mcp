@@ -1,0 +1,110 @@
+
+       [38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m         
+    [38;5;172m▄[0m[38;5;172m▀[0m[38;5;172m▀[0m[39m▄[0m[39m▄[0m[39m▄[0m[39m▄[0m[39m▄[0m[39m▄[0m[38;5;172m▀[0m[38;5;172m▀[0m[38;5;172m▄[0m      [1m[38;5;172mOPerator[0m  [38;5;243minstalador[0m
+  [38;5;172m▄[0m[38;5;172m█[0m[38;5;172m▄[0m[39m█[0m[39m▀[0m      [39m▀[0m[39m█[0m[38;5;172m▄[0m[38;5;172m█[0m[38;5;172m▄[0m    [38;5;243m─────────────────────[0m
+  [38;5;172m█[0m[38;5;172m█[0m[39m█[0m  [39m█[0m[39m█[0m  [39m█[0m[39m█[0m  [39m█[0m[38;5;172m█[0m[38;5;172m█[0m    [1m[38;5;172mSistema       [0mFedora Linux 44 (KDE Plasma Desktop Edition) · x86_64
+  [38;5;172m█[0m[38;5;172m█[0m[39m█[0m[38;5;30m▀[0m[38;5;30m▀[0m [39m▄[0m  [39m▄[0m [38;5;30m▀[0m[38;5;30m▀[0m[39m█[0m[38;5;172m█[0m[38;5;172m█[0m    [1m[38;5;172mInstalada     [0mtodavía no
+   [38;5;172m█[0m[39m▀[0m[39m▄[0m   [39m▀[0m[39m▀[0m   [39m▄[0m[39m▀[0m      [1m[38;5;172mDescarga      [0m1.3.0
+   [38;5;172m▀[0m[38;5;172m▄[0m[38;5;172m▄[0m[39m[48;5;172m▀[0m[39m[48;5;30m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m        [1m[38;5;172mDestino       [0m~/.local/bin
+                      
+
+[?25l  [1mComprobando  [0m [38;5;172m●[38;5;243m ○ ○[0m  127.0.0.1:8780[K  [1mComprobando  [0m [38;5;172m● ● ●[0m  127.0.0.1:8780 responde[K
+  [1mMarcando     [0m [38;5;30m[38;5;243m━━━━━━━━━━━━━━[0m   0%  operator-mcp-linux-x64 · 0.0 MB de 49.2 MB[K  [1mMarcando     [0m [38;5;30m━━━━━━━━━━━━━━━━━━━━━━━━[0m 100%  operator-mcp-linux-x64 · 49.2 MB[K
+  [1mVerificando  [0m [38;5;30mlisto[0m  SHA-256 coincide[K
+  [1mConectando   [0m [38;5;30mlisto[0m  ~/.local/bin/operator-mcp[K
+[?25h
+  [38;5;172mConectándote con la configuración…[0m
+
+
+       [38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m[38;5;172m▄[0m
+    [38;5;172m▄[0m[38;5;172m▀[0m[38;5;172m▀[0m[39m▄[0m[39m▄[0m[39m▄[0m[39m▄[0m[39m▄[0m[39m▄[0m[38;5;172m▀[0m[38;5;172m▀[0m[38;5;172m▄[0m      [1m[38;5;172mOPerator[0m[0m  [38;5;243mconfiguración[0m
+  [38;5;172m▄[0m[38;5;172m█[0m[38;5;172m▄[0m[39m█[0m[39m▀[0m      [39m▀[0m[39m█[0m[38;5;172m▄[0m[38;5;172m█[0m[38;5;172m▄[0m    [38;5;243m─────────────────────[0m
+  [38;5;172m█[0m[38;5;172m█[0m[39m█[0m  [39m█[0m[39m█[0m  [39m█[0m[39m█[0m  [39m█[0m[38;5;172m█[0m[38;5;172m█[0m    [1m[38;5;172mPerfil        [0m[0mdefault
+  [38;5;172m█[0m[38;5;172m█[0m[39m█[0m[38;5;30m▀[0m[38;5;30m▀[0m [39m▄[0m  [39m▄[0m [38;5;30m▀[0m[38;5;30m▀[0m[39m█[0m[38;5;172m█[0m[38;5;172m█[0m    [1m[38;5;172mCarpeta       [0m[0m~/.config/operator-mcp/default
+   [38;5;172m█[0m[39m▀[0m[39m▄[0m   [39m▀[0m[39m▀[0m   [39m▄[0m[39m▀[0m      [1m[38;5;172mVersión       [0m[0m1.3.0
+   [38;5;172m▀[0m[38;5;172m▄[0m[38;5;172m▄[0m[39;48;5;172m▀[0m[39;48;5;30m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m[39m▀[0m
+
+  [1m¿Dónde está tu OpenProject?[0m [38;5;243mp. ej. openproject.acme.com[0m
+[1G[0J  › [5Ghttp://127.0.0.1:8781
+
+  [1mTu clave de API.[0m Créala en http://127.0.0.1:8781/my/access_tokens
+  (en versiones antiguas: Mi cuenta → Token de acceso). No sale de este equipo.
+  › •••••••••••••
+
+[?25l  [1mComprobando  [0m [38;5;172m●[0m [38;5;243m○[0m [38;5;243m○[0m  127.0.0.1:8781[K  [1mComprobando  [0m [38;5;243m○[0m [38;5;172m●[0m [38;5;243m○[0m  127.0.0.1:8781[K  [1mComprobando  [0m [38;5;243m○[0m [38;5;243m○[0m [38;5;172m●[0m  127.0.0.1:8781[K  [1mComprobando  [0m [38;5;172m●[0m [38;5;243m○[0m [38;5;243m○[0m  127.0.0.1:8781[K  [1mComprobando  [0m [38;5;243m○[0m [38;5;172m●[0m [38;5;243m○[0m  127.0.0.1:8781[K[K[?25h[K  [1mLínea abierta[0m [38;5;30mlisto[0m  Ada Lovelace (ada@example.com) · 12 proyectos
+
+[?25l  [1mProyecto por defecto, para cuando no nombres ninguno[0m
+  [38;5;172m›[0m Acme Platform                    [38;5;243macme-platform[0m
+    Billing                          [38;5;243mbilling[0m
+    Customer Portal                  [38;5;243mcustomer-portal[0m
+    Data Warehouse                   [38;5;243mdata-warehouse[0m
+    Design System                    [38;5;243mdesign-system[0m
+    Infrastructure                   [38;5;243minfra[0m
+    Mobile App                       [38;5;243mmobile[0m
+    Onboarding                       [38;5;243monboarding[0m
+    Security Audit                   [38;5;243msecurity-audit[0m
+    Ninguno
+    Otro — escribe un identificador
+    [38;5;243m↑↓ mover · Intro elegir[0m[12A[J  [1mProyecto por defecto, para cuando no nombres ninguno[0m
+    Acme Platform                    [38;5;243macme-platform[0m
+  [38;5;172m›[0m Billing                          [38;5;243mbilling[0m
+    Customer Portal                  [38;5;243mcustomer-portal[0m
+    Data Warehouse                   [38;5;243mdata-warehouse[0m
+    Design System                    [38;5;243mdesign-system[0m
+    Infrastructure                   [38;5;243minfra[0m
+    Mobile App                       [38;5;243mmobile[0m
+    Onboarding                       [38;5;243monboarding[0m
+    Security Audit                   [38;5;243msecurity-audit[0m
+    Ninguno
+    Otro — escribe un identificador
+    [38;5;243m↑↓ mover · Intro elegir[0m[12A[J  [1mProyecto por defecto, para cuando no nombres ninguno[0m
+    Acme Platform                    [38;5;243macme-platform[0m
+    Billing                          [38;5;243mbilling[0m
+  [38;5;172m›[0m Customer Portal                  [38;5;243mcustomer-portal[0m
+    Data Warehouse                   [38;5;243mdata-warehouse[0m
+    Design System                    [38;5;243mdesign-system[0m
+    Infrastructure                   [38;5;243minfra[0m
+    Mobile App                       [38;5;243mmobile[0m
+    Onboarding                       [38;5;243monboarding[0m
+    Security Audit                   [38;5;243msecurity-audit[0m
+    Ninguno
+    Otro — escribe un identificador
+    [38;5;243m↑↓ mover · Intro elegir[0m[12A[J[?25h  [1mProyecto por defecto, para cuando no nombres ninguno[0m  [38;5;172mCustomer Portal[0m
+
+[K  [1mGuardado     [0m [38;5;30mlisto[0m  ~/.config/operator-mcp/default/config.json
+[K  [1mManual       [0m [38;5;30mlisto[0m  ~/.config/operator-mcp/default/conventions.md [38;5;243m· tus normas de la casa[0m
+
+[?25l  [1m¿En qué agentes conecto OPerator?[0m
+  [38;5;172m›[0m [38;5;30m[x][0m Claude Code
+    [38;5;30m[x][0m Cursor
+    [1mConfirmar[0m
+    [38;5;243m↑↓ mover · Espacio marcar · Intro confirmar[0m[4A[J[?25h  [1m¿En qué agentes conecto OPerator?[0m  [38;5;172mClaude Code, Cursor[0m
+
+[K  [1mConectando   [0m [38;5;30mlisto[0m  Claude Code  [38;5;243mañadido      ~/.claude.json[0m
+[K  [1m             [0m [38;5;30mlisto[0m  Cursor       [38;5;243mañadido      ~/.cursor/mcp.json[0m
+
+  [38;5;243mNo instalados aquí: Codex CLI, Gemini CLI, opencode.[0m
+  [38;5;243mCuando instales uno, ejecuta: operator-mcp install[0m
+
+[?25l  [1mDiagnóstico  [0m [38;5;172m●[0m [38;5;243m○[0m [38;5;243m○[0m  haciendo las comprobaciones[K  [1mDiagnóstico  [0m [38;5;243m○[0m [38;5;172m●[0m [38;5;243m○[0m  haciendo las comprobaciones[K  [1mDiagnóstico  [0m [38;5;243m○[0m [38;5;243m○[0m [38;5;172m●[0m  haciendo las comprobaciones[K  [1mDiagnóstico  [0m [38;5;172m●[0m [38;5;243m○[0m [38;5;243m○[0m  haciendo las comprobaciones[K  [1mDiagnóstico  [0m [38;5;243m○[0m [38;5;172m●[0m [38;5;243m○[0m  haciendo las comprobaciones[K[K[?25h  [38;5;30m✓[0m Configuración en ~/.config/operator-mcp/default/config.json
+  [38;5;30m✓[0m http://127.0.0.1:8781 responde
+  [38;5;30m✓[0m Clave de API aceptada — Ada Lovelace (ada@example.com)
+  [38;5;30m✓[0m Claude Code ejecuta: ~/.local/bin/operator-mcp
+  [38;5;30m✓[0m Cursor ejecuta: ~/.local/bin/operator-mcp
+
+  [38;5;243m╭────────────────────────────────────────────────────────────────────────╮[0m
+  [38;5;243m│[0m                                                                        [38;5;243m│[0m
+  [38;5;243m│[0m  [1mYa tienes línea.[0m                                                      [38;5;243m│[0m
+  [38;5;243m│[0m                                                                        [38;5;243m│[0m
+  [38;5;243m│[0m  Reinicia Claude Code y Cursor y pregunta:                             [38;5;243m│[0m
+  [38;5;243m│[0m    [38;5;172m¿qué tengo pendiente?[0m                                               [38;5;243m│[0m
+  [38;5;243m│[0m                                                                        [38;5;243m│[0m
+  [38;5;243m│[0m  [38;5;243mResponde con tus paquetes de trabajo reales:[0m                          [38;5;243m│[0m
+  [38;5;243m│[0m    #1284  Error  En curso  Arreglar el bucle de redirección del login  [38;5;243m│[0m
+  [38;5;243m│[0m    #1301  Tarea  Nueva     Migrar la exportación de facturas           [38;5;243m│[0m
+  [38;5;243m│[0m    #1312  Tarea  Nueva     Revisar la auditoría de accesos del T3      [38;5;243m│[0m
+  [38;5;243m│[0m                                                                        [38;5;243m│[0m
+  [38;5;243m│[0m  [38;5;243mRevisa la línea cuando quieras:[0m  operator-mcp doctor                  [38;5;243m│[0m
+  [38;5;243m│[0m                                                                        [38;5;243m│[0m
+  [38;5;243m╰────────────────────────────────────────────────────────────────────────╯[0m
+

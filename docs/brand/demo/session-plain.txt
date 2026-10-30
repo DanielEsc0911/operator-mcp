@@ -1,87 +1,106 @@
 
   OPerator  installer
   ---------------------
-  System     Fedora Linux 44 (KDE Plasma Desktop Edition) - x86_64
-  Installed  not yet
-  Release    1.1.2
-  Into       ~/.local/bin
+  System        Fedora Linux 44 (KDE Plasma Desktop Edition) - x86_64
+  Installed     not yet
+  Release       1.3.0
+  Into          ~/.local/bin
 
-  Line check   done   127.0.0.1:8780 reachable
-  Dialing      done   operator-mcp-linux-x64 - 49.2 MB
-  Verifying    done   SHA-256 matches
-  Patching in  done   ~/.local/bin/operator-mcp
+  Line check    done   127.0.0.1:8780 reachable
+  Dialing       done   operator-mcp-linux-x64 - 49.2 MB
+  Verifying     done   SHA-256 matches
+  Patching in   done   ~/.local/bin/operator-mcp
 
   Connecting you to setup...
 
 
   OPerator  setup
   ─────────────────────
-  Profile    default
-  Config     ~/.config/operator-mcp/default
-  Version    1.1.2
+  Profile       default
+  Config        ~/.config/operator-mcp/default
+  Version       1.3.0
 
-  Where does your OpenProject live?
+  Where does your OpenProject live? e.g. openproject.acme.com
 [1G[0J  › [5Ghttp://127.0.0.1:8781
 
   Your API key. Make one at http://127.0.0.1:8781/my/access_tokens
   (older instances: My account → Access token). It stays on this machine.
   › •••••••••••••
 
-  Line's open  done   Ada Lovelace (ada@example.com) · 12 projects
+  Line's open   done   Ada Lovelace (ada@example.com) · 12 projects
 
-  Default project, for when you don't name one
-    1  Acme Platform    acme-platform
-    2  Billing          billing
-    3  Customer Portal  customer-portal
-    4  Data Warehouse   data-warehouse
-    5  Design System    design-system
-    6  Infrastructure   infra
-    7  Mobile App       mobile
-    8  Onboarding       onboarding
-    9  Security Audit   security-audit
-    0  none
-[1G[0J  › [5G1
+[?25l  Default project, for when you don't name one
+  › Acme Platform               acme-platform
+    Billing                     billing
+    Customer Portal             customer-portal
+    Data Warehouse              data-warehouse
+    Design System               design-system
+    Infrastructure              infra
+    Mobile App                  mobile
+    Onboarding                  onboarding
+    Security Audit              security-audit
+    None
+    Other — type an identifier
+    ↑↓ move · Enter choose[12A[J  Default project, for when you don't name one
+    Acme Platform               acme-platform
+  › Billing                     billing
+    Customer Portal             customer-portal
+    Data Warehouse              data-warehouse
+    Design System               design-system
+    Infrastructure              infra
+    Mobile App                  mobile
+    Onboarding                  onboarding
+    Security Audit              security-audit
+    None
+    Other — type an identifier
+    ↑↓ move · Enter choose[12A[J  Default project, for when you don't name one
+    Acme Platform               acme-platform
+    Billing                     billing
+  › Customer Portal             customer-portal
+    Data Warehouse              data-warehouse
+    Design System               design-system
+    Infrastructure              infra
+    Mobile App                  mobile
+    Onboarding                  onboarding
+    Security Audit              security-audit
+    None
+    Other — type an identifier
+    ↑↓ move · Enter choose[12A[J[?25h  Default project, for when you don't name one  Customer Portal
 
-  Saved        done   ~/.config/operator-mcp/default/config.json
-  Manual       done   ~/.config/operator-mcp/default/conventions.md · your house rules
+  Saved         done   ~/.config/operator-mcp/default/config.json
+  Manual        done   ~/.config/operator-mcp/default/conventions.md · your house rules
 
-  Which agents should OPerator patch into?
-  Enter accepts · type numbers to switch one off or on · all · none
-    [x] 1  Claude Code
-    [x] 2  Codex CLI
-    [x] 3  Gemini CLI
-    [x] 4  Cursor
-[1G[0J  › [5G
+[?25l  Which agents should OPerator patch into?
+  › [x] Claude Code
+    [x] Cursor
+    Confirm
+    ↑↓ move · Space select · Enter confirm[4A[J[?25h  Which agents should OPerator patch into?  Claude Code, Cursor
 
-  Patching in  done   Claude Code  ~/.claude.json
-               done   Codex CLI    ~/.codex/config.toml
-               done   Gemini CLI   ~/.gemini/settings.json
-               done   Cursor       ~/.cursor/mcp.json
+  Patching in   done   Claude Code  added    ~/.claude.json
+                done   Cursor       added    ~/.cursor/mcp.json
 
-  Not installed here: opencode.
+  Not installed here: Codex CLI, Gemini CLI, opencode.
   Install one later, then run: operator-mcp install
 
   ✓ Config file ~/.config/operator-mcp/default/config.json
   ✓ http://127.0.0.1:8781 is reachable
   ✓ API key accepted — Ada Lovelace (ada@example.com)
   ✓ Claude Code runs: ~/.local/bin/operator-mcp
-  ✓ Codex CLI runs: ~/.local/bin/operator-mcp
-  ✓ Gemini CLI runs: ~/.local/bin/operator-mcp
   ✓ Cursor runs: ~/.local/bin/operator-mcp
 
-  ╭────────────────────────────────────────────────────────────────────╮
-  │                                                                    │
-  │  You're patched through.                                           │
-  │                                                                    │
-  │  Restart Claude Code, Codex CLI, Gemini CLI and Cursor, then ask:  │
-  │    what's on my plate?                                             │
-  │                                                                    │
-  │  It answers from your real work packages:                          │
-  │    #1284  Bug   In progress  Fix login redirect loop               │
-  │    #1301  Task  New          Migrate invoice export                │
-  │    #1312  Task  New          Review Q3 access audit                │
-  │                                                                    │
-  │  Check the line any time:  operator-mcp doctor                     │
-  │                                                                    │
-  ╰────────────────────────────────────────────────────────────────────╯
+  ╭───────────────────────────────────────────────────────╮
+  │                                                       │
+  │  You're patched through.                              │
+  │                                                       │
+  │  Restart Claude Code and Cursor, then ask:            │
+  │    what's on my plate?                                │
+  │                                                       │
+  │  It answers from your real work packages:             │
+  │    #1284  Bug   In progress  Fix login redirect loop  │
+  │    #1301  Task  New          Migrate invoice export   │
+  │    #1312  Task  New          Review Q3 access audit   │
+  │                                                       │
+  │  Check the line any time:  operator-mcp doctor        │
+  │                                                       │
+  ╰───────────────────────────────────────────────────────╯
 
