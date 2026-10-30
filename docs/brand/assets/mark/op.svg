@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" role="img" aria-label="Op, the OPerator mascot">
+<title>Op, the OPerator mascot</title>
+<g shape-rendering="crispEdges"><path fill="currentColor" d="M5 3h6v1h-6zM3 4h2v1h-2zM11 4h2v1h-2zM3 5h1v1h-1zM12 5h1v1h-1zM2 6h1v1h-1zM5 6h2v1h-2zM9 6h2v1h-2zM13 6h1v1h-1zM2 7h1v1h-1zM5 7h2v1h-2zM9 7h2v1h-2zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM6 9h1v1h-1zM9 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM7 10h2v1h-2zM13 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM4 12h8v1h-8z"/><path fill="var(--op-signal, #FFB020)" d="M5 1h6v1h-6zM3 2h2v1h-2zM11 2h2v1h-2zM2 3h1v1h-1zM13 3h1v1h-1zM1 4h1v1h-1zM14 4h1v1h-1zM0 5h3v1h-3zM13 5h3v1h-3zM0 6h2v1h-2zM14 6h2v1h-2zM0 7h2v1h-2zM14 7h2v1h-2zM0 8h2v1h-2zM14 8h2v1h-2zM0 9h2v1h-2zM14 9h2v1h-2zM1 10h1v1h-1zM1 11h1v1h-1zM1 12h1v1h-1zM2 13h3v1h-3z"/><path fill="var(--op-patch, #2EC4B6)" d="M3 8h2v1h-2zM11 8h2v1h-2zM5 13h1v1h-1z"/></g>
+</svg>
