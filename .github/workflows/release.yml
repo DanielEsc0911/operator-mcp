@@ -30,11 +30,55 @@ jobs:
       - run: npm run build
       - run: node scripts/pack-check.mjs
 
-  # Chunk 4 adds a `binaries` job here (needs: verify) that builds the
-  # standalone executables and uploads them to the release below.
+  binaries:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Compile with Bun (a CI build tool only, pinned)
+        run: |
+          mkdir -p release
+          for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
+            npx -y bun@1.4.4 build --compile --target="bun-$target" dist/index.js --outfile "release/operator-mcp-$target"
+          done
+      - name: Linux binary answers --version and an MCP handshake
+        run: |
+          release/operator-mcp-linux-x64 --version
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' |
+            OPENPROJECT_URL=https://op.invalid OPENPROJECT_API_KEY=ci timeout 20 release/operator-mcp-linux-x64 | grep -q '"serverInfo"'
+      - uses: actions/upload-artifact@v6
+        with:
+          name: binaries
+          path: release/
+
+  macos:
+    needs: binaries
+    runs-on: macos-14
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: binaries
+          path: release
+      - name: Ad-hoc sign the darwin binaries and smoke-run the native one
+        run: |
+          chmod +x release/operator-mcp-*
+          codesign --force -s - release/operator-mcp-darwin-x64 release/operator-mcp-darwin-arm64
+          release/operator-mcp-darwin-arm64 --version
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' |
+            OPENPROJECT_URL=https://op.invalid OPENPROJECT_API_KEY=ci release/operator-mcp-darwin-arm64 | grep -q '"serverInfo"'
+      - uses: actions/upload-artifact@v6
+        with:
+          name: signed
+          path: release/
 
   publish:
-    needs: verify
+    needs: macos
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -53,7 +97,15 @@ jobs:
       - run: npm run build
       - name: Publish to npm over OIDC
         run: npm publish --provenance --access public
-      - name: GitHub Release with generated notes
+      - uses: actions/download-artifact@v7
+        with:
+          name: signed
+          path: release
+      - name: Checksums and the installer
+        run: |
+          cp install/install.sh release/
+          cd release && sha256sum operator-mcp-* > SHA256SUMS && cat SHA256SUMS
+      - name: GitHub Release with binaries, SHA256SUMS and install.sh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes release/*
