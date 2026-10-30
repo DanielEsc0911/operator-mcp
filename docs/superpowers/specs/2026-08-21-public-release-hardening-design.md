@@ -1,7 +1,7 @@
 # Public Release Hardening — Design & Finding Register
 
 **Date:** 2026-08-21
-**Status:** Approved, ready to implement
+**Status:** Approved, ready to implement. **Amended 2026-10-29:** Node floor is `>=22`, not `>=24` — see `2026-10-29-fresh-coat-design.md` §3. Execution of this register is tracked by that spec's chunks 1–2.
 **Implements:** first public release of OPerator to npm and GitHub
 **Plan:** `docs/superpowers/plans/2026-08-21-public-release-hardening.md`
 **Human runbook:** `docs/MANUAL-RELEASE-STEPS.md`
