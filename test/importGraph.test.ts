@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "../src");
-const TERMINAL_ONLY = ["cli.ts", "setup.ts", "install.ts", "doctor.ts", "prompts.ts", "ui.ts"];
+const TERMINAL_ONLY = ["cli.ts", "setup.ts", "credentials.ts", "install.ts", "doctor.ts", "prompts.ts", "ui.ts", "outro.ts"];
 
 function localImports(file: string): string[] {
   const text = readFileSync(file, "utf8");

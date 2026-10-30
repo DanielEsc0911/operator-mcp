@@ -9,10 +9,10 @@ import {
   keyHint,
   maskKey,
   nonInteractiveInput,
-  runSetup,
   scaffoldConventions,
   verifyCredentials,
-} from "../src/setup.js";
+} from "../src/credentials.js";
+import { runSetup } from "../src/setup.js";
 
 function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -51,6 +51,7 @@ describe("verifyCredentials", () => {
     expect(await verifyCredentials("https://op.acme.com", "secret")).toEqual({
       identity: ME,
       projectCount: 7,
+      projects: [],
     });
   });
 

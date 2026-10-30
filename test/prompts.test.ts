@@ -1,7 +1,8 @@
 import { PassThrough } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { createInterface } from "node:readline/promises";
-import { SetupAborted, ask, readHidden } from "../src/prompts.js";
+import { SetupAborted, ask, choose, confirmList, readHidden } from "../src/prompts.js";
+import { style } from "../src/ui.js";
 
 function fakeTty() {
   const stdin = new PassThrough() as any;
@@ -72,5 +73,63 @@ describe("ask", () => {
     rl.emit("SIGINT");
     await expect(answer).rejects.toBeInstanceOf(SetupAborted);
     rl.close();
+  });
+});
+
+function scripted(...answers: string[]) {
+  const input = new PassThrough();
+  let shown = "";
+  const output = new PassThrough();
+  const rl = createInterface({ input, output });
+  output.on("data", (chunk: Buffer) => {
+    shown += chunk;
+    if (String(chunk).endsWith("› ") && answers.length) setImmediate(() => input.write(`${answers.shift()}\n`));
+  });
+  return { rl, out: output as any, s: style(output as any, {}), shown: () => shown };
+}
+
+describe("choose", () => {
+  const options: [string, string][] = [["Acme Platform", "acme"], ["Billing", "billing"]];
+
+  it("numbers the options and returns the picked value", async () => {
+    const { rl, out, s, shown } = scripted("2");
+    expect(await choose(rl, out, s, "Pick", options)).toBe("billing");
+    expect(shown()).toMatch(/1\s+Acme Platform/);
+    rl.close();
+  });
+
+  it("returns an empty string for Enter or 0", async () => {
+    const first = scripted("");
+    expect(await choose(first.rl, first.out, first.s, "Pick", options)).toBe("");
+    const second = scripted("0");
+    expect(await choose(second.rl, second.out, second.s, "Pick", options)).toBe("");
+  });
+
+  it("takes any other text as a free identifier", async () => {
+    const { rl, out, s } = scripted("ops-team");
+    expect(await choose(rl, out, s, "Pick", options)).toBe("ops-team");
+  });
+});
+
+describe("confirmList", () => {
+  const items = ["Claude Code", "Codex CLI", "Cursor"];
+
+  it("pre-selects everything and Enter accepts", async () => {
+    const { rl, out, s, shown } = scripted("");
+    expect(await confirmList(rl, out, s, "Agents", items)).toEqual([0, 1, 2]);
+    expect(shown()).toContain("[x] 1  Claude Code");
+  });
+
+  it("toggles the numbers typed, then accepts on Enter", async () => {
+    const { rl, out, s, shown } = scripted("2 3", "3", "");
+    expect(await confirmList(rl, out, s, "Agents", items)).toEqual([0, 2]);
+    expect(shown()).toContain("[ ] 2  Codex CLI");
+  });
+
+  it("understands none and all", async () => {
+    const none = scripted("none", "");
+    expect(await confirmList(none.rl, none.out, none.s, "Agents", items)).toEqual([]);
+    const all = scripted("none", "all", "");
+    expect(await confirmList(all.rl, all.out, all.s, "Agents", items)).toEqual([0, 1, 2]);
   });
 });

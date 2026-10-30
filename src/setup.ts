@@ -1,118 +1,112 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { createInterface, type Interface } from "node:readline/promises";
 import type { Streams } from "./cli.js";
-import { OpenProjectClient, type Identity } from "./client.js";
+import type { Client } from "./clients.js";
 import { assertSecureUrl, normalizeUrl, profileDir, resolveProfile, saveConfig } from "./config.js";
-import { STARTER_MANUAL } from "./conventions.js";
+import { describeExisting, keyHint, nonInteractiveInput, scaffoldConventions, verifyCredentials } from "./credentials.js";
+import type { Credentials, Verified } from "./credentials.js";
+import { doctorChecks, printChecks } from "./doctor.js";
 import { humanMessage } from "./errors.js";
-import { runInstall } from "./install.js";
-import { SetupAborted, ask, askHidden } from "./prompts.js";
+import { patchAgents } from "./install.js";
+import { outro } from "./outro.js";
+import { SetupAborted, ask, askHidden, choose } from "./prompts.js";
+import { version } from "./server.js";
+import { greet, lamp, step, style, tilde, type Output, type Style } from "./ui.js";
 
-type Credentials = { url: string; apiKey: string };
+type Line = { out: Output; s: Style };
 
-export async function verifyCredentials(
-  url: string,
-  apiKey: string,
-): Promise<{ identity: Identity; projectCount: number }> {
-  const client = new OpenProjectClient({
-    profile: "setup", url, apiKey, conventionsPath: "", readOnly: false, allowDelete: false,
-  });
-  const identity = await client.me();
-  const { total } = await client.collection("/projects", { pageSize: 1 });
-  return { identity, projectCount: total };
-}
-
-export function scaffoldConventions(path: string): string | null {
-  if (existsSync(path)) return null;
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  writeFileSync(path, STARTER_MANUAL, { mode: 0o600 });
-  return path;
-}
-
-export function maskKey(apiKey: string): string {
-  return apiKey.length > 8 ? `…${apiKey.slice(-4)}` : "…";
-}
-
-export function keyHint(url: string): string {
-  return `Create a key at ${url}/my/access_tokens (older instances: My account → Access token)`;
-}
-
-export function describeExisting(profile: string): string | null {
-  const path = join(profileDir(profile), "config.json");
-  if (!existsSync(path)) return null;
-  const stored = JSON.parse(readFileSync(path, "utf8")) as Partial<Credentials>;
-  return `${path}: ${stored.url ?? "(no url)"}, key ${stored.apiKey ? maskKey(stored.apiKey) : "(none)"}`;
-}
-
-function flagValue(argv: string[], flag: string): string | undefined {
-  const index = argv.indexOf(flag);
-  return index === -1 ? undefined : argv[index + 1];
-}
-
-export function nonInteractiveInput(argv: string[], env: NodeJS.ProcessEnv): Credentials {
-  const url = flagValue(argv, "--url") ?? env.OPENPROJECT_URL;
-  if (!url) throw new Error("Non-interactive setup needs --url or OPENPROJECT_URL.");
-  const apiKey = env.OPENPROJECT_API_KEY?.trim();
-  if (!apiKey) throw new Error("Non-interactive setup reads the key from OPENPROJECT_API_KEY; set it and retry.");
-  return { url: normalizeUrl(url), apiKey };
-}
-
-async function verified({ url, apiKey }: Credentials, out: NodeJS.WritableStream): Promise<Credentials> {
+async function verified({ url, apiKey }: Credentials, { out, s }: Line): Promise<Verified> {
   assertSecureUrl(url, process.env);
-  const { identity, projectCount } = await verifyCredentials(url, apiKey);
-  out.write(`  ✓ Connected as ${identity.name} (${identity.email})\n  ✓ ${projectCount} projects visible\n`);
-  return { url, apiKey };
+  const result = await lamp(out, s, "Line check", new URL(url).host, verifyCredentials(url, apiKey));
+  const { identity, projectCount } = result;
+  step(out, s, "Line's open", "done", `${identity.name} (${identity.email}) · ${projectCount} projects`);
+  return result;
 }
 
-async function promptCredentials(rl: Interface, streams: Streams): Promise<Credentials> {
+async function promptCredentials(rl: Interface, streams: Streams, line: Line): Promise<Credentials & Verified> {
+  const { out, s } = line;
   for (;;) {
     try {
-      const url = normalizeUrl(await ask(rl, "  OpenProject instance URL: "));
-      if (!url) throw new Error("An instance URL is required.");
-      streams.stdout.write(`  · ${keyHint(url)}\n`);
-      const apiKey = await askHidden(rl, "  API key: ", streams.stdin, streams.stdout);
-      return await verified({ url, apiKey }, streams.stdout);
+      out.write(`  ${s.bold("Where does your OpenProject live?")}\n`);
+      const url = normalizeUrl(await ask(rl, "  › "));
+      if (!url) throw new Error("An instance URL is required, like https://openproject.example.com");
+      out.write(`\n  ${s.bold("Your API key.")} ${keyHint(url)}\n`);
+      const apiKey = await askHidden(rl, "  › ", streams.stdin, out);
+      out.write("\n");
+      return { url, apiKey, ...(await verified({ url, apiKey }, line)) };
     } catch (error) {
       if (error instanceof SetupAborted) throw error;
-      streams.stdout.write(`  ✗ ${humanMessage(error)}\n`);
-      if (/^n/i.test(await ask(rl, "  Try again? [Y/n] "))) throw new SetupAborted();
+      step(out, s, "Line check", "fail", humanMessage(error));
+      if (/^n/i.test(await ask(rl, "\n  Try again? [Y/n] "))) throw new SetupAborted();
+      out.write("\n");
     }
   }
 }
 
-function finish(profile: string, credentials: Credentials, defaultProject: string | undefined, out: NodeJS.WritableStream) {
-  out.write(`  ✓ Saved to ${saveConfig(profile, { ...credentials, defaultProject })}\n`);
+function save(profile: string, credentials: Credentials, defaultProject: string | undefined, { out, s }: Line): void {
+  const home = homedir();
+  step(out, s, "Saved", "done", tilde(saveConfig(profile, { ...credentials, defaultProject }), home));
   const manual = scaffoldConventions(join(profileDir(profile), "conventions.md"));
-  out.write(manual ? `  ✓ Starter conventions written to ${manual}\n` : "  · Existing conventions kept\n");
+  step(out, s, "Manual", "done", manual ? `${tilde(manual, home)} ${s.muted("· your house rules")}` : "existing conventions kept");
+}
+
+async function pickProject({ projects }: Verified, rl: Interface, { out, s }: Line): Promise<string | undefined> {
+  if (projects.length === 0) return undefined;
+  out.write("\n");
+  const options = projects.map(({ name, identifier }): [string, string] => [name, identifier]);
+  const picked = await choose(rl, out, s, "Default project, for when you don't name one", options);
+  out.write("\n");
+  return picked || undefined;
+}
+
+async function keepExisting(profile: string, rl: Interface, { out, s }: Line): Promise<boolean> {
+  const existing = describeExisting(profile);
+  if (!existing) return false;
+  out.write(`  ${s.bold("This profile is already set up:")} ${existing}\n`);
+  const keep = !/^y/i.test(await ask(rl, "  Replace it? [y/N] "));
+  out.write(keep ? "  Kept the existing profile.\n\n" : "\n");
+  return keep;
+}
+
+async function interactive(argv: string[], streams: Streams, rl: Interface, profile: string): Promise<number> {
+  const line = { out: streams.stdout, s: style(streams.stdout) };
+  const home = homedir();
+  greet(line.out, line.s, "setup", [
+    ["Profile", profile],
+    ["Config", tilde(profileDir(profile), home)],
+    ["Version", version],
+  ]);
+  if (await keepExisting(profile, rl, line)) return 0;
+  const { url, apiKey, ...found } = await promptCredentials(rl, streams, line);
+  const defaultProject = await pickProject(found, rl, line);
+  save(profile, { url, apiKey }, defaultProject, line);
+  line.out.write("\n");
+  const agents: Client[] = await patchAgents(argv, streams, rl, home);
+  line.out.write("\n");
+  const healthy = await printChecks(line.out, doctorChecks(argv, process.env, home));
+  outro(line.out, line.s, agents, healthy);
+  return 0;
 }
 
 export async function runSetup(argv: string[], streams: Streams): Promise<number> {
   const profile = resolveProfile(argv, process.env);
-  const out = streams.stdout;
+  const line = { out: streams.stdout, s: style(streams.stdout) };
 
   if (argv.includes("--non-interactive")) {
-    const credentials = await verified(nonInteractiveInput(argv, process.env), out);
-    finish(profile, credentials, process.env.OPENPROJECT_DEFAULT_PROJECT, out);
-    out.write("  Next: operator-mcp install --yes\n");
+    const credentials = nonInteractiveInput(argv, process.env);
+    await verified(credentials, line);
+    save(profile, credentials, process.env.OPENPROJECT_DEFAULT_PROJECT, line);
+    line.out.write("  Next: operator-mcp install --yes\n");
     return 0;
   }
 
-  const rl = createInterface({ input: streams.stdin, output: out });
+  const rl = createInterface({ input: streams.stdin, output: streams.stdout });
   try {
-    out.write(`\n  OPerator setup — profile "${profile}"\n\n`);
-    const existing = describeExisting(profile);
-    if (existing) {
-      out.write(`  This profile exists: ${existing}\n`);
-      if (!/^y/i.test(await ask(rl, "  Overwrite it? [y/N] "))) return (out.write("  Kept the existing profile.\n"), 0);
-    }
-    const credentials = await promptCredentials(rl, streams);
-    const defaultProject = (await ask(rl, "  Default project identifier (optional): ")) || undefined;
-    finish(profile, credentials, defaultProject, out);
-    return await runInstall(argv, streams, rl);
+    return await interactive(argv, streams, rl, profile);
   } catch (error) {
     if (!(error instanceof SetupAborted)) throw error;
-    out.write(`\n  ${error.message}\n`);
+    line.out.write(`\n  ${error.message}\n`);
     return 130;
   } finally {
     rl.close();
