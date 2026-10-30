@@ -83,10 +83,20 @@ Agent clients are named in plain text chips, never with their logos.
 
 ```bash
 npm run brand                 # seed → every SVG, terminal/op.cells, src/brandCells.ts, the install.sh mark (deterministic)
-scripts/brand-raster.sh       # SVG → card.png, favicon PNGs and .ico (Inkscape + ImageMagick)
+scripts/brand-raster.sh       # SVG → card.png, hero PNGs, favicon PNGs and .ico (Inkscape + ImageMagick)
 ```
 
 `npm run brand` regenerates byte-identically; CI and tests never need Inkscape.
+
+The hero and card set their taglines in Instrument Sans, so Inkscape must find it or
+the PNGs bake in a fallback face. Without installing it system-wide:
+
+```bash
+dir=$(mktemp -d)
+curl -fsSL -o "$dir/InstrumentSans.ttf" "https://github.com/google/fonts/raw/main/ofl/instrumentsans/InstrumentSans%5Bwdth%2Cwght%5D.ttf"
+printf '<fontconfig><include>/etc/fonts/fonts.conf</include><dir>%s</dir></fontconfig>' "$dir" >"$dir/fonts.conf"
+FONTCONFIG_FILE="$dir/fonts.conf" scripts/brand-raster.sh
+```
 
 | Asset | Path |
 |---|---|
