@@ -41,7 +41,7 @@ describe("searchSelect", () => {
     expect(screen).toContain("› None");
     expect(screen).toContain("Billing  billing");
     expect(screen).toContain("type to search");
-    expect(screen).toContain("3/23");
+    expect(screen).toContain("3/23 · ↑↓ move");
     expect(screen).toContain("Default project  None");
   });
 
@@ -105,6 +105,15 @@ describe("searchSelect", () => {
     await answer;
     const frames = plain(text().slice(0, text().lastIndexOf("\x1b[?25h")));
     expect(Math.max(...frames.split(/\n|\r/).map(displayWidth))).toBeLessThanOrEqual(29);
+  });
+
+  it("keeps \"type to search\" in a 40-column Spanish hint", async () => {
+    useLang("es");
+    const { press, answer, text } = picker(undefined, 40);
+    press("\r");
+    await answer;
+    useLang("en");
+    expect(plain(text())).toContain("escribe para buscar · Enter elegir");
   });
 
   it("speaks Spanish when asked", async () => {

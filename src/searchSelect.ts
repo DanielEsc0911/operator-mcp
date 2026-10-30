@@ -27,7 +27,7 @@ function frame(question: string, none: string, state: State, out: Output, s: Sty
     lines.push(`  ${pointer} ${note ? `${pad(label, width)}  ${s.muted(note)}` : label}`);
   });
   const more = state.total > state.rows.length ? [`${state.rows.length}/${state.total}`] : [];
-  lines.push(`    ${s.muted(hint([...t().searchHint.split(" · "), ...more], out))}`);
+  lines.push(`    ${s.muted(hint([...more, ...t().searchHint.split(" · ")], out))}`);
   return lines.map((line) => fit(line, out));
 }
 
