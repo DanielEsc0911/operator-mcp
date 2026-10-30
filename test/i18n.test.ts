@@ -3,6 +3,7 @@ import { runCli } from "../src/cli.js";
 import { detectLang, t, useLang } from "../src/i18n/index.js";
 import { en } from "../src/i18n/en.js";
 import { es } from "../src/i18n/es.js";
+import { displayWidth, step, style } from "../src/ui.js";
 
 describe("detectLang", () => {
   it("prefers --lang, then OPERATOR_LANG, LC_ALL, LC_MESSAGES, LANG, then the system locale", () => {
@@ -30,6 +31,23 @@ describe("catalogs", () => {
     for (const catalog of [en, es]) {
       const titleColumns = catalog.example.map((line) => line.lastIndexOf(line.split(/ {2,}/)[3]));
       expect(new Set(titleColumns).size).toBe(1);
+    }
+  });
+});
+
+describe("setup step lines", () => {
+  it("fit 80 columns with the default profile paths", () => {
+    const dir = "~/.config/operator-mcp/default";
+    for (const catalog of [en, es]) {
+      let text = "";
+      const out = { isTTY: false, write: (chunk: string) => ((text += chunk), true) } as any;
+      const s = style(out, {});
+      step(out, s, catalog.lineOpen, catalog.done, catalog.lineOpenDetail("Ada Lovelace (ada@example.com)", 12));
+      step(out, s, catalog.lineCheck, catalog.fail, "Ada Lovelace (ada@example.com)");
+      step(out, s, catalog.saved, catalog.done, `${dir}/config.json`);
+      step(out, s, catalog.manual, catalog.done, `${dir}/conventions.md · ${catalog.manualNew}`);
+      step(out, s, catalog.manual, catalog.done, catalog.manualKept);
+      for (const line of text.trimEnd().split("\n")) expect(displayWidth(line), line).toBeLessThanOrEqual(80);
     }
   });
 });

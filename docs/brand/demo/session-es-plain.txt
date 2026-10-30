@@ -86,7 +86,7 @@
     ↑↓ mover · escribe para buscar · Enter elegir[4A[J[?25h  Proyecto por defecto, para cuando no nombres ninguno  Customer Portal
 
   Guardado      listo  ~/.config/operator-mcp/default/config.json
-  Manual        listo  ~/.config/operator-mcp/default/conventions.md · tus normas de la casa
+  Manual        listo  ~/.config/operator-mcp/default/conventions.md · plantilla
 
 [?25l  ¿En qué agentes conecto OPerator?
   › [x] Claude Code

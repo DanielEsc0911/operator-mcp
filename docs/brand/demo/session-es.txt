@@ -90,7 +90,7 @@
     [38;5;243m↑↓ mover · escribe para buscar · Enter elegir[0m[4A[J[?25h  [1mProyecto por defecto, para cuando no nombres ninguno[0m  [38;5;172mCustomer Portal[0m
 
 [K  [1mGuardado     [0m [38;5;30mlisto[0m  ~/.config/operator-mcp/default/config.json
-[K  [1mManual       [0m [38;5;30mlisto[0m  ~/.config/operator-mcp/default/conventions.md [38;5;243m· tus normas de la casa[0m
+[K  [1mManual       [0m [38;5;30mlisto[0m  ~/.config/operator-mcp/default/conventions.md [38;5;243m· plantilla[0m
 
 [?25l  [1m¿En qué agentes conecto OPerator?[0m
   [38;5;172m›[0m [38;5;30m[x][0m Claude Code
