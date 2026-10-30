@@ -163,4 +163,12 @@ for (const [path, content] of Object.entries(outputs)) {
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, content);
 }
-process.stdout.write(`wrote ${Object.keys(outputs).length} brand assets to ${OUT}\n`);
+
+const REPO = new URL("../", import.meta.url).pathname;
+writeFileSync(join(REPO, "src/brandCells.ts"), `export const OP_CELLS = [\n${grid.map((row) => `  ${JSON.stringify(row)},`).join("\n")}\n];\n`);
+
+const INSTALLER = join(REPO, "install/install.sh");
+const CELLS_BLOCK = /(<<'CELLS'\n)[\s\S]*?(\nCELLS\n)/;
+writeFileSync(INSTALLER, readFileSync(INSTALLER, "utf8").replace(CELLS_BLOCK, `$1${grid.join("\n")}$2`));
+
+process.stdout.write(`wrote ${Object.keys(outputs).length} brand assets to ${OUT}, src/brandCells.ts and the install.sh mark\n`);

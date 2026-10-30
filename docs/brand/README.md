@@ -48,7 +48,7 @@ Terminals may be light or dark, so each slot is measured on white and black.
 
 | Token | Slot | On white | On black | Note |
 |---|---|---|---|---|
-| `signal` | **136** `#af8700` | 3.34 | 6.29 | 214 fails on white (1.84); 136 is the nearest amber that passes 3:1 on both. Glyphs, lamps, the mark |
+| `signal` | **172** `#d78700` | 2.86 | 7.36 | Bold labels, lamps and the mark only — never body text. 136 (3.34 / 6.29) passed on white but reads olive; 172 is the nearest slot that reads as the brand amber, and bold weight carries it on white. 214 fails on white (1.84) |
 | `patch` | **30** `#008787` | 4.36 | 4.82 | 37 fails on white (2.71) |
 | `alarm` | **167** `#d75f5f` | 3.69 | 5.69 | the ✗ glyph; the error sentence stays in the default colour |
 | `muted` | **243** `#767676` | 4.54 | 4.62 | |
@@ -82,7 +82,7 @@ Agent clients are named in plain text chips, never with their logos.
 **Never edit anything in `assets/` by hand.** Edit a seed and re-run.
 
 ```bash
-npm run brand                 # seed → every SVG and terminal/op.cells (deterministic)
+npm run brand                 # seed → every SVG, terminal/op.cells, src/brandCells.ts, the install.sh mark (deterministic)
 scripts/brand-raster.sh       # SVG → card.png, favicon PNGs and .ico (Inkscape + ImageMagick)
 ```
 
@@ -97,6 +97,8 @@ scripts/brand-raster.sh       # SVG → card.png, favicon PNGs and .ico (Inkscap
 | Social card 1200×630 | `assets/social/card.svg`, `card.png` |
 | Favicon | `assets/favicon/favicon.svg`, `{16,32,48,180,512}.png`, `favicon.ico` |
 | Terminal cells | `assets/terminal/op.cells` |
+| Cells for the wizard (generated TypeScript) | `src/brandCells.ts` |
+| Cells for the curl installer (the `<<'CELLS'` heredoc) | `install/install.sh` |
 
 ## Terminal cells
 
