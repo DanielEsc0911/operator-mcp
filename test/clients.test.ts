@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CLIENTS, detectClients, findClient, serverCommand, serverName, mcpConfigSnippet } from "../src/clients.js";
+import { CLIENTS, desktopConfigPath, detectClients, findClient, serverCommand, serverName, mcpConfigSnippet } from "../src/clients.js";
 
 function home(...dirs: string[]): string {
   const root = mkdtempSync(join(tmpdir(), "operator-home-"));
@@ -186,5 +186,29 @@ describe("entry", () => {
     const root = home(".gemini");
     writeFileSync(join(root, ".gemini/settings.json"), "{ nope");
     expect(findClient("gemini")!.entry(root, "openproject")).toBeNull();
+  });
+});
+
+describe("claude-desktop and cursor", () => {
+  it("knows Claude Desktop's config on macOS and Windows, and offers nothing on Linux", () => {
+    expect(desktopConfigPath("/Users/ada", "darwin")).toBe(
+      join("/Users/ada", "Library", "Application Support", "Claude", "claude_desktop_config.json"),
+    );
+    expect(desktopConfigPath("C:/Users/ada", "win32")).toBe(join("C:/Users/ada", "AppData", "Roaming", "Claude", "claude_desktop_config.json"));
+    expect(desktopConfigPath("/home/ada", "linux")).toBeNull();
+  });
+
+  it("detects Claude Desktop by its config directory, except on Linux", () => {
+    const root = home("Library/Application Support/Claude", "AppData/Roaming/Claude");
+    const found = detectClients(root).map((client) => client.id);
+    expect(found.includes("claude-desktop")).toBe(process.platform !== "linux");
+  });
+
+  it("writes Cursor's mcpServers entry into ~/.cursor/mcp.json", () => {
+    const root = home(".cursor");
+    expect(detectClients(root).map((client) => client.id)).toEqual(["cursor"]);
+    findClient("cursor")!.register(target(root));
+    expect(readJson(join(root, ".cursor/mcp.json")).mcpServers.openproject).toEqual({ command: "npx", args: ["-y", "operator-mcp"] });
+    expect(findClient("cursor")!.entry(root, "openproject")).toEqual(["npx", "-y", "operator-mcp"]);
   });
 });

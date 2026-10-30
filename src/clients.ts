@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { commandLine, editJson, readJson, tomlEntry, tomlKey, upsertTomlTable, writeMerged } from "./clientFiles.js";
 
 export type Runner = (command: string, args: string[]) => void;
@@ -36,6 +36,28 @@ export function serverCommand(profile: string, runtime: Runtime = process): Serv
   return { command: "npx", args: ["-y", "operator-mcp", ...flag] };
 }
 
+export function desktopConfigPath(home: string, platform: NodeJS.Platform = process.platform): string | null {
+  if (platform === "darwin") return join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
+  if (platform === "win32") return join(home, "AppData", "Roaming", "Claude", "claude_desktop_config.json");
+  return null;
+}
+
+function mcpServersClient(id: string, label: string, path: (home: string) => string | null, shown: string): Client {
+  const file = (home: string) => path(home) ?? "";
+  return {
+    id,
+    label,
+    configPath: file,
+    detect: (home) => path(home) !== null && existsSync(dirname(file(home))),
+    register: ({ home, name, command, args }) =>
+      editJson(file(home), (settings) => {
+        settings.mcpServers = { ...settings.mcpServers, [name]: { command, args } };
+      }),
+    entry: (home, name) => commandLine(readJson(file(home)).mcpServers?.[name]),
+    manual: ({ name, command, args }) => `// ${shown}\n${JSON.stringify({ mcpServers: { [name]: { command, args } } }, null, 2)}`,
+  };
+}
+
 function codexBody(command: string, args: string[]): string {
   return `command = ${JSON.stringify(command)}\nargs = [${args.map((arg) => JSON.stringify(arg)).join(", ")}]`;
 }
@@ -65,19 +87,9 @@ export const CLIENTS: Client[] = [
     entry: (home, name) => tomlEntry(join(home, ".codex", "config.toml"), `[mcp_servers.${tomlKey(name)}]`),
     manual: ({ name, command, args }) => `# ~/.codex/config.toml\n[mcp_servers.${tomlKey(name)}]\n${codexBody(command, args)}`,
   },
-  {
-    id: "gemini",
-    label: "Gemini CLI",
-    configPath: (home) => join(home, ".gemini", "settings.json"),
-    detect: (home) => existsSync(join(home, ".gemini")),
-    register: ({ home, name, command, args }) =>
-      editJson(join(home, ".gemini", "settings.json"), (settings) => {
-        settings.mcpServers = { ...settings.mcpServers, [name]: { command, args } };
-      }),
-    entry: (home, name) => commandLine(readJson(join(home, ".gemini", "settings.json")).mcpServers?.[name]),
-    manual: ({ name, command, args }) =>
-      `// ~/.gemini/settings.json\n${JSON.stringify({ mcpServers: { [name]: { command, args } } }, null, 2)}`,
-  },
+  mcpServersClient("gemini", "Gemini CLI", (home) => join(home, ".gemini", "settings.json"), "~/.gemini/settings.json"),
+  mcpServersClient("claude-desktop", "Claude Desktop", (home) => desktopConfigPath(home), "Claude Desktop: Settings → Developer → Edit Config"),
+  mcpServersClient("cursor", "Cursor", (home) => join(home, ".cursor", "mcp.json"), "~/.cursor/mcp.json"),
   {
     id: "opencode",
     label: "opencode",
@@ -97,6 +109,14 @@ export const CLIENTS: Client[] = [
       )}`,
   },
 ];
+
+export function selfCommand(runtime: Runtime = process): string {
+  return runtime.versions.bun ? "operator-mcp" : "npx operator-mcp";
+}
+
+export function offeredClients(home: string): Client[] {
+  return CLIENTS.filter((client) => client.configPath(home) !== "");
+}
 
 export function findClient(id: string): Client | undefined {
   return CLIENTS.find((client) => client.id === id);
