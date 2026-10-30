@@ -343,3 +343,18 @@ it independently. Rulings:
 | B2 | Interactive manual | **Accepted.** §6.2 item 4, within the page's craft budget. |
 | B2 | Time-to-first-answer claim | **Accepted, conditionally:** only a measured number. |
 | B2 | Shareable outro card | **Folded** into the OG image; no extra asset. |
+
+## 10. Addendum (2026-10-30): first-run feedback → 1.3.0
+
+The owner ran the live installer on a machine that already had 1.2.0. Rulings:
+
+| # | Finding | Decision |
+|---|---|---|
+| F1 | An existing 1.2.0 install is not recognised | `install.sh` reports what is installed (binary on PATH, or `npx` entries in agent configs) and says *Upgrading X → Y*. `setup` finds an existing profile and offers to keep it (re-verified, then skip URL and key). Registering agents replaces `npx` entries with the binary and reports *updated* vs *added*. 1.2.0 has no commit in this repo: inspect its npm tarball for config layout before writing upgrade logic. |
+| F2 | In a narrow terminal the download bar and spinner wrap and leave a new line per frame | Every redrawn line, in `install.sh` and `ui.ts`, is cut to the terminal width (bar shrinks first, then detail text). Verified at 40, 60, 80 columns. |
+| F3 | Typed numbers to toggle agents do not scale past nine | `src/select.ts`: arrow-key `select` and `multiSelect` (↑/↓ and j/k, Space toggles, `a` all, `n` none, Enter on a final **Confirm** row), scrolling window for long lists, Ctrl-C restores the terminal. Used for agents and the project picker (which keeps "type an identifier"). Non-TTY input keeps the typed fallback. |
+| F4 | `openproject.acme.com` without a scheme is rejected | `normalizeUrl` prepends `https://` when no scheme is given; the prompt shows `e.g. openproject.acme.com`. Remote `http://` stays refused (S2). |
+| F5 | Spanish | Detected, not asked: `--lang` > `OPERATOR_LANG` > `LC_ALL` > `LC_MESSAGES` > `LANG` > `Intl` locale; `es*` → Spanish, otherwise English. Catalogs are typed so a missing translation fails `tsc`. Only human-facing CLI text is translated; agent-facing text (tool descriptions, server instructions, errors an agent reads) stays English. `install.sh` detects the same way and passes `--lang` to `setup`. Landing page: `/es/` with `hreflang`, a switcher, and a "Ver en español" hint when the browser prefers Spanish (static, no server negotiation). |
+| F6 | The default-project picker lists every project the user belongs to; most are read-only for them, and the list is too long | Offer only projects where the user can create work packages (`/api/v3/work_packages/available_projects`, or the project's `createWorkPackage` link — confirm against the instance conventions). Search-as-you-type: an empty query shows a short list (~7); each keystroke filters by name or identifier, server-side so hundreds of projects stay fast; ↑/↓ and Enter pick; a **None** row stays first. Non-TTY keeps the typed identifier. No writable projects: say so and continue without a default. |
+
+Ships as **1.3.0** (new features), as one release: F1–F6 land in PR #5 before it is merged. Chunks 8 and 8b are the CLI; Chunk 9 the landing page.

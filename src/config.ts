@@ -31,8 +31,12 @@ function withoutSecrets(raw: string): string {
   return url.toString();
 }
 
+function withScheme(raw: string): string {
+  return raw === "" || /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
 export function normalizeUrl(raw: string): string {
-  return withoutSecrets(raw.trim()).replace(/\/+$/, "").replace(/\/api\/v3$/, "");
+  return withoutSecrets(withScheme(raw.trim())).replace(/\/+$/, "").replace(/\/api\/v3$/, "");
 }
 
 export function assertSecureUrl(url: string, env: NodeJS.ProcessEnv): void {
@@ -44,8 +48,10 @@ export function assertSecureUrl(url: string, env: NodeJS.ProcessEnv): void {
 }
 
 export function configHome(env: NodeJS.ProcessEnv = process.env, platform = process.platform): string {
-  if (platform === "win32" && env.APPDATA) return join(env.APPDATA, "operator-mcp");
-  return join(env.XDG_CONFIG_HOME || join(homedir(), ".config"), "operator-mcp");
+  if (platform !== "win32" || !env.APPDATA) return join(env.XDG_CONFIG_HOME || join(homedir(), ".config"), "operator-mcp");
+  const preferred = join(env.APPDATA, "operator-mcp");
+  const savedBy120 = join(homedir(), ".config", "operator-mcp");
+  return !existsSync(preferred) && existsSync(savedBy120) ? savedBy120 : preferred;
 }
 
 export function profileDir(profile: string): string {

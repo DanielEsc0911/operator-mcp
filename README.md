@@ -55,13 +55,20 @@ curl -fsSL https://operator.daer.dev/install.sh | sh
 
 The script downloads one gzipped binary, checks it against the release's SHA-256,
 puts it in `~/.local/bin` and starts the setup wizard. To update, run the same line
-again.
+again. It says what it found (*Upgrading 1.2.0 → 1.3.0*, or *npx → 1.3.0* if you
+ran OPerator through npx before), and the wizard offers to keep your connection and
+moves each agent onto the binary.
 
 | Option | Effect |
 |---|---|
 | `sh -s -- --no-setup` | Install and stop there, without the wizard |
-| `OPERATOR_VERSION=1.2.0` | Pin a release |
+| `OPERATOR_VERSION=1.3.0` | Pin a release |
 | `OPERATOR_INSTALL_DIR` | Install into another folder |
+| `sh -s -- --lang es` or `OPERATOR_LANG=es` | Speak Spanish (the default follows your locale) |
+
+**¿En español?** The installer, `setup`, `install`, `doctor` and `--help` speak
+Spanish when your locale is Spanish (`LANG=es_ES.UTF-8` and the like), or when you
+pass `--lang es`. What your agent reads (tool descriptions, errors) stays in English.
 
 **Have Node.js 22 or newer?** npm fetches the package on demand. This is also the
 way to install on Windows and Alpine:
@@ -96,29 +103,33 @@ asks where your OpenProject lives, takes an API key, checks the line before savi
 anything, and patches every agent it finds:
 
 ```text
-  Where does your OpenProject live?
-  › https://openproject.acme.com
+  Where does your OpenProject live? e.g. openproject.acme.com
+  › openproject.acme.com
 
   Your API key. Make one at https://openproject.acme.com/my/access_tokens
   (older instances: My account → Access token). It stays on this machine.
   › •••••••••••••
 
-  Line's open  done   Ada Lovelace (ada@example.com) · 12 projects
+  Line's open   done   Ada Lovelace (ada@example.com) · 12 projects
 
   Which agents should OPerator patch into?
-    [x] 1  Claude Code
-    [x] 2  Codex CLI
-    [x] 3  Gemini CLI
-    [x] 4  Cursor
+  › [x] Claude Code
+    [x] Codex CLI
+    [x] Gemini CLI
+    [x] Cursor
+    Confirm
+    ↑↓ move · Space select · Enter confirm
 
-  Patching in  done   Claude Code  ~/.claude.json
-               done   Codex CLI    ~/.codex/config.toml
-               done   Gemini CLI   ~/.gemini/settings.json
-               done   Cursor       ~/.cursor/mcp.json
+  Patching in   done   Claude Code  added    ~/.claude.json
+                done   Codex CLI    added    ~/.codex/config.toml
+                done   Gemini CLI   updated  ~/.gemini/settings.json
+                done   Cursor       added    ~/.cursor/mcp.json
 ```
 
-Plain `http://` is refused unless the host is loopback. Along the way you pick a
-default project (or none), and the wizard finishes with the same checks
+An address without a scheme is taken as `https://`; plain `http://` is refused
+unless the host is loopback. Along the way you pick a
+default project (or none) from the projects where you can create work packages:
+type part of a name or identifier to search them, ↑/↓ and Enter to choose. The wizard finishes with the same checks
 `operator-mcp doctor` runs. Then **restart your agent** and ask it *"what's on my
 plate?"*. Run `operator-mcp doctor` (or `npx operator-mcp doctor`) any time to check
 the connection.
@@ -328,6 +339,7 @@ refused before a request leaves the machine. Reads work normally.
 | `OPENPROJECT_READ_ONLY` | Set to `1` to refuse every write. |
 | `OPENPROJECT_ALLOW_DELETE` | Set to `1` to let `api_request` send `DELETE`. Off by default. Environment only. |
 | `OPENPROJECT_ALLOW_INSECURE_HTTP` | Set to `1` to allow a plain `http://` URL to a non-loopback host. The API key then travels unencrypted. Environment only. |
+| `OPERATOR_LANG` | `es` or `en` for the command-line text. Same as `--lang`; otherwise `LC_ALL`, `LC_MESSAGES`, `LANG` decide. |
 
 Environment variables win over the stored profile, which makes CI easy: set
 `OPENPROJECT_URL` and `OPENPROJECT_API_KEY` and skip `setup` entirely.

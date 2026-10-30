@@ -22,12 +22,12 @@ describe("registerAll", () => {
   it("reports success per client", () => {
     const context = target();
     const outcomes = registerAll([gemini], context);
-    expect(outcomes).toEqual([{ client: gemini }]);
+    expect(outcomes).toEqual([{ client: gemini, updated: false }]);
   });
 
   it("captures a failure as a message instead of throwing", () => {
     const context = { ...target(), run: () => { throw new Error("`claude` is not on your PATH"); } };
-    expect(registerAll([claude], context)).toEqual([{ client: claude, error: "`claude` is not on your PATH" }]);
+    expect(registerAll([claude], context)).toEqual([{ client: claude, updated: false, error: "`claude` is not on your PATH" }]);
   });
 
   it("keeps registering the rest after one client fails", () => {
@@ -65,8 +65,40 @@ describe("patchAgents", () => {
     const patched = await patchAgents(["install", "--yes"], streams, rl, home);
     rl.close();
     expect(patched.map((client) => client.id)).toEqual(["cursor"]);
-    expect(text).toContain("Patching in  done   Cursor");
+    expect(text).toContain("Patching in   done   Cursor  added");
     expect(text).toContain(join("~", ".cursor", "mcp.json"));
     expect(JSON.parse(readFileSync(join(home, ".cursor/mcp.json"), "utf8")).mcpServers.openproject).toBeDefined();
+  });
+});
+
+describe("upgrading from 1.2.0", () => {
+  const npxEntry = { command: "npx", args: ["-y", "operator-mcp"] };
+  const binary = { command: "/home/ada/.local/bin/operator-mcp", args: [] as string[] };
+
+  it("replaces an npx entry with the binary and reports it as updated", async () => {
+    const { mkdirSync, readFileSync, writeFileSync } = await import("node:fs");
+    const context = { ...target(), ...binary };
+    mkdirSync(join(context.home, ".gemini"));
+    writeFileSync(join(context.home, ".gemini", "settings.json"), JSON.stringify({ mcpServers: { openproject: npxEntry } }));
+    expect(registerAll([gemini], context)).toEqual([{ client: gemini, updated: true }]);
+    const written = JSON.parse(readFileSync(join(context.home, ".gemini", "settings.json"), "utf8"));
+    expect(written.mcpServers.openproject).toEqual(binary);
+  });
+
+  it("removes Claude Code's old entry before adding, since claude mcp add refuses a taken name", async () => {
+    const { writeFileSync } = await import("node:fs");
+    const context = { ...target(), ...binary };
+    writeFileSync(join(context.home, ".claude.json"), JSON.stringify({ mcpServers: { openproject: npxEntry } }));
+    expect(registerAll([claude], context)[0].updated).toBe(true);
+    expect(context.run.mock.calls).toEqual([
+      ["claude", ["mcp", "remove", "openproject", "--scope", "user"]],
+      ["claude", ["mcp", "add", "openproject", "--scope", "user", "--", binary.command]],
+    ]);
+  });
+
+  it("only adds when Claude Code has no entry yet", () => {
+    const context = target();
+    registerAll([claude], context);
+    expect(context.run).toHaveBeenCalledOnce();
   });
 });

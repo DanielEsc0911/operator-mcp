@@ -66,6 +66,8 @@ function codexBody(command: string, args: string[]): string {
   return `command = ${JSON.stringify(command)}\nargs = [${args.map((arg) => JSON.stringify(arg)).join(", ")}]`;
 }
 
+const claudeEntry = (home: string, name: string) => commandLine(readJson(join(home, ".claude.json")).mcpServers?.[name]);
+
 export const CLIENTS: Client[] = [
   {
     id: "claude-code",
@@ -73,8 +75,12 @@ export const CLIENTS: Client[] = [
     configPath: (home) => join(home, ".claude.json"),
     detect: (home) => existsSync(join(home, ".claude")) || existsSync(join(home, ".claude.json")),
     // The user-scope config is the claude CLI's own format; let it do the write.
-    register: ({ name, command, args, run }) => run("claude", ["mcp", "add", name, "--scope", "user", "--", command, ...args]),
-    entry: (home, name) => commandLine(readJson(join(home, ".claude.json")).mcpServers?.[name]),
+    // Its `mcp add` refuses a name that exists, so an older entry goes first.
+    register: ({ home, name, command, args, run }) => {
+      if (claudeEntry(home, name)) run("claude", ["mcp", "remove", name, "--scope", "user"]);
+      run("claude", ["mcp", "add", name, "--scope", "user", "--", command, ...args]);
+    },
+    entry: (home, name) => claudeEntry(home, name),
     manual: ({ name, command, args }) => `claude mcp add ${name} --scope user -- ${[command, ...args].join(" ")}`,
   },
   {

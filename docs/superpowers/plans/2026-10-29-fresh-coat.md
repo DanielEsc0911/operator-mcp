@@ -127,3 +127,36 @@ Re-audit each row against today's code first. Some may be partly done or moot.
 - [x] **7.6 Close out** — progress doc final state; spec status → "Implemented" with any amendments; final hand-off summarising both repos' state, every commit range, and what the owner does next.
 
 **Verify:** Lighthouse budgets met (paste the four scores per preset into the hand-off); landing `npm test` green; this repo `npm test && npx tsc --noEmit && npm run build` green.
+
+---
+
+## Chunk 8 — 1.3.0: upgrade path, narrow terminals, arrow selector, bare hosts, Spanish (spec §10)
+
+Branch `wizard-polish-i18n` from `main`. Push it and open a PR; CI must be green on all three OSes. Do not merge or tag.
+
+- [ ] **8.1 F4 bare hosts** — test-first in `config.ts`; prompt example in both languages.
+- [ ] **8.2 F2 width** — `install.sh` and `ui.ts` cut redrawn lines to the width; pty captures at 40/60/80 columns show one line per step.
+- [ ] **8.3 F3 `src/select.ts`** — `select`, `multiSelect`, typed fallback; tests drive keypresses through fake streams; wire into agents and project picker.
+- [ ] **8.4 F5 i18n** — `src/i18n/` (locale detection + typed `en`/`es` catalogs); every human-facing string in `cli.ts`, `setup.ts`, `prompts.ts`, `select.ts`, `install.ts`, `doctor.ts`, `outro.ts`, `ui.ts` comes from it; `--lang` documented in `--help` and README; `install.sh` bilingual with the same detection, passing `--lang` on.
+- [ ] **8.5 F1 upgrade path** — inspect `npm pack operator-mcp@1.2.0`; installer *Upgrading*; setup *keep this connection*; agents *updated/added*; test with a fixture home that holds a 1.2.0-style profile and `npx` entries.
+- [ ] **8.6 Release prep** — 1.3.0 in `package.json`, lock, `src/server.ts`, `CHANGELOG.md`; README (Spanish note, `--lang`, bare host); recapture `docs/brand/demo/session.txt`, `session-plain.txt`, and new `session-es.txt` (+ plain) at 80 columns.
+
+**Verify:** `npm test && npx tsc --noEmit && npm run build && npm run test:install`, shellcheck, `npm run brand` byte-identical, pack-check; pty runs in both languages at 40 and 80 columns, read by eye; PR CI green.
+
+## Chunk 8b — Searchable, writable-only project picker (spec §10 F6), same branch and PR
+
+- [x] **8b.1** Writable projects only — find the right APIv3 source (load `openproject-apiv3`), test it against fixtures, document any non-obvious contract in that skill.
+- [x] **8b.2** `searchSelect` in `src/select.ts` (or a sibling file if `select.ts` would pass ~150 lines): a query line, live-filtered window of ~7 rows, debounced server-side search, ↑/↓ + Enter, **None** first, Esc clears the query; typed fallback when not a TTY; English and Spanish.
+- [x] **8b.3** Spanish copy fixes from the judge: key hint says **Enter** (not *Intro*); facts table *Instalado* / *Versión*; upgrade line reads *from npx → 1.3.0* / *desde npx → 1.3.0*.
+- [x] **8b.4** Recapture the four `docs/brand/demo/session*.txt` transcripts (picker now shows search); update `CHANGELOG.md` 1.3.0 and README.
+
+**Verify:** `npm test && npx tsc --noEmit && npm run build && npm run test:install`; pty runs in both languages at 40 and 80 columns with a mock instance holding 200 projects of which few are writable; PR #5 CI green.
+
+## Chunk 9 — Landing page in Spanish (spec §10 F5)
+
+- [ ] **9.1** Astro i18n: `/` English, `/es/` Spanish; every string in a typed dictionary; `hreflang` alternates, `<html lang>`, sitemap with both.
+- [ ] **9.2** Language switcher in the header; a dismissible "Ver en español" / "View in English" hint driven by `navigator.languages` (no redirect).
+- [ ] **9.3** `sync-brand` also syncs `session-es.txt`; the `/es/` replay uses it. Tool names and descriptions stay as the server sends them (English), with a one-line note.
+- [ ] **9.4** Playwright + axe + Lighthouse for both locales; screenshots of `/es/` at 1440 and 390 read by eye.
+
+**Verify:** landing `npm run build && npm test` green; Lighthouse budgets on `/` and `/es/`.
