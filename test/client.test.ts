@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { OpenProjectClient } from "../src/client.js";
+import { OpenProjectClient, segment } from "../src/client.js";
 import { ConfigError, ReadOnlyError, OpenProjectError } from "../src/errors.js";
 import type { Config } from "../src/config.js";
 
@@ -9,6 +9,7 @@ const config: Config = {
   apiKey: "secret",
   conventionsPath: "/tmp/conventions.md",
   readOnly: false,
+  allowDelete: false,
 };
 
 function respond(body: unknown, status = 200): Response {
@@ -27,6 +28,27 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe("segment", () => {
+  it("turns a traversal into one encoded path segment", () => {
+    expect(segment("../../users/me")).toBe("..%2F..%2Fusers%2Fme");
+  });
+});
+
+describe("request url", () => {
+  it("keeps the path of a sub-path install", async () => {
+    fetchMock.mockResolvedValue(respond({ id: 1 }));
+    await new OpenProjectClient({ ...config, url: "https://acme.com/openproject" }).request("GET", "/users/me");
+    expect(fetchMock.mock.calls[0][0].toString()).toBe("https://acme.com/openproject/api/v3/users/me");
+  });
+
+  it("refuses a path that climbs out of the api root, before any request", async () => {
+    const client = new OpenProjectClient({ ...config, url: "https://acme.com/openproject" });
+    await expect(client.request("GET", "/../../admin")).rejects.toThrow(/outside https:\/\/acme.com\/openproject\/api\/v3/);
+    await expect(client.request("GET", "https://evil.example/x")).rejects.toThrow(/relative to \/api\/v3/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("request", () => {

@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createInterface, type Interface } from "node:readline/promises";
 import { OpenProjectClient, type Identity } from "./client.js";
-import { normalizeUrl, profileDir, resolveProfile, saveConfig } from "./config.js";
+import { assertSecureUrl, normalizeUrl, profileDir, resolveProfile, saveConfig } from "./config.js";
 import { TEMPLATE_PATH } from "./conventions.js";
 import { humanMessage } from "./errors.js";
 import { runInstall } from "./install.js";
@@ -12,7 +12,7 @@ export async function verifyCredentials(
   apiKey: string,
 ): Promise<{ identity: Identity; projectCount: number }> {
   const client = new OpenProjectClient({
-    profile: "setup", url, apiKey, conventionsPath: "", readOnly: false,
+    profile: "setup", url, apiKey, conventionsPath: "", readOnly: false, allowDelete: false,
   });
   const identity = await client.me();
   const { total } = await client.collection("/projects", { pageSize: 1 });
@@ -84,6 +84,7 @@ export async function runSetup(argv: string[]): Promise<void> {
       url = normalizeUrl(await rl.question("  OpenProject instance URL: "));
       apiKey = await promptHidden(rl, "  API key: ");
       try {
+        assertSecureUrl(url, process.env);
         const { identity, projectCount } = await verifyCredentials(url, apiKey);
         console.log(`  ✓ Connected as ${identity.name} (${identity.email})`);
         console.log(`  ✓ ${projectCount} projects visible`);

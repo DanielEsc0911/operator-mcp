@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
 import { buildInstructions } from "../src/server.js";
 import { connect } from "./support/harness.js";
 import type { Config } from "../src/config.js";
@@ -9,6 +10,7 @@ const config: Config = {
   apiKey: "secret",
   conventionsPath: "/tmp/conventions.md",
   readOnly: false,
+  allowDelete: false,
 };
 
 const identity = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
@@ -65,6 +67,12 @@ describe("tool registration", () => {
   });
 
   afterEach(() => vi.unstubAllGlobals());
+
+  it("reports the package version", async () => {
+    const client = await connect();
+    const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    expect(client.getServerVersion()?.version).toBe(version);
+  });
 
   it("registers exactly the twenty planned tools", async () => {
     const client = await connect();

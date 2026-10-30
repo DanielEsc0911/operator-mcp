@@ -9,6 +9,7 @@ export const testConfig: Config = {
   apiKey: "secret",
   conventionsPath: "/nonexistent/conventions.md",
   readOnly: false,
+  allowDelete: false,
 };
 
 export async function connect(config: Config = testConfig): Promise<Client> {
