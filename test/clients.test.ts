@@ -146,3 +146,28 @@ describe("mcpConfigSnippet", () => {
     }
   });
 });
+
+describe("entry", () => {
+  it.each(["codex", "gemini", "opencode"])("%s reads back the command it registered", (id) => {
+    const root = home(".codex", ".gemini", ".config/opencode");
+    const client = findClient(id)!;
+    expect(client.entry(root, "openproject-acme")).toBeNull();
+    client.register(target(root, "acme"));
+    expect(client.entry(root, "openproject-acme")).toEqual(["npx", "-y", "operator-mcp", "--profile", "acme"]);
+  });
+
+  it("claude-code reads the user-scope entry from ~/.claude.json", () => {
+    const root = home();
+    writeFileSync(
+      join(root, ".claude.json"),
+      JSON.stringify({ mcpServers: { openproject: { type: "stdio", command: "npx", args: ["-y", "operator-mcp"] } } }),
+    );
+    expect(findClient("claude-code")!.entry(root, "openproject")).toEqual(["npx", "-y", "operator-mcp"]);
+  });
+
+  it("treats an unreadable config as no entry", () => {
+    const root = home(".gemini");
+    writeFileSync(join(root, ".gemini/settings.json"), "{ nope");
+    expect(findClient("gemini")!.entry(root, "openproject")).toBeNull();
+  });
+});

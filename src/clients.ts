@@ -1,5 +1,6 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { commandLine, editJson, readJson, tomlEntry, tomlKey, upsertTomlTable, writeMerged } from "./clientFiles.js";
 
 export type Runner = (command: string, args: string[]) => void;
 
@@ -16,6 +17,7 @@ export type Client = {
   configPath: (home: string) => string;
   detect: (home: string) => boolean;
   register: (target: Target) => void;
+  entry: (home: string, name: string) => string[] | null;
   manual: (target: Target) => string;
 };
 
@@ -28,45 +30,6 @@ export function serverArgs(profile: string): string[] {
   return profile === "default" ? base : [...base, "--profile", profile];
 }
 
-function backup(path: string): void {
-  if (!existsSync(path)) return;
-  copyFileSync(path, `${path}.${new Date().toISOString().replace(/[:.]/g, "-")}.bak`);
-}
-
-function writeMerged(path: string, text: string): void {
-  backup(path);
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, text, { mode: 0o600 });
-}
-
-function editJson(path: string, edit: (document: Record<string, any>) => void): void {
-  let document: Record<string, any> = {};
-  if (existsSync(path)) {
-    try {
-      document = JSON.parse(readFileSync(path, "utf8"));
-    } catch {
-      throw new Error(`${path} is not valid JSON — fix or move it, then run: npx operator-mcp install`);
-    }
-  }
-  edit(document);
-  writeMerged(path, `${JSON.stringify(document, null, 2)}\n`);
-}
-
-function tomlKey(name: string): string {
-  return /^[A-Za-z0-9_-]+$/.test(name) ? name : JSON.stringify(name);
-}
-
-function upsertTomlTable(text: string, header: string, body: string): string {
-  const lines = text.split("\n");
-  const start = lines.indexOf(header);
-  if (start === -1) return `${text.trimEnd()}\n\n${header}\n${body}\n`.replace(/^\n+/, "");
-
-  const after = lines.findIndex((line, index) => index > start && line.trimStart().startsWith("["));
-  const end = after === -1 ? lines.length : after;
-  lines.splice(start, end - start, header, ...body.split("\n"), "");
-  return lines.join("\n");
-}
-
 export const CLIENTS: Client[] = [
   {
     id: "claude-code",
@@ -75,6 +38,7 @@ export const CLIENTS: Client[] = [
     detect: (home) => existsSync(join(home, ".claude")) || existsSync(join(home, ".claude.json")),
     // The user-scope config is the claude CLI's own format; let it do the write.
     register: ({ name, args, run }) => run("claude", ["mcp", "add", name, "--scope", "user", "--", "npx", ...args]),
+    entry: (home, name) => commandLine(readJson(join(home, ".claude.json")).mcpServers?.[name]),
     manual: ({ name, args }) => `claude mcp add ${name} --scope user -- npx ${args.join(" ")}`,
   },
   {
@@ -88,6 +52,7 @@ export const CLIENTS: Client[] = [
       const text = existsSync(path) ? readFileSync(path, "utf8") : "";
       writeMerged(path, upsertTomlTable(text, `[mcp_servers.${tomlKey(name)}]`, body));
     },
+    entry: (home, name) => tomlEntry(join(home, ".codex", "config.toml"), `[mcp_servers.${tomlKey(name)}]`),
     manual: ({ name, args }) =>
       `# ~/.codex/config.toml\n[mcp_servers.${tomlKey(name)}]\ncommand = "npx"\nargs = [${args
         .map((arg) => JSON.stringify(arg))
@@ -102,6 +67,7 @@ export const CLIENTS: Client[] = [
       editJson(join(home, ".gemini", "settings.json"), (settings) => {
         settings.mcpServers = { ...settings.mcpServers, [name]: { command: "npx", args } };
       }),
+    entry: (home, name) => commandLine(readJson(join(home, ".gemini", "settings.json")).mcpServers?.[name]),
     manual: ({ name, args }) =>
       `// ~/.gemini/settings.json\n${JSON.stringify({ mcpServers: { [name]: { command: "npx", args } } }, null, 2)}`,
   },
@@ -115,6 +81,7 @@ export const CLIENTS: Client[] = [
         config.$schema ??= "https://opencode.ai/config.json";
         config.mcp = { ...config.mcp, [name]: { type: "local", command: ["npx", ...args], enabled: true } };
       }),
+    entry: (home, name) => commandLine(readJson(join(home, ".config", "opencode", "opencode.json")).mcp?.[name]),
     manual: ({ name, args }) =>
       `// ~/.config/opencode/opencode.json\n${JSON.stringify(
         { mcp: { [name]: { type: "local", command: ["npx", ...args], enabled: true } } },
