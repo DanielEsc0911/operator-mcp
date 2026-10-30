@@ -1,7 +1,7 @@
 # Fresh Coat — Concept, Brand, Installer, Landing Page
 
 **Date:** 2026-10-29
-**Status:** v1 — critique applied (see §9), ready to execute
+**Status:** Implemented (2026-10-30). Amendments: signal text #A15C00 and light patch #0C7D73 (contrast); terminal slots 136/30/167/243; binary ships gzipped (~49 MiB); version is a constant in `src/server.ts`; TTY test in a subshell; Astro pinned 7.4.1 until Node ≥ 22.23.4; security release becomes ≥ 1.2.1 because npm already holds 1.2.0.
 **Branch:** `fresh-coat`
 **Plan:** `docs/superpowers/plans/2026-10-29-fresh-coat.md`
 **Progress:** `docs/progress/2026-10-29-fresh-coat.md`

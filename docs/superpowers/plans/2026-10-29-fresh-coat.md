@@ -119,11 +119,11 @@ Re-audit each row against today's code first. Some may be partly done or moot.
 
 ## Chunk 7 — Polish, budgets, cross-repo verification
 
-- [ ] **7.1 Lighthouse CI** — `@lhci/cli` against the built `dist` on desktop and mobile presets; budgets per spec §6.3; fix until met. `.github/workflows/ci.yml` in the landing repo: build, Playwright + axe, Lighthouse.
-- [ ] **7.2 Design pass** — the impeccable skill's audit + polish + critique on the live dev server; fix every finding worth fixing; record what you declined and why.
-- [ ] **7.3 Cross-repo truth check** — every claim on the page and in the README against the code: tool list (re-run `sync-tools`), env vars, client list, install line, Node floor, the not-affiliated line. Brand assets re-synced and identical.
-- [ ] **7.4 Installer ↔ page** — serve `dist` locally with a static server that honours `_redirects` (e.g. `wrangler pages dev dist` via `npx`), and prove `curl -fsSL <local>/install.sh` resolves to the redirect target URL (it will 404 upstream until the first tag. Assert the redirect, not the body).
-- [ ] **7.5 Runbook** — update `docs/MANUAL-RELEASE-STEPS.md` (this repo) with exactly the owner-only steps from spec §8, in order, each with the command or the UI path. Remove steps that no longer apply.
-- [ ] **7.6 Close out** — progress doc final state; spec status → "Implemented" with any amendments; final hand-off summarising both repos' state, every commit range, and what the owner does next.
+- [x] **7.1 Lighthouse CI** — `@lhci/cli` against the built `dist` on desktop and mobile presets; budgets per spec §6.3; fix until met. `.github/workflows/ci.yml` in the landing repo: build, Playwright + axe, Lighthouse.
+- [x] **7.2 Design pass** — the impeccable skill's audit + polish + critique on the live dev server; fix every finding worth fixing; record what you declined and why.
+- [x] **7.3 Cross-repo truth check** — every claim on the page and in the README against the code: tool list (re-run `sync-tools`), env vars, client list, install line, Node floor, the not-affiliated line. Brand assets re-synced and identical.
+- [x] **7.4 Installer ↔ page** — serve `dist` locally with a static server that honours `_redirects` (e.g. `wrangler pages dev dist` via `npx`), and prove `curl -fsSL <local>/install.sh` resolves to the redirect target URL (it will 404 upstream until the first tag. Assert the redirect, not the body).
+- [x] **7.5 Runbook** — update `docs/MANUAL-RELEASE-STEPS.md` (this repo) with exactly the owner-only steps from spec §8, in order, each with the command or the UI path. Remove steps that no longer apply.
+- [x] **7.6 Close out** — progress doc final state; spec status → "Implemented" with any amendments; final hand-off summarising both repos' state, every commit range, and what the owner does next.
 
 **Verify:** Lighthouse budgets met (paste the four scores per preset into the hand-off); landing `npm test` green; this repo `npm test && npx tsc --noEmit && npm run build` green.
