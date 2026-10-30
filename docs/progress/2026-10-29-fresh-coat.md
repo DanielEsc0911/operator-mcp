@@ -24,6 +24,7 @@ plan and why, and anything left open.
 | Chunk 8b — Writable-project picker (F6) | done | efa631c..HEAD, PR #5 |
 | Chunk 9 — Landing page in Spanish | done | landing PR #1 (branch `spanish`, 252d322..9d397ca) |
 | Chunk 10 — Landing hero and spacing polish | done | landing PR #2 (branch `spanish`, b14d661, 4050802, ae03ac0, 402f72f) |
+| Chunk 11 — 1.3.1 fixes | done | branch `release-1.3.1`, PR #6 |
 
 ## Hand-off notes
 
@@ -127,3 +128,11 @@ plan and why, and anything left open.
 
 - **Landing PR #2** (branch `spanish` of `operator-landing-page`): `b14d661` trims section top padding ~30% through the shared spacing tokens; `4050802` decides the language hint before first paint and preloads fonts with `font-display: optional` (zero CLS); `ae03ac0` makes the hero call card shift-free (stacked card, drawn strike, shrink and rise) and smaller, so the curl line sits above the fold; `402f72f` drops the footer typeface credit (the OFL licences ship with the fonts).
 - **Sync:** 1.3.1 changes the manual step note in `docs/brand/demo/session*.txt` (*template* / *plantilla*); re-run `npm run sync-brand` there.
+
+### Chunk 11 — 1.3.1 fixes (2026-10-30)
+
+- **PR #6** (`release-1.3.1`, not merged/tagged): install.sh width probe in a silenced subshell (no `/dev/tty` noise without a terminal); `scaffoldConventions` uses one `wx` create; the test-install server returns 403 outside its directory; the manual note is *template* / *plantilla* (an 80-column test covers every setup step line in both languages); `test-live/picker.test.ts`; version 1.3.1.
+- **Real-home incident:** a Chunk 8 executor briefly made `configHome` fall back to `homedir()` on every platform (11:22:52), then ran vitest. Suites stubbed only `XDG_CONFIG_HOME`, so `acme`/`ci`/`default` fixtures landed in `~/.config/operator-mcp`. Now `test/support/isolateHome.ts` (vitest `setupFiles`, unit + live) isolates `HOME`, `USERPROFILE`, `XDG_CONFIG_HOME` and `APPDATA`. A names+mtimes snapshot was identical before and after `npm test` and `test:install`. The real files were left for the owner.
+- **Alerts:** #1–#5 close on the post-merge rescan. The owner should dismiss #7, #8 and #10 (false positive: the key goes to the configured instance) and #6 (used in tests). No Dependabot PRs are open.
+- **Owner:** run `npm run sync-brand` in the landing repo (captures changed).
+- **Verify:** 28 files / 306 tests; tsc silent; build; test:install 11/11; brand unchanged; pack-check 38; PR CI green on all checks.
