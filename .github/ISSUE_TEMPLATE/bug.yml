@@ -1,0 +1,36 @@
+name: Bug report
+description: Something does not work
+labels: [bug]
+body:
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `npx operator-mcp doctor`
+      description: Doctor never prints your API key.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Agent and version
+      placeholder: Claude Code 2.x / Codex CLI / Gemini CLI / opencode
+    validations:
+      required: true
+  - type: input
+    id: openproject
+    attributes:
+      label: OpenProject version
+      placeholder: 16.x, or "cloud"
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true

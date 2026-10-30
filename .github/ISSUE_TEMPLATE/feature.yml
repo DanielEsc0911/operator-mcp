@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a capability
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do that you cannot do today?
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: What would the tool call look like?
+      description: Which tool, which arguments, what comes back.
+  - type: checkboxes
+    id: escape-hatch
+    attributes:
+      label: Have you tried `api_request`?
+      options:
+        - label: Yes, and it does not cover this or is too awkward to use
