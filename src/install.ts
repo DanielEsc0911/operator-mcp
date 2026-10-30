@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { createInterface, type Interface } from "node:readline/promises";
-import { CLIENTS, detectClients, serverArgs, serverName, type Client, type Runner, type Target } from "./clients.js";
+import { CLIENTS, detectClients, serverCommand, serverName, type Client, type Runner, type Target } from "./clients.js";
 import type { Streams } from "./cli.js";
 import { resolveProfile } from "./config.js";
 import { humanMessage } from "./errors.js";
@@ -52,7 +52,7 @@ export async function runInstall(argv: string[], streams: Streams, existing?: In
   const say = (line: string) => out.write(`${line}\n`);
   const profile = resolveProfile(argv, process.env);
   const home = homedir();
-  const target: Target = { home, name: serverName(profile), args: serverArgs(profile), run: spawnRunner };
+  const target: Target = { home, name: serverName(profile), ...serverCommand(profile), run: spawnRunner };
 
   const detected = detectClients(home);
   if (detected.length === 0) {

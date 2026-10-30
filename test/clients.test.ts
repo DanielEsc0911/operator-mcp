@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CLIENTS, detectClients, findClient, serverArgs, serverName, mcpConfigSnippet } from "../src/clients.js";
+import { CLIENTS, detectClients, findClient, serverCommand, serverName, mcpConfigSnippet } from "../src/clients.js";
 
 function home(...dirs: string[]): string {
   const root = mkdtempSync(join(tmpdir(), "operator-home-"));
@@ -11,22 +11,39 @@ function home(...dirs: string[]): string {
 }
 
 function target(root: string, profile = "default") {
-  return { home: root, name: serverName(profile), args: serverArgs(profile), run: vi.fn() };
+  return { home: root, name: serverName(profile), ...serverCommand(profile, node), run: vi.fn() };
 }
 
 function readJson(path: string): any {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-describe("serverName / serverArgs", () => {
+const node = { versions: {}, execPath: "/usr/bin/node" };
+const binary = { versions: { bun: "1.4.4" }, execPath: "/home/ada/.local/bin/operator-mcp" };
+
+describe("serverName / serverCommand", () => {
   it("uses a bare name and no profile flag for the default profile", () => {
     expect(serverName("default")).toBe("openproject");
-    expect(serverArgs("default")).toEqual(["-y", "operator-mcp"]);
+    expect(serverCommand("default", node)).toEqual({ command: "npx", args: ["-y", "operator-mcp"] });
   });
 
   it("suffixes the name and passes --profile for any other profile", () => {
     expect(serverName("acme")).toBe("openproject-acme");
-    expect(serverArgs("acme")).toEqual(["-y", "operator-mcp", "--profile", "acme"]);
+    expect(serverCommand("acme", node)).toEqual({ command: "npx", args: ["-y", "operator-mcp", "--profile", "acme"] });
+  });
+
+  it("registers the standalone binary by its absolute path when running under Bun", () => {
+    expect(serverCommand("default", binary)).toEqual({ command: binary.execPath, args: [] });
+    expect(serverCommand("acme", binary)).toEqual({ command: binary.execPath, args: ["--profile", "acme"] });
+  });
+
+  it("writes the binary path into a client config", () => {
+    const root = home(".gemini");
+    findClient("gemini")!.register({ home: root, name: "openproject", ...serverCommand("default", binary), run: vi.fn() });
+    expect(readJson(join(root, ".gemini/settings.json")).mcpServers.openproject).toEqual({
+      command: binary.execPath,
+      args: [],
+    });
   });
 });
 

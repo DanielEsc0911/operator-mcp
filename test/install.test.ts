@@ -12,6 +12,7 @@ function target() {
   return {
     home: mkdtempSync(join(tmpdir(), "operator-install-")),
     name: "openproject",
+    command: "npx",
     args: ["-y", "operator-mcp"],
     run: vi.fn(),
   };
