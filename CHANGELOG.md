@@ -14,10 +14,15 @@ All notable changes to this project are documented here. The format follows
   when `--lang es`, `OPERATOR_LANG`, `LC_ALL`, `LC_MESSAGES` or `LANG` says so
   (in that order; otherwise the system locale decides). Tool descriptions, server
   instructions and errors an agent reads stay in English.
-- Arrow-key menus for choosing agents and the default project: ↑/↓ or j/k, Space
-  marks, `a` all, `n` none, Enter confirms. Long lists scroll. Piped input and
-  `--non-interactive` keep the typed answers.
-- Upgrading from 1.2.0: the installer says *Upgrading npx → 1.3.0* (or the old
+- Arrow-key menu for choosing agents: ↑/↓ or j/k, Space marks, `a` all, `n` none,
+  Enter confirms. Long lists scroll. Piped input and `--non-interactive` keep the
+  typed answers.
+- A searchable default-project picker. It lists only projects where you can
+  create work packages, starting with **None** and seven projects; typing searches
+  names and identifiers on the server, so hundreds of projects stay fast. Esc
+  clears the search. With no such project, setup says so and saves no default.
+  If the instance cannot filter projects that way, setup asks for an identifier.
+- Upgrading from 1.2.0: the installer says *Upgrading from npx → 1.3.0* (or the old
   binary's version), setup offers to keep the existing connection after checking
   it again, and each agent is reported as *updated* or *added*. Entries that ran
   `npx -y operator-mcp` are replaced with the binary.

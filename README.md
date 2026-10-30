@@ -128,7 +128,8 @@ anything, and patches every agent it finds:
 
 An address without a scheme is taken as `https://`; plain `http://` is refused
 unless the host is loopback. Along the way you pick a
-default project (or none), and the wizard finishes with the same checks
+default project (or none) from the projects where you can create work packages:
+type part of a name or identifier to search them, ↑/↓ and Enter to choose. The wizard finishes with the same checks
 `operator-mcp doctor` runs. Then **restart your agent** and ask it *"what's on my
 plate?"*. Run `operator-mcp doctor` (or `npx operator-mcp doctor`) any time to check
 the connection.

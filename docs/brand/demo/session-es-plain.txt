@@ -2,8 +2,8 @@
   OPerator  instalador
   ---------------------
   Sistema       Fedora Linux 44 (KDE Plasma Desktop Edition) - x86_64
-  Instalada     todavía no
-  Descarga      1.3.0
+  Instalado     todavía no
+  Versión       1.3.0
   Destino       ~/.local/bin
 
   Comprobando   listo  127.0.0.1:8780 responde
@@ -21,51 +21,69 @@
   Versión       1.3.0
 
   ¿Dónde está tu OpenProject? p. ej. openproject.acme.com
-[1G[0J  › [5Ghttp://127.0.0.1:8781
+[1G[0J  › [5Ghttp://127.0.0.1:8781
 
   Tu clave de API. Créala en http://127.0.0.1:8781/my/access_tokens
   (en versiones antiguas: Mi cuenta → Token de acceso). No sale de este equipo.
   › •••••••••••••
 
-  Línea abierta listo  Ada Lovelace (ada@example.com) · 12 proyectos
+  Línea abierta listo  Ada Lovelace (ada@example.com) · 200 proyectos
 
 [?25l  Proyecto por defecto, para cuando no nombres ninguno
-  › Acme Platform                    acme-platform
-    Billing                          billing
-    Customer Portal                  customer-portal
-    Data Warehouse                   data-warehouse
-    Design System                    design-system
-    Infrastructure                   infra
-    Mobile App                       mobile
-    Onboarding                       onboarding
-    Security Audit                   security-audit
+  / ▏escribe un nombre o identificador
+  › Ninguno
+    Acme Platform    acme-platform
+    Billing          billing
+    Customer Portal  customer-portal
+    Data Warehouse   data-warehouse
+    Design System    design-system
+    Infrastructure   infra
+    Mobile App       mobile
+    7/8 · ↑↓ mover · escribe para buscar · Enter elegir[10A[J  Proyecto por defecto, para cuando no nombres ninguno
+  / c▏  buscando…
+  › Ninguno
+    Acme Platform    acme-platform
+    Billing          billing
+    Customer Portal  customer-portal
+    Data Warehouse   data-warehouse
+    Design System    design-system
+    Infrastructure   infra
+    Mobile App       mobile
+    7/8 · ↑↓ mover · escribe para buscar · Enter elegir[10A[J  Proyecto por defecto, para cuando no nombres ninguno
+  / cu▏  buscando…
+  › Ninguno
+    Acme Platform    acme-platform
+    Billing          billing
+    Customer Portal  customer-portal
+    Data Warehouse   data-warehouse
+    Design System    design-system
+    Infrastructure   infra
+    Mobile App       mobile
+    7/8 · ↑↓ mover · escribe para buscar · Enter elegir[10A[J  Proyecto por defecto, para cuando no nombres ninguno
+  / cus▏  buscando…
+  › Ninguno
+    Acme Platform    acme-platform
+    Billing          billing
+    Customer Portal  customer-portal
+    Data Warehouse   data-warehouse
+    Design System    design-system
+    Infrastructure   infra
+    Mobile App       mobile
+    7/8 · ↑↓ mover · escribe para buscar · Enter elegir[10A[J  Proyecto por defecto, para cuando no nombres ninguno
+  / cus▏  buscando…
     Ninguno
-    Otro — escribe un identificador
-    ↑↓ mover · Intro elegir[12A[J  Proyecto por defecto, para cuando no nombres ninguno
-    Acme Platform                    acme-platform
-  › Billing                          billing
-    Customer Portal                  customer-portal
-    Data Warehouse                   data-warehouse
-    Design System                    design-system
-    Infrastructure                   infra
-    Mobile App                       mobile
-    Onboarding                       onboarding
-    Security Audit                   security-audit
+  › Acme Platform    acme-platform
+    Billing          billing
+    Customer Portal  customer-portal
+    Data Warehouse   data-warehouse
+    Design System    design-system
+    Infrastructure   infra
+    Mobile App       mobile
+    7/8 · ↑↓ mover · escribe para buscar · Enter elegir[10A[J  Proyecto por defecto, para cuando no nombres ninguno
+  / cus▏
     Ninguno
-    Otro — escribe un identificador
-    ↑↓ mover · Intro elegir[12A[J  Proyecto por defecto, para cuando no nombres ninguno
-    Acme Platform                    acme-platform
-    Billing                          billing
-  › Customer Portal                  customer-portal
-    Data Warehouse                   data-warehouse
-    Design System                    design-system
-    Infrastructure                   infra
-    Mobile App                       mobile
-    Onboarding                       onboarding
-    Security Audit                   security-audit
-    Ninguno
-    Otro — escribe un identificador
-    ↑↓ mover · Intro elegir[12A[J[?25h  Proyecto por defecto, para cuando no nombres ninguno  Customer Portal
+  › Customer Portal  customer-portal
+    ↑↓ mover · escribe para buscar · Enter elegir[4A[J[?25h  Proyecto por defecto, para cuando no nombres ninguno  Customer Portal
 
   Guardado      listo  ~/.config/operator-mcp/default/config.json
   Manual        listo  ~/.config/operator-mcp/default/conventions.md · tus normas de la casa
@@ -74,7 +92,7 @@
   › [x] Claude Code
     [x] Cursor
     Confirmar
-    ↑↓ mover · Espacio marcar · Intro confirmar[4A[J[?25h  ¿En qué agentes conecto OPerator?  Claude Code, Cursor
+    ↑↓ mover · Espacio marcar · Enter confirmar[4A[J[?25h  ¿En qué agentes conecto OPerator?  Claude Code, Cursor
 
   Conectando    listo  Claude Code  añadido      ~/.claude.json
                 listo  Cursor       añadido      ~/.cursor/mcp.json

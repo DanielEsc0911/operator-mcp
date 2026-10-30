@@ -111,3 +111,12 @@ does this split — extend it rather than assembling `_links` in a tool.
 | `description: "text"` | `description: { raw: "text" }` |
 | Listing via `/users` | `/projects/{id}/available_assignees` |
 | Reading `body.elements` | `body._embedded.elements`, or use `client.collection` |
+
+## Projects the user can write to
+
+`GET /projects` with `{ user_action: { operator: "=", values: ["work_packages/create"] } }`
+lists only projects where the user may create work packages, and it paginates and
+combines with `{ name_and_identifier: { operator: "~", values: [text] } }` for
+search. `/work_packages/available_projects` answers the same question but takes no
+filters, so it cannot search a long list. An older instance may reject
+`user_action` with 400; `writableProjects` callers fall back to a typed identifier.
