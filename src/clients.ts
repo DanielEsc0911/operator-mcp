@@ -66,6 +66,24 @@ function codexBody(command: string, args: string[]): string {
   return `command = ${JSON.stringify(command)}\nargs = [${args.map((arg) => JSON.stringify(arg)).join(", ")}]`;
 }
 
+function opencodeClient(id: string, label: string, relative: string, schema: string): Client {
+  const file = (home: string) => join(home, relative);
+  const spawn = (command: string, args: string[]) => ({ type: "local", command: [command, ...args], enabled: true });
+  return {
+    id,
+    label,
+    configPath: file,
+    detect: (home) => existsSync(dirname(file(home))),
+    register: ({ home, name, command, args }) =>
+      editJson(file(home), (config) => {
+        config.$schema ??= schema;
+        config.mcp = { ...config.mcp, [name]: spawn(command, args) };
+      }),
+    entry: (home, name) => commandLine(readJson(file(home)).mcp?.[name]),
+    manual: ({ name, command, args }) => `// ~/${relative}\n${JSON.stringify({ mcp: { [name]: spawn(command, args) } }, null, 2)}`,
+  };
+}
+
 const claudeEntry = (home: string, name: string) => commandLine(readJson(join(home, ".claude.json")).mcpServers?.[name]);
 
 export const CLIENTS: Client[] = [
@@ -99,25 +117,15 @@ export const CLIENTS: Client[] = [
   },
   mcpServersClient("gemini", "Gemini CLI", (home) => join(home, ".gemini", "settings.json"), "~/.gemini/settings.json"),
   mcpServersClient("claude-desktop", "Claude Desktop", (home) => desktopConfigPath(home), "Claude Desktop: Settings → Developer → Edit Config"),
+  mcpServersClient("qwen", "Qwen Code", (home) => join(home, ".qwen", "settings.json"), "~/.qwen/settings.json"),
+  mcpServersClient("kimi", "Kimi CLI", (home) => join(home, ".kimi", "mcp.json"), "~/.kimi/mcp.json"),
+  mcpServersClient("kimi-code", "Kimi Code", (home) => join(home, ".kimi-code", "mcp.json"), "~/.kimi-code/mcp.json"),
+  mcpServersClient("iflow", "iFlow CLI", (home) => join(home, ".iflow", "settings.json"), "~/.iflow/settings.json"),
+  mcpServersClient("kiro", "Kiro", (home) => join(home, ".kiro", "settings", "mcp.json"), "~/.kiro/settings/mcp.json"),
+  mcpServersClient("windsurf", "Windsurf", (home) => join(home, ".codeium", "windsurf", "mcp_config.json"), "~/.codeium/windsurf/mcp_config.json"),
   mcpServersClient("cursor", "Cursor", (home) => join(home, ".cursor", "mcp.json"), "~/.cursor/mcp.json"),
-  {
-    id: "opencode",
-    label: "opencode",
-    configPath: (home) => join(home, ".config", "opencode", "opencode.json"),
-    detect: (home) => existsSync(join(home, ".config", "opencode")),
-    register: ({ home, name, command, args }) =>
-      editJson(join(home, ".config", "opencode", "opencode.json"), (config) => {
-        config.$schema ??= "https://opencode.ai/config.json";
-        config.mcp = { ...config.mcp, [name]: { type: "local", command: [command, ...args], enabled: true } };
-      }),
-    entry: (home, name) => commandLine(readJson(join(home, ".config", "opencode", "opencode.json")).mcp?.[name]),
-    manual: ({ name, command, args }) =>
-      `// ~/.config/opencode/opencode.json\n${JSON.stringify(
-        { mcp: { [name]: { type: "local", command: [command, ...args], enabled: true } } },
-        null,
-        2,
-      )}`,
-  },
+  opencodeClient("opencode", "opencode", ".config/opencode/opencode.json", "https://opencode.ai/config.json"),
+  opencodeClient("mimocode", "MiMo Code", ".config/mimocode/mimocode.jsonc", "https://mimo.xiaomi.com/mimocode/config.json"),
 ];
 
 export function selfCommand(runtime: Runtime = process): string {

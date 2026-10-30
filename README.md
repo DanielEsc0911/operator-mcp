@@ -153,8 +153,14 @@ up any file it changes.
 | **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), `%APPDATA%\Claude\claude_desktop_config.json` (Windows); no Linux build, so not offered there | *Settings → Developer* shows `openproject` running |
 | **Codex CLI** | `~/.codex/config.toml` | `codex mcp list` shows `openproject` |
 | **Gemini CLI** | `~/.gemini/settings.json` | `/mcp` lists `openproject` |
+| **Qwen Code** | `~/.qwen/settings.json` | `qwen mcp list` shows `openproject` |
+| **Kimi CLI** / **Kimi Code** | `~/.kimi/mcp.json` / `~/.kimi-code/mcp.json` | `kimi mcp list` shows `openproject` |
+| **iFlow CLI** | `~/.iflow/settings.json` | `iflow mcp list` shows `openproject` |
+| **Kiro** | `~/.kiro/settings/mcp.json` | the MCP panel shows `openproject` |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | *Settings → MCP* shows `openproject` |
 | **Cursor** | `~/.cursor/mcp.json` | *Settings → MCP* shows `openproject` enabled |
 | **opencode** | `~/.config/opencode/opencode.json` | `/mcp` lists `openproject` |
+| **MiMo Code** | `~/.config/mimocode/mimocode.jsonc` | `/mcp` lists `openproject` |
 
 The installed binary registers itself by its absolute path, which Claude Desktop
 needs because it starts servers with a minimal `PATH`. With `npx` instead, Claude

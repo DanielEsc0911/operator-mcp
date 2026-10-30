@@ -119,6 +119,18 @@ describe("opencode", () => {
   });
 });
 
+describe("mimocode", () => {
+  it("writes opencode's shape into mimocode.jsonc", () => {
+    const root = home(".config/mimocode");
+    const client = findClient("mimocode")!;
+    expect(detectClients(root)).toContain(client);
+    client.register(target(root));
+    const config = readJson(join(root, ".config/mimocode/mimocode.jsonc"));
+    expect(config.$schema).toBe("https://mimo.xiaomi.com/mimocode/config.json");
+    expect(config.mcp.openproject.command).toEqual(["npx", "-y", "operator-mcp"]);
+  });
+});
+
 describe("codex", () => {
   it("appends an mcp_servers block to config.toml", () => {
     const root = home(".codex");
@@ -165,9 +177,13 @@ describe("mcpConfigSnippet", () => {
 });
 
 describe("entry", () => {
-  it.each(["codex", "gemini", "opencode"])("%s reads back the command it registered", (id) => {
-    const root = home(".codex", ".gemini", ".config/opencode");
+  const agents = ["codex", "gemini", "opencode", "mimocode", "qwen", "kimi", "kimi-code", "iflow", "kiro", "windsurf"];
+  const agentDirs = [".codex", ".gemini", ".config/opencode", ".config/mimocode", ".qwen", ".kimi", ".kimi-code", ".iflow", ".kiro/settings", ".codeium/windsurf"];
+
+  it.each(agents)("%s reads back the command it registered", (id) => {
+    const root = home(...agentDirs);
     const client = findClient(id)!;
+    expect(client.detect(root)).toBe(true);
     expect(client.entry(root, "openproject-acme")).toBeNull();
     client.register(target(root, "acme"));
     expect(client.entry(root, "openproject-acme")).toEqual(["npx", "-y", "operator-mcp", "--profile", "acme"]);
