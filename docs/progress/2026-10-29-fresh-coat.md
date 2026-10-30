@@ -23,6 +23,7 @@ plan and why, and anything left open.
 | Chunk 8 — 1.3.0 CLI (F1–F5) | done | 13f18b7..HEAD, PR #5 |
 | Chunk 8b — Writable-project picker (F6) | done | efa631c..HEAD, PR #5 |
 | Chunk 9 — Landing page in Spanish | done | landing PR #1 (branch `spanish`, 252d322..9d397ca) |
+| Chunk 10 — Landing hero and spacing polish | done | landing PR #2 (branch `spanish`, b14d661, 4050802, ae03ac0, 402f72f) |
 
 ## Hand-off notes
 
@@ -121,3 +122,8 @@ plan and why, and anything left open.
 - **Copy (EN):** arrow-key agent picker, search among writable projects, bare host → https, re-run to upgrade, Spanish FAQ. Tool names/descriptions stay English with a note on `/es/`; sync-tools re-run against this branch's dist (server 1.3.0, 20 tools).
 - **Deviations:** the `ESC[nA` commit (252d322) imports `i18n/ui` added in the next commit (not bisectable). The 89-col "Manual … tus normas de la casa" row is the CLI's own whole step line, not a rewrite effect. Tests reused the user's running `astro preview` on :4321 (serves this repo's `dist`).
 - **Verify:** `npm run build && npm test` 31 passed; astro check 0 errors; Lighthouse mobile 98/100/100/100, desktop 100×4 on `/` and `/es/`; PR CI (check, build, Playwright, Lighthouse) and Cloudflare Pages green. Screenshots: scratchpad `es-shots/es-{1440,1024,390}-{light,dark}.png`.
+
+### Chunk 10 — Landing hero and spacing polish (2026-10-30)
+
+- **Landing PR #2** (branch `spanish` of `operator-landing-page`): `b14d661` trims section top padding ~30% through the shared spacing tokens; `4050802` decides the language hint before first paint and preloads fonts with `font-display: optional` (zero CLS); `ae03ac0` makes the hero call card shift-free (stacked card, drawn strike, shrink and rise) and smaller, so the curl line sits above the fold; `402f72f` drops the footer typeface credit (the OFL licences ship with the fonts).
+- **Sync:** 1.3.1 changes the manual step note in `docs/brand/demo/session*.txt` (*template* / *plantilla*); re-run `npm run sync-brand` there.
