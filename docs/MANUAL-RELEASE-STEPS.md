@@ -38,22 +38,21 @@ npmjs.com → `operator-mcp` → Settings → Trusted Publisher → GitHub Actio
 owner `DanielEsc0911`, repository `operator-mcp`, workflow `release.yml`, no environment.
 The release job already has `id-token: write` and runs `npm publish --provenance`.
 
-## 4. Pick the version, bump it in both places, tag, push
+## 4. Tag 1.2.1 and push the tag
 
-npm already has **1.2.0** (published 2026-08-25), but the repo says 1.1.2 and no
-commit in it is 1.2.0. npm never accepts a version twice, and a version lower than
-1.2.0 would become `latest`. Use **1.2.1** (or higher):
+npm already has **1.2.0** (published 2026-08-25 with no matching commit here), and
+npm never accepts a version twice, so the security release is **1.2.1**. The bump in
+`package.json`, `package-lock.json`, `src/server.ts` and `CHANGELOG.md` arrives
+through the `release-1.2.1` pull request. Merge it once its CI is green on Linux,
+macOS and Windows, then tag the merge:
 
 ```bash
 git switch main && git pull
-npm version 1.2.1 --no-git-tag-version
-sed -i 's/export const version = ".*"/export const version = "1.2.1"/' src/server.ts
-# add a 1.2.1 heading to CHANGELOG.md over the 1.1.2 notes
-npm test && git commit -am "chore: release 1.2.1"
-git tag v1.2.1 && git push origin main v1.2.1
+git tag v1.2.1 && git push origin v1.2.1
 ```
 
-`test/server.test.ts` fails if the two versions disagree.
+For later releases: `npm version X.Y.Z --no-git-tag-version`, set the same value in
+`src/server.ts`, add a `CHANGELOG.md` heading, merge, then tag `vX.Y.Z`. `test/server.test.ts` fails if the two versions disagree.
 
 ## 5. Check the first CI release
 

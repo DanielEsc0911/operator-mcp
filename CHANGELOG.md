@@ -6,8 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-30
+
+This release carries the security fixes first prepared as 1.1.2, which was never
+published. 1.2.0 was published to npm on 2026-08-25 without a matching commit in
+this repository; 1.2.1 is built from `main`.
+
 ### Added
 
+- `curl -fsSL https://operator.daer.dev/install.sh | sh` installs a standalone binary
+  (macOS and Linux, x64 and arm64) to `~/.local/bin` after checking its SHA-256, then
+  starts setup. No Node and no sudo needed. `npx operator-mcp setup` still works.
+- Releases attach gzipped binaries, `SHA256SUMS` and `install.sh`. Agents are
+  registered with the binary's absolute path when it is used instead of `npx`.
+- A restyled setup wizard: project picker, agent checklist, inline checks, and a
+  closing card with a first prompt to try.
+- Claude Desktop (macOS, Windows) and Cursor are detected and registered.
 - `operator-mcp doctor [--profile p]`: checks the config file and its mode, that the
   instance is reachable, that the key is accepted, and what each detected agent runs.
 - `--help`, `--version`, and `setup --non-interactive --url URL` (key from
@@ -24,10 +38,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Requires Node 22 or newer.
+- The MCP server reports the package version instead of `1.0.0`.
 - Profiles live in `$XDG_CONFIG_HOME/operator-mcp` (default `~/.config/operator-mcp`)
   and in `%APPDATA%\operator-mcp` on Windows.
-
-## [1.1.2] - 2026-10-29
 
 ### Security
 
@@ -44,8 +58,3 @@ All notable changes to this project are documented here. The format follows
 - Conventions added by an agent are collapsed to one line and length-capped, so
   a rule cannot forge a heading in the manual.
 - Production dependencies refreshed to clear `npm audit` advisories.
-
-### Changed
-
-- Requires Node 22 or newer.
-- The MCP server reports the package version instead of `1.0.0`.
