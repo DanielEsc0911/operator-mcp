@@ -59,6 +59,17 @@ describe("normalizeUrl", () => {
   it("drops credentials, query and hash", () => {
     expect(normalizeUrl("https://user:pass@op.acme.com/op/?token=x#frag")).toBe("https://op.acme.com/op");
   });
+
+  it("assumes https for a bare host", () => {
+    expect(normalizeUrl("openproject.acme.com")).toBe("https://openproject.acme.com");
+    expect(normalizeUrl("acme.com/openproject/")).toBe("https://acme.com/openproject");
+    expect(normalizeUrl("localhost:8080")).toBe("https://localhost:8080");
+  });
+
+  it("keeps an explicit scheme and an empty answer", () => {
+    expect(normalizeUrl("http://127.0.0.1:8080")).toBe("http://127.0.0.1:8080");
+    expect(normalizeUrl("  ")).toBe("");
+  });
 });
 
 describe("resolveProfile", () => {

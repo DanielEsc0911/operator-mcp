@@ -31,8 +31,12 @@ function withoutSecrets(raw: string): string {
   return url.toString();
 }
 
+function withScheme(raw: string): string {
+  return raw === "" || /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
 export function normalizeUrl(raw: string): string {
-  return withoutSecrets(raw.trim()).replace(/\/+$/, "").replace(/\/api\/v3$/, "");
+  return withoutSecrets(withScheme(raw.trim())).replace(/\/+$/, "").replace(/\/api\/v3$/, "");
 }
 
 export function assertSecureUrl(url: string, env: NodeJS.ProcessEnv): void {
