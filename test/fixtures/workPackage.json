@@ -15,7 +15,7 @@
     "status": { "href": "/api/v3/statuses/7", "title": "In progress" },
     "priority": { "href": "/api/v3/priorities/9", "title": "High" },
     "project": { "href": "/api/v3/projects/3", "title": "Website" },
-    "assignee": { "href": "/api/v3/users/12", "title": "Daniel Escalona" },
+    "assignee": { "href": "/api/v3/users/12", "title": "Ada Lovelace" },
     "author": { "href": "/api/v3/users/5", "title": "Ana Ruiz" },
     "parent": { "href": "/api/v3/work_packages/1200", "title": "Auth overhaul" }
   }

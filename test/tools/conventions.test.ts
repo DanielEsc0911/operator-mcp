@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { connect, callTool, testConfig } from "../support/harness.js";
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 
 const MANUAL = `# ACME — OpenProject conventions
 

@@ -5,7 +5,7 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 
 const PROJECTS = {
   total: 2,
@@ -40,8 +40,8 @@ describe("whoami", () => {
     const client = await connect({ ...testConfig, defaultProject: "website" });
 
     expect((await callTool(client, "whoami")).json()).toEqual({
-      user: "Daniel Escalona",
-      email: "daescalona@proton.me",
+      user: "Ada Lovelace",
+      email: "ada@example.com",
       userId: 12,
       instanceUrl: "https://op.acme.com",
       profile: "test",
@@ -101,7 +101,7 @@ describe("list_projects", () => {
 describe("list_users", () => {
   const assignees = {
     total: 1, count: 1,
-    _embedded: { elements: [{ id: 12, name: "Daniel Escalona", email: "daescalona@proton.me", _links: {} }] },
+    _embedded: { elements: [{ id: 12, name: "Ada Lovelace", email: "ada@example.com", _links: {} }] },
   };
 
   it("uses available_assignees when a project is given", async () => {
@@ -109,7 +109,7 @@ describe("list_users", () => {
     const client = await connect();
 
     expect((await callTool(client, "list_users", { project: "website" })).json()).toEqual([
-      { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" },
+      { id: 12, name: "Ada Lovelace", email: "ada@example.com" },
     ]);
   });
 

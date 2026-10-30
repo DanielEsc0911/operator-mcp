@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { segment } from "../client.js";
 import { flattenActivity, flattenWorkPackage } from "../hal.js";
 import { handler, type ToolContext } from "./shared.js";
 import { WRITE_SCHEMA, buildPayload, type WriteArgs } from "./workPackageFields.js";
@@ -28,7 +29,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       if (!target) throw new Error("No project given and no default project configured. Pass `project`, or set one with the setup wizard.");
 
       const { fields, links } = await buildPayload(client, args, target);
-      const created = await client.request("POST", `/projects/${target}/work_packages`, {
+      const created = await client.request("POST", `/projects/${segment(target)}/work_packages`, {
         body: { ...fields, _links: links },
       });
       return flattenWorkPackage(created, config.url, { includeDescription: true });

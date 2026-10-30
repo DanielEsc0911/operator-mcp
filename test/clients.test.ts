@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CLIENTS, detectClients, findClient, serverArgs, serverName, mcpConfigSnippet } from "../src/clients.js";
+import { CLIENTS, desktopConfigPath, detectClients, findClient, serverCommand, serverName, mcpConfigSnippet } from "../src/clients.js";
 
 function home(...dirs: string[]): string {
   const root = mkdtempSync(join(tmpdir(), "operator-home-"));
@@ -11,22 +11,39 @@ function home(...dirs: string[]): string {
 }
 
 function target(root: string, profile = "default") {
-  return { home: root, name: serverName(profile), args: serverArgs(profile), run: vi.fn() };
+  return { home: root, name: serverName(profile), ...serverCommand(profile, node), run: vi.fn() };
 }
 
 function readJson(path: string): any {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-describe("serverName / serverArgs", () => {
+const node = { versions: {}, execPath: "/usr/bin/node" };
+const binary = { versions: { bun: "1.4.4" }, execPath: "/home/ada/.local/bin/operator-mcp" };
+
+describe("serverName / serverCommand", () => {
   it("uses a bare name and no profile flag for the default profile", () => {
     expect(serverName("default")).toBe("openproject");
-    expect(serverArgs("default")).toEqual(["-y", "operator-mcp"]);
+    expect(serverCommand("default", node)).toEqual({ command: "npx", args: ["-y", "operator-mcp"] });
   });
 
   it("suffixes the name and passes --profile for any other profile", () => {
     expect(serverName("acme")).toBe("openproject-acme");
-    expect(serverArgs("acme")).toEqual(["-y", "operator-mcp", "--profile", "acme"]);
+    expect(serverCommand("acme", node)).toEqual({ command: "npx", args: ["-y", "operator-mcp", "--profile", "acme"] });
+  });
+
+  it("registers the standalone binary by its absolute path when running under Bun", () => {
+    expect(serverCommand("default", binary)).toEqual({ command: binary.execPath, args: [] });
+    expect(serverCommand("acme", binary)).toEqual({ command: binary.execPath, args: ["--profile", "acme"] });
+  });
+
+  it("writes the binary path into a client config", () => {
+    const root = home(".gemini");
+    findClient("gemini")!.register({ home: root, name: "openproject", ...serverCommand("default", binary), run: vi.fn() });
+    expect(readJson(join(root, ".gemini/settings.json")).mcpServers.openproject).toEqual({
+      command: binary.execPath,
+      args: [],
+    });
   });
 });
 
@@ -144,5 +161,61 @@ describe("mcpConfigSnippet", () => {
     for (const client of CLIENTS) {
       expect(mcpConfigSnippet(client, "default")).toContain("operator-mcp");
     }
+  });
+});
+
+describe("entry", () => {
+  it.each(["codex", "gemini", "opencode"])("%s reads back the command it registered", (id) => {
+    const root = home(".codex", ".gemini", ".config/opencode");
+    const client = findClient(id)!;
+    expect(client.entry(root, "openproject-acme")).toBeNull();
+    client.register(target(root, "acme"));
+    expect(client.entry(root, "openproject-acme")).toEqual(["npx", "-y", "operator-mcp", "--profile", "acme"]);
+  });
+
+  it("claude-code reads the user-scope entry from ~/.claude.json", () => {
+    const root = home();
+    writeFileSync(
+      join(root, ".claude.json"),
+      JSON.stringify({ mcpServers: { openproject: { type: "stdio", command: "npx", args: ["-y", "operator-mcp"] } } }),
+    );
+    expect(findClient("claude-code")!.entry(root, "openproject")).toEqual(["npx", "-y", "operator-mcp"]);
+  });
+
+  it("treats an unreadable config as no entry", () => {
+    const root = home(".gemini");
+    writeFileSync(join(root, ".gemini/settings.json"), "{ nope");
+    expect(findClient("gemini")!.entry(root, "openproject")).toBeNull();
+  });
+});
+
+describe("claude-desktop and cursor", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it("knows Claude Desktop's config on macOS and Windows, and offers nothing on Linux", () => {
+    expect(desktopConfigPath("/Users/ada", "darwin")).toBe(
+      join("/Users/ada", "Library", "Application Support", "Claude", "claude_desktop_config.json"),
+    );
+    expect(desktopConfigPath("C:/Users/ada", "win32", {})).toBe(join("C:/Users/ada", "AppData", "Roaming", "Claude", "claude_desktop_config.json"));
+    expect(desktopConfigPath("/home/ada", "linux")).toBeNull();
+  });
+
+  it("prefers APPDATA for Claude Desktop on Windows", () => {
+    expect(desktopConfigPath("C:/Users/ada", "win32", { APPDATA: "D:/Roam" })).toBe(join("D:/Roam", "Claude", "claude_desktop_config.json"));
+    expect(desktopConfigPath("C:/Users/ada", "win32", {})).toBe(join("C:/Users/ada", "AppData", "Roaming", "Claude", "claude_desktop_config.json"));
+  });
+
+  it("detects Claude Desktop by its config directory, except on Linux", () => {
+    vi.stubEnv("APPDATA", "");
+    const root = home("Library/Application Support/Claude", "AppData/Roaming/Claude");
+    const found = detectClients(root).map((client) => client.id);
+    expect(found.includes("claude-desktop")).toBe(process.platform !== "linux");
+  });
+
+  it("writes Cursor's mcpServers entry into ~/.cursor/mcp.json", () => {
+    const root = home(".cursor");
+    expect(detectClients(root).map((client) => client.id)).toEqual(["cursor"]);
+    findClient("cursor")!.register(target(root));
+    expect(readJson(join(root, ".cursor/mcp.json")).mcpServers.openproject).toEqual({ command: "npx", args: ["-y", "operator-mcp"] });
+    expect(findClient("cursor")!.entry(root, "openproject")).toEqual(["npx", "-y", "operator-mcp"]);
   });
 });

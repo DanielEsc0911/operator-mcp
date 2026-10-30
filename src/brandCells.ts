@@ -1,0 +1,18 @@
+export const OP_CELLS = [
+  "                ",
+  "     aaaaaa     ",
+  "   aa      aa   ",
+  "  a  bbbbbb  a  ",
+  " a bb      bb a ",
+  "aaab        baaa",
+  "aab  bb  bb  baa",
+  "aab  bb  bb  baa",
+  "aabtt      ttbaa",
+  "aab   b  b   baa",
+  " ab    bb    b  ",
+  " a b        b   ",
+  " a  bbbbbbbb    ",
+  "  aaat          ",
+  "                ",
+  "                ",
+];

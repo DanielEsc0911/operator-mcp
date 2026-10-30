@@ -1,4 +1,4 @@
-import type { OpenProjectClient } from "./client.js";
+import { segment, type OpenProjectClient } from "./client.js";
 import { flattenNamed } from "./hal.js";
 
 export type MetaKind = "types" | "statuses" | "priorities" | "activities";
@@ -26,7 +26,7 @@ export function clearMetadataCache(): void {
 }
 
 function pathFor(kind: MetaKind, project?: string): string {
-  return kind === "types" && project ? `/projects/${project}/types` : PATHS[kind];
+  return kind === "types" && project ? `/projects/${segment(project)}/types` : PATHS[kind];
 }
 
 export async function listMetadata(client: OpenProjectClient, kind: MetaKind, project?: string): Promise<Named[]> {
@@ -83,7 +83,7 @@ export async function resolveUserHref(
   if (value === "me") return `/api/v3/users/${(await client.me()).id}`;
   if (isNumeric(value)) return `/api/v3/users/${value}`;
 
-  const path = project ? `/projects/${project}/available_assignees` : "/principals";
+  const path = project ? `/projects/${segment(project)}/available_assignees` : "/principals";
   const { elements } = await client.collection(path, { pageSize: 200 });
   const needle = String(value).trim().toLowerCase();
   const match = elements.find(

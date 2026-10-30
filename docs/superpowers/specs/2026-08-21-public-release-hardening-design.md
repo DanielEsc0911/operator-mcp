@@ -1,7 +1,7 @@
 # Public Release Hardening — Design & Finding Register
 
 **Date:** 2026-08-21
-**Status:** Approved, ready to implement
+**Status:** Approved, ready to implement. **Amended 2026-10-29:** Node floor is `>=22`, not `>=24` — see `2026-10-29-fresh-coat-design.md` §3. Execution of this register is tracked by that spec's chunks 1–2.
 **Implements:** first public release of OPerator to npm and GitHub
 **Plan:** `docs/superpowers/plans/2026-08-21-public-release-hardening.md`
 **Human runbook:** `docs/MANUAL-RELEASE-STEPS.md`
@@ -61,7 +61,7 @@ Severity: **H** = must fix before publishing · **M** = fix in this release ·
 | S9 | M | **`add_convention` is a persistent prompt-injection foothold.** The manual is injected verbatim into `instructions` on every future session. A rule containing a newline plus `## ` forges a section; a rule containing instructions survives forever. An agent that reads a poisoned work package description can write one. | `src/conventions.ts:30-47`, `src/server.ts:24` | Normalize `section` and `rule` to a single line — collapse `\r\n\t` and runs of whitespace, strip a leading `#` or bullet marker, cap at 80 / 500 characters. `removeRule` must normalize identically or removal stops matching. |
 | S10 | L | `remove_convention` writes an unbounded number of `.bak` files next to the manual. | `src/conventions.ts:68` | Out of scope. Note in the README that backups accumulate and are safe to delete. |
 | S11 | M | **Machine-local and generated directories are not ignored** and would be committed to a public repo: `.claude/settings.local.json` (this machine's permission grants) and `.codegraph/` (a large regenerable index). | `.gitignore` | Extend `.gitignore`. `.claude/skills/` is deliberately kept — the four project skills are useful to contributors. |
-| S12 | M | **The author's real name and personal email are baked into ten test fixtures**, which become public with the repo. | `test/**` — 10 occurrences of `daescalona@proton.me` | Replace with a neutral persona (`Ada Lovelace` / `ada@example.com`). |
+| S12 | M | **The author's real name and personal email are baked into ten test fixtures**, which become public with the repo. | `test/**` — 10 occurrences of the author's email | Replace with a neutral persona (`Ada Lovelace` / `ada@example.com`). |
 | S13 | L | Fixed 30 s timeout, no retry, no backoff. Not a vulnerability; a hung instance stalls one tool call and the agent sees a clear error. | `src/client.ts:9` | Leave alone. KISS. |
 
 **Explicitly assessed and found clean:**
@@ -91,6 +91,38 @@ Severity: **H** = must fix before publishing · **M** = fix in this release ·
 | B12 | H | The wizard's snippet, `ConfigError`, and the README all name `openproject-mcp`, which now belongs to someone else. Users would be told to install a stranger's package. | `src/errors.ts:3`, `src/setup.ts:31`, `README.md` | Rename throughout. |
 | B13 | L | A startup failure surfaces as a raw stack trace. | `src/index.ts` | Catch at the top level, print one clear stderr line, exit 1. |
 | B14 | L | `engines` is advisory; on an old Node the failure is a cryptic syntax error. | `src/index.ts` | Check `process.versions.node` at entry and print an actionable message. |
+
+### 3.2a Register status (2026-10-29, Fresh Coat)
+
+| Row | Status | Commit |
+|---|---|---|
+| S1 | done | 53e4f49 |
+| S2 | done | 54ef089 |
+| S3 | done | 53e4f49 |
+| S4 | done | 54ef089 |
+| S5 | done | 54ef089 |
+| S6 | done | 54ef089 |
+| S7 | done | 9920902 |
+| S8 | done | 44cd899 |
+| S9 | done | 0a50bda |
+| S10 | deferred | — |
+| S11 | done | `.gitignore` before Fresh Coat |
+| S12 | done | d59e995 |
+| S13 | wontfix | — |
+| B1 | done | 6d47eb8 |
+| B2 | done | 6d47eb8 |
+| B3 | done | b737b61 |
+| B4 | done | b737b61 |
+| B5 | done | 670d2a6 |
+| B6 | done | 670d2a6 |
+| B7 | done | 670d2a6 |
+| B8 | done | 87b2d12 |
+| B9 | moot | agent auto-registration (`install`) replaced the snippet |
+| B10 | done | ad9e4d5 |
+| B11 | done | 1711c8b |
+| B12 | moot | rename already landed |
+| B13 | done | 6d47eb8 |
+| B14 | done | 6d47eb8 (floor 22, not 24) |
 
 ### 3.3 Missing for a public repository
 

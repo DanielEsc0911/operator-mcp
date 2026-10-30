@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CLIENTS, findClient, type Client } from "../src/clients.js";
-import { registerAll, selectClients } from "../src/install.js";
+import { findClient, offeredClients } from "../src/clients.js";
+import { registerAll } from "../src/install.js";
 
 const claude = findClient("claude-code")!;
 const gemini = findClient("gemini")!;
@@ -12,37 +12,11 @@ function target() {
   return {
     home: mkdtempSync(join(tmpdir(), "operator-install-")),
     name: "openproject",
+    command: "npx",
     args: ["-y", "operator-mcp"],
     run: vi.fn(),
   };
 }
-
-describe("selectClients", () => {
-  const detected = [claude, gemini];
-
-  it("treats an empty answer as all of them", () => {
-    expect(selectClients("", detected)).toEqual(detected);
-    expect(selectClients("  ", detected)).toEqual(detected);
-    expect(selectClients("all", detected)).toEqual(detected);
-  });
-
-  it("registers nothing when the user says none", () => {
-    expect(selectClients("none", detected)).toEqual([]);
-  });
-
-  it("accepts list positions", () => {
-    expect(selectClients("2", detected)).toEqual([gemini]);
-    expect(selectClients("1, 2", detected)).toEqual(detected);
-  });
-
-  it("accepts client ids", () => {
-    expect(selectClients("gemini", detected)).toEqual([gemini]);
-  });
-
-  it("ignores tokens that match nothing rather than guessing", () => {
-    expect(selectClients("gemini nonsense 9", detected)).toEqual([gemini]);
-  });
-});
 
 describe("registerAll", () => {
   it("reports success per client", () => {
@@ -66,9 +40,31 @@ describe("registerAll", () => {
 describe("every client", () => {
   it("offers manual instructions that name the package", () => {
     const context = target();
-    for (const client of CLIENTS as Client[]) {
+    for (const client of offeredClients(context.home)) {
       expect(client.manual(context)).toContain("operator-mcp");
       expect(client.configPath(context.home)).toContain(context.home);
     }
+  });
+});
+
+describe("patchAgents", () => {
+  it("registers every detected agent with --yes and reports where it wrote", async () => {
+    const { mkdirSync, readFileSync } = await import("node:fs");
+    const { PassThrough } = await import("node:stream");
+    const { createInterface } = await import("node:readline/promises");
+    const { patchAgents } = await import("../src/install.js");
+    const home = mkdtempSync(join(tmpdir(), "operator-patch-"));
+    mkdirSync(join(home, ".cursor"));
+    let text = "";
+    const stdout = new PassThrough();
+    stdout.on("data", (chunk: Buffer) => (text += chunk));
+    const streams = { stdin: new PassThrough(), stdout, stderr: stdout } as any;
+    const rl = createInterface({ input: streams.stdin, output: stdout });
+    const patched = await patchAgents(["install", "--yes"], streams, rl, home);
+    rl.close();
+    expect(patched.map((client) => client.id)).toEqual(["cursor"]);
+    expect(text).toContain("Patching in  done   Cursor");
+    expect(text).toContain("~/.cursor/mcp.json");
+    expect(JSON.parse(readFileSync(join(home, ".cursor/mcp.json"), "utf8")).mcpServers.openproject).toBeDefined();
   });
 });

@@ -26,8 +26,8 @@ export function registerConventionTools(server: McpServer, { client }: ToolConte
       description:
         "Append a rule to the workplace manual so it survives this session. Use it when the user states a working rule you would otherwise forget. Appending never removes anything.",
       inputSchema: {
-        section: z.string().describe('Heading to file the rule under, for example "Git / GitLab". Created if absent.'),
-        rule: z.string().describe("The rule, as one sentence."),
+        section: z.string().describe('Heading to file the rule under, for example "Git / GitLab". Created if absent. One line, at most 80 characters.'),
+        rule: z.string().describe("The rule, as one sentence. Line breaks are collapsed and it is cut at 500 characters."),
       },
     },
     handler(async ({ section, rule }: { section: string; rule: string }) => {

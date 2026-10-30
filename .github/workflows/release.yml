@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Tag must match package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag v$tag does not match package.json $pkg"
+            exit 1
+          fi
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build
+      - run: node scripts/pack-check.mjs
+
+  binaries:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Compile with Bun (a CI build tool only, pinned)
+        run: |
+          mkdir -p release
+          for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
+            npx -y bun@1.4.4 build --compile --target="bun-$target" dist/index.js --outfile "release/operator-mcp-$target"
+          done
+      - name: Linux binary answers --version and an MCP handshake
+        run: |
+          release/operator-mcp-linux-x64 --version
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' |
+            OPENPROJECT_URL=https://op.invalid OPENPROJECT_API_KEY=ci timeout 20 release/operator-mcp-linux-x64 | grep -q '"serverInfo"'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: binaries
+          path: release/
+
+  macos:
+    needs: binaries
+    runs-on: macos-14
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: binaries
+          path: release
+      - name: Ad-hoc sign the darwin binaries and smoke-run the native one
+        run: |
+          chmod +x release/operator-mcp-*
+          codesign --force -s - release/operator-mcp-darwin-x64 release/operator-mcp-darwin-arm64
+          release/operator-mcp-darwin-arm64 --version
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' |
+            OPENPROJECT_URL=https://op.invalid OPENPROJECT_API_KEY=ci release/operator-mcp-darwin-arm64 | grep -q '"serverInfo"'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signed
+          path: release/
+
+  publish:
+    needs: macos
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - name: npm with Trusted Publishing (needs 11.5.1 or newer)
+        run: npm install -g npm@11
+      - run: npm ci
+      - run: npm run build
+      - name: Publish to npm over OIDC
+        run: npm publish --provenance --access public
+      - uses: actions/download-artifact@v8
+        with:
+          name: signed
+          path: release
+      - name: Checksums and the installer
+        run: |
+          gzip -9 release/operator-mcp-*
+          cp install/install.sh release/
+          cd release && sha256sum operator-mcp-*.gz > SHA256SUMS && cat SHA256SUMS
+      - name: GitHub Release with gzipped binaries, SHA256SUMS and install.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes release/*

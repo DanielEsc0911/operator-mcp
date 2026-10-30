@@ -38,7 +38,7 @@ describe("flattenWorkPackage", () => {
       status: "In progress",
       priority: "High",
       project: "Website",
-      assignee: "Daniel Escalona",
+      assignee: "Ada Lovelace",
       author: "Ana Ruiz",
       parent: 1200,
       dueDate: "2026-08-03",

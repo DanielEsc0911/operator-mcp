@@ -1,0 +1,87 @@
+
+  OPerator  installer
+  ---------------------
+  System     Fedora Linux 44 (KDE Plasma Desktop Edition) - x86_64
+  Installed  not yet
+  Release    1.1.2
+  Into       ~/.local/bin
+
+  Line check   done   127.0.0.1:8780 reachable
+  Dialing      done   operator-mcp-linux-x64 - 49.2 MB
+  Verifying    done   SHA-256 matches
+  Patching in  done   ~/.local/bin/operator-mcp
+
+  Connecting you to setup...
+
+
+  OPerator  setup
+  ─────────────────────
+  Profile    default
+  Config     ~/.config/operator-mcp/default
+  Version    1.1.2
+
+  Where does your OpenProject live?
+[1G[0J  › [5Ghttp://127.0.0.1:8781
+
+  Your API key. Make one at http://127.0.0.1:8781/my/access_tokens
+  (older instances: My account → Access token). It stays on this machine.
+  › •••••••••••••
+
+  Line's open  done   Ada Lovelace (ada@example.com) · 12 projects
+
+  Default project, for when you don't name one
+    1  Acme Platform    acme-platform
+    2  Billing          billing
+    3  Customer Portal  customer-portal
+    4  Data Warehouse   data-warehouse
+    5  Design System    design-system
+    6  Infrastructure   infra
+    7  Mobile App       mobile
+    8  Onboarding       onboarding
+    9  Security Audit   security-audit
+    0  none
+[1G[0J  › [5G1
+
+  Saved        done   ~/.config/operator-mcp/default/config.json
+  Manual       done   ~/.config/operator-mcp/default/conventions.md · your house rules
+
+  Which agents should OPerator patch into?
+  Enter accepts · type numbers to switch one off or on · all · none
+    [x] 1  Claude Code
+    [x] 2  Codex CLI
+    [x] 3  Gemini CLI
+    [x] 4  Cursor
+[1G[0J  › [5G
+
+  Patching in  done   Claude Code  ~/.claude.json
+               done   Codex CLI    ~/.codex/config.toml
+               done   Gemini CLI   ~/.gemini/settings.json
+               done   Cursor       ~/.cursor/mcp.json
+
+  Not installed here: opencode.
+  Install one later, then run: operator-mcp install
+
+  ✓ Config file ~/.config/operator-mcp/default/config.json
+  ✓ http://127.0.0.1:8781 is reachable
+  ✓ API key accepted — Ada Lovelace (ada@example.com)
+  ✓ Claude Code runs: ~/.local/bin/operator-mcp
+  ✓ Codex CLI runs: ~/.local/bin/operator-mcp
+  ✓ Gemini CLI runs: ~/.local/bin/operator-mcp
+  ✓ Cursor runs: ~/.local/bin/operator-mcp
+
+  ╭────────────────────────────────────────────────────────────────────╮
+  │                                                                    │
+  │  You're patched through.                                           │
+  │                                                                    │
+  │  Restart Claude Code, Codex CLI, Gemini CLI and Cursor, then ask:  │
+  │    what's on my plate?                                             │
+  │                                                                    │
+  │  It answers from your real work packages:                          │
+  │    #1284  Bug   In progress  Fix login redirect loop               │
+  │    #1301  Task  New          Migrate invoice export                │
+  │    #1312  Task  New          Review Q3 access audit                │
+  │                                                                    │
+  │  Check the line any time:  operator-mcp doctor                     │
+  │                                                                    │
+  ╰────────────────────────────────────────────────────────────────────╯
+

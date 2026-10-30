@@ -1,19 +1,42 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, statSync, readFileSync } from "node:fs";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { mkdtempSync, mkdirSync, writeFileSync, statSync, readFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { normalizeUrl, profileDir, resolveProfile, loadConfig, saveConfig } from "../src/config.js";
+import { configHome, normalizeUrl, profileDir, resolveProfile, loadConfig, saveConfig, assertSecureUrl } from "../src/config.js";
 
 let home: string;
-const originalHome = process.env.HOME;
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "operator-"));
-  process.env.HOME = home;
+  vi.stubEnv("HOME", home);
+  vi.stubEnv("USERPROFILE", home);
+  vi.stubEnv("XDG_CONFIG_HOME", "");
+  vi.stubEnv("APPDATA", "");
 });
 
 afterEach(() => {
-  process.env.HOME = originalHome;
+  vi.unstubAllEnvs();
+});
+
+describe("configHome", () => {
+  it("uses XDG_CONFIG_HOME when it is set", () => {
+    expect(configHome({ XDG_CONFIG_HOME: "/xdg" }, "linux")).toBe(join("/xdg", "operator-mcp"));
+  });
+
+  it("falls back to ~/.config on Linux and macOS", () => {
+    expect(configHome({}, "darwin")).toBe(join(home, ".config", "operator-mcp"));
+  });
+
+  it("uses APPDATA on Windows", () => {
+    expect(configHome({ APPDATA: "C:\\Users\\ada\\AppData\\Roaming", XDG_CONFIG_HOME: "/xdg" }, "win32")).toBe(
+      join("C:\\Users\\ada\\AppData\\Roaming", "operator-mcp"),
+    );
+  });
+
+  it("places every profile under it", () => {
+    vi.stubEnv("XDG_CONFIG_HOME", join(home, "xdg"));
+    expect(profileDir("acme")).toBe(join(home, "xdg", "operator-mcp", "acme"));
+  });
 });
 
 describe("normalizeUrl", () => {
@@ -28,6 +51,14 @@ describe("normalizeUrl", () => {
   it("trims surrounding whitespace", () => {
     expect(normalizeUrl("  https://op.acme.com  ")).toBe("https://op.acme.com");
   });
+
+  it("keeps a sub-path install", () => {
+    expect(normalizeUrl("https://acme.com/openproject/api/v3")).toBe("https://acme.com/openproject");
+  });
+
+  it("drops credentials, query and hash", () => {
+    expect(normalizeUrl("https://user:pass@op.acme.com/op/?token=x#frag")).toBe("https://op.acme.com/op");
+  });
 });
 
 describe("resolveProfile", () => {
@@ -41,6 +72,15 @@ describe("resolveProfile", () => {
 
   it("defaults to 'default'", () => {
     expect(resolveProfile([], {})).toBe("default");
+  });
+
+  it("accepts dots, dashes and underscores after the first character", () => {
+    expect(resolveProfile(["--profile", "acme.prod_2-eu"], {})).toBe("acme.prod_2-eu");
+  });
+
+  it("rejects a name that could leave the config directory", () => {
+    expect(() => resolveProfile(["--profile", "../../.ssh"], {})).toThrow(/Invalid profile name/);
+    expect(() => resolveProfile([], { OPENPROJECT_PROFILE: "a/b" })).toThrow(/Invalid profile name/);
   });
 });
 
@@ -87,6 +127,49 @@ describe("loadConfig", () => {
     mkdirSync(profileDir("broken"), { recursive: true });
     writeFileSync(join(profileDir("broken"), "config.json"), "{ not json");
     expect(loadConfig(["--profile", "broken"], {}).url).toBe("");
+  });
+});
+
+describe("assertSecureUrl", () => {
+  it("refuses plain http to a remote host", () => {
+    expect(() => assertSecureUrl("http://op.acme.com", {})).toThrow(/OPENPROJECT_ALLOW_INSECURE_HTTP/);
+    expect(() => loadConfig([], { OPENPROJECT_URL: "http://op.acme.com" })).toThrow(/https/);
+  });
+
+  it("allows plain http to loopback", () => {
+    for (const url of ["http://localhost:8080", "http://127.0.0.1", "http://[::1]:3000"]) {
+      expect(() => assertSecureUrl(url, {})).not.toThrow();
+    }
+  });
+
+  it("allows plain http when the environment opts in", () => {
+    expect(() => assertSecureUrl("http://op.acme.com", { OPENPROJECT_ALLOW_INSECURE_HTTP: "1" })).not.toThrow();
+  });
+});
+
+describe("credential file mode", () => {
+  it("warns on stderr when the file is readable by others, and still loads it", () => {
+    const path = saveConfig("acme", { url: "https://op.acme.com", apiKey: "k" });
+    chmodSync(path, 0o644);
+    const write = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(loadConfig(["--profile", "acme"], {}).apiKey).toBe("k");
+    expect(String(write.mock.calls[0]?.[0])).toContain(`chmod 600 ${path}`);
+    write.mockRestore();
+  });
+
+  it("stays quiet for an owner-only file", () => {
+    saveConfig("acme", { url: "https://op.acme.com", apiKey: "k" });
+    const write = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    loadConfig(["--profile", "acme"], {});
+    expect(write).not.toHaveBeenCalled();
+    write.mockRestore();
+  });
+});
+
+describe("allowDelete", () => {
+  it("is on only when the environment opts in", () => {
+    expect(loadConfig([], { OPENPROJECT_ALLOW_DELETE: "1" }).allowDelete).toBe(true);
+    expect(loadConfig([], {}).allowDelete).toBe(false);
   });
 });
 

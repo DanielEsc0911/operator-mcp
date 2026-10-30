@@ -361,7 +361,7 @@ three layers so it works regardless of client capabilities.
 server injects live context followed by the manual verbatim:
 
 ```
-You are Daniel Escalona (daescalona@proton.me) on https://op.acme.com,
+You are Ada Lovelace (ada@example.com) on https://op.acme.com,
 profile "acme". Default project: website.
 
 Follow these conventions in all OpenProject work:

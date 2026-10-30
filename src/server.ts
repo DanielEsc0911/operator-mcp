@@ -12,6 +12,7 @@ import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
 const MANUAL_WARNING_BYTES = 10_000;
+export const version = "1.1.2";
 
 export function buildInstructions(config: Config, identity: Identity | null, manual: string | null): string {
   const lines = [
@@ -36,7 +37,7 @@ export async function createServer(config: Config): Promise<McpServer> {
   }
 
   const server = new McpServer(
-    { name: "openproject", version: "1.0.0" },
+    { name: "openproject", version },
     { instructions: buildInstructions(config, identity, manual) },
   );
 

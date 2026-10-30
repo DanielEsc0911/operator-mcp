@@ -9,7 +9,7 @@ function respond(body: unknown, status = 200): Response {
   });
 }
 
-const ME = { id: 12, name: "Daniel Escalona", email: "daescalona@proton.me" };
+const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const FEED = { total: 1, count: 1, _embedded: { elements: [notification] } };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -133,7 +133,7 @@ describe("watch_work_package", () => {
     expect(result).toEqual({ id: 1234, watching: true });
   });
 
-  it("removes you by user id when unwatching", async () => {
+  it("removes you by user id when unwatching, with api_request DELETE still disabled", async () => {
     routes({ "/users/me": ME, "/work_packages/1234/watchers/12": null });
     const client = await connect();
     const result = (await callTool(client, "watch_work_package", { id: 1234, watching: false })).json();
