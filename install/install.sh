@@ -290,6 +290,7 @@ main() {
     trap 'exit 130' INT TERM
     platform
     command -v curl >/dev/null 2>&1 || fail "curl is needed to download OPerator." "Install curl, then run this again."
+    command -v gzip >/dev/null 2>&1 || fail "gzip is needed to unpack OPerator." "Install gzip, then run this again."
     resolve_version
     write_facts
     greet
@@ -302,15 +303,17 @@ main() {
             "Check your connection. If $version is not a published release, drop OPERATOR_VERSION."
     finish "Line check" "$host reachable" "$(lamps lit)"
 
-    download "$release/$asset" "$work/$asset" Dialing "$asset"
+    download "$release/$asset.gz" "$work/$asset.gz" Dialing "$asset"
 
-    expected=$(awk -v name="$asset" '$2 == name || $2 == "*" name { print $1 }' "$work/SHA256SUMS")
-    if [ -z "$expected" ] || [ "$expected" != "$(sha256 "$work/$asset")" ]; then
+    expected=$(awk -v name="$asset.gz" '$2 == name || $2 == "*" name { print $1 }' "$work/SHA256SUMS")
+    if [ -z "$expected" ] || [ "$expected" != "$(sha256 "$work/$asset.gz")" ]; then
         fail "The download does not match its SHA-256 checksum, so nothing was installed." \
             "Run the same command again. If it keeps failing, open an issue:" \
             "https://github.com/DanielEsc0911/operator-mcp/issues"
     fi
     finish Verifying "SHA-256 matches"
+    gzip -dc "$work/$asset.gz" >"$work/$asset" 2>>"$work/log" ||
+        fail "The download passed its checksum but would not unpack." "Run the same command again."
 
     place || fail "Couldn't write to $install_dir." \
         "Pick a folder you own:  OPERATOR_INSTALL_DIR=\$HOME/bin sh install.sh"

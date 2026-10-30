@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -17,14 +18,16 @@ function buildRelease(dir) {
     execFileSync("npm", ["run", "build"], { cwd: ROOT, stdio: "inherit" });
     execFileSync("npx", ["-y", BUN, "build", "--compile", "dist/index.js", "--outfile", binary], { cwd: ROOT, stdio: "inherit" });
   }
-  const hash = createHash("sha256").update(readFileSync(binary)).digest("hex");
+  const packed = join(dir, `${ASSET}.gz`);
+  writeFileSync(packed, gzipSync(readFileSync(binary), { level: 9 }));
+  const hash = createHash("sha256").update(readFileSync(packed)).digest("hex");
   const release = (tag, sums) => {
     mkdirSync(join(dir, "download", tag), { recursive: true });
     writeFileSync(join(dir, "download", tag, "SHA256SUMS"), sums);
   };
-  release(`v${version}`, `${hash}  ${ASSET}\n`);
-  release(`v${BROKEN}`, `${"0".repeat(64)}  ${ASSET}\n`);
-  return { binary, files: { [`v${version}`]: binary, [`v${BROKEN}`]: binary } };
+  release(`v${version}`, `${hash}  ${ASSET}.gz\n`);
+  release(`v${BROKEN}`, `${"0".repeat(64)}  ${ASSET}.gz\n`);
+  return { files: { [`v${version}`]: packed, [`v${BROKEN}`]: packed } };
 }
 
 function serve(dir, binaries, port) {
@@ -37,7 +40,7 @@ function serve(dir, binaries, port) {
     }
     if (path.startsWith("/releases/tag/")) return response.end("release page");
     const [, , , tag, name] = path.split("/");
-    if (name === ASSET && binaries[tag]) return send(response, binaries[tag]);
+    if (name === `${ASSET}.gz` && binaries[tag]) return send(response, binaries[tag]);
     send(response, join(dir, path.replace(/^\/releases\//, "")));
   });
   return new Promise((resolve) => server.listen(port, "127.0.0.1", () => resolve(server)));

@@ -52,7 +52,7 @@ jobs:
           release/operator-mcp-linux-x64 --version
           printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' |
             OPENPROJECT_URL=https://op.invalid OPENPROJECT_API_KEY=ci timeout 20 release/operator-mcp-linux-x64 | grep -q '"serverInfo"'
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: binaries
           path: release/
@@ -61,7 +61,7 @@ jobs:
     needs: binaries
     runs-on: macos-14
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: binaries
           path: release
@@ -72,7 +72,7 @@ jobs:
           release/operator-mcp-darwin-arm64 --version
           printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' |
             OPENPROJECT_URL=https://op.invalid OPENPROJECT_API_KEY=ci release/operator-mcp-darwin-arm64 | grep -q '"serverInfo"'
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: signed
           path: release/
@@ -97,15 +97,16 @@ jobs:
       - run: npm run build
       - name: Publish to npm over OIDC
         run: npm publish --provenance --access public
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: signed
           path: release
       - name: Checksums and the installer
         run: |
+          gzip -9 release/operator-mcp-*
           cp install/install.sh release/
-          cd release && sha256sum operator-mcp-* > SHA256SUMS && cat SHA256SUMS
-      - name: GitHub Release with binaries, SHA256SUMS and install.sh
+          cd release && sha256sum operator-mcp-*.gz > SHA256SUMS && cat SHA256SUMS
+      - name: GitHub Release with gzipped binaries, SHA256SUMS and install.sh
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes release/*
