@@ -21,6 +21,7 @@ plan and why, and anything left open.
 | Chunk 6 — Landing page build | done | landing cbc44d1..7f47993 |
 | Chunk 7 — Polish, budgets, cross-repo verification | done | 8c3cf25..HEAD; landing 7f47993..6e5baa0 |
 | Chunk 8 — 1.3.0 CLI (F1–F5) | done | 13f18b7..HEAD, PR #5 |
+| Chunk 8b — Writable-project picker (F6) | done | efa631c..HEAD, PR #5 |
 
 ## Hand-off notes
 
@@ -100,3 +101,13 @@ plan and why, and anything left open.
 - **For Chunk 9:** the landing ANSI player must handle cursor-up `ESC[nA` (menus redraw in place; it already does `ESC[J`); sync-brand should add `session-es.txt`. Reuse: "Línea abierta", "Ya tienes línea.", "¿qué tengo pendiente?", "Conectándote con la configuración…", "Reinicia … y pregunta:".
 - **Deviations:** status column stays `done/listo`; added/updated sits in the detail. Windows fallback only (not XDG) to avoid reading a real home in tests. No `script` binary: Python pty instead.
 - **Verify:** `npm test` 26 files / 291; tsc silent; `npm run test:install` 10/10 (incl. 40 cols, Spanish, upgrade, shellcheck); brand unchanged; pack-check 37 files; PR #5 CI green on ubuntu/macOS/windows × Node 22/24.
+
+### Chunk 8b — Writable-project picker (2026-10-30)
+
+- **API source:** `GET /projects` filtered by `user_action = work_packages/create`, plus `name_and_identifier ~ <query>` when typing, `pageSize` 7. Chosen over `/work_packages/available_projects`, which answers the same question but takes no filters, so it cannot search hundreds of projects. Recorded in the `openproject-apiv3` skill. Not tried on a real instance (none here). If the instance rejects the filter, setup asks for a typed identifier instead.
+- **Files:** `src/searchSelect.ts` (query line, **None** + 7 rows, 150 ms debounce, *searching…*/*no matches*, Esc clears, Ctrl-C restores). `src/select.ts` now exports `listen`/`move`/`hint`/`summary`, and `listen` passes a guarded `repaint`. `select()` was removed because nothing used it. `writableProjects` is in `credentials.ts`; `verifyCredentials` now only counts projects. `pickProject` is in `setup.ts`.
+- **Hint:** the `7/8` counter drops before "type to search" when the terminal is narrow (Spanish at 40 cols).
+- **8b.3:** es `Enter` (not *Intro*); install.sh *Instalado*, *Versión* (was *Descarga*), and the upgrade row reads `from npx → 1.3.0` / `desde npx → 1.3.0`.
+- **Captures:** `docs/brand/demo/session{,-plain,-es,-es-plain}.txt` (80 cols, typed `cus` ↓ Enter → Customer Portal). Scratchpad `mock-op.mjs` serves 200 projects, 8 writable, and honours both filters; `frames.py` replays the picker frames through pyte. I read EN/ES at 40 and 80 columns plus the ES upgrade run.
+- **For Chunk 9:** the transcripts now contain the query line `/ ▏…` and the repaints while typing (`ESC[nA ESC[J`). New Spanish strings: "escribe para buscar", "buscando…", "sin coincidencias", "Instalado", "Versión", "desde npx →".
+- **Verify:** `npm test` 27 files / 304; tsc silent; build ok; `test:install` 10/10; brand byte-identical; pack-check 38 files; PR #5 CI all green (ubuntu/macOS/windows × 22/24, installer, audit, secrets, CodeQL).
