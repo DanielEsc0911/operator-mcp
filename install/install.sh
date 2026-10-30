@@ -303,11 +303,11 @@ installed_row() {
     installed=$("$install_dir/operator-mcp" --version 2>/dev/null || true)
     [ -z "$installed" ] && [ -n "$(npx_entries)" ] && installed=npx
     if [ -z "$installed" ]; then
-        echo "$bold$accent$(pad "$(t Installed Instalada)")$reset$(t "not yet" "todavía no")"
+        echo "$bold$accent$(pad "$(t Installed Instalado)")$reset$(t "not yet" "todavía no")"
     elif [ "$installed" = "$version" ]; then
-        echo "$bold$accent$(pad "$(t Installed Instalada)")$reset$version $dot $(t "reinstalling" "se reinstala")"
+        echo "$bold$accent$(pad "$(t Installed Instalado)")$reset$version $dot $(t "reinstalling" "se reinstala")"
     else
-        echo "$bold$accent$(pad "$(t Upgrading Actualizando)")$reset$installed → $version"
+        echo "$bold$accent$(pad "$(t Upgrading Actualizando)")$reset$(t from desde) $installed → $version"
     fi
 }
 
@@ -317,7 +317,7 @@ write_facts() {
         echo "$muted$rule$reset"
         echo "$bold$accent$(pad "$(t System Sistema)")$reset$(system_name) $dot $(uname -m)"
         installed_row
-        echo "$bold$accent$(pad "$(t Release Descarga)")$reset$version"
+        echo "$bold$accent$(pad "$(t Release Versión)")$reset$version"
         echo "$bold$accent$(pad "$(t Into Destino)")$reset$(tilde "$install_dir")"
     } >"$work/facts"
 }

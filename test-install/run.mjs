@@ -138,7 +138,7 @@ try {
     `printf '{"mcpServers":{"openproject":{"command":"npx","args":["-y","operator-mcp"]}}}' > ~/.claude.json; ${install} -s -- --no-setup`,
     { env },
   );
-  check("a 1.2.0 npx install is reported as an upgrade", upgrade.code === 0 && upgrade.output.includes(`Upgrading     npx → ${version}`), upgrade.output);
+  check("a 1.2.0 npx install is reported as an upgrade", upgrade.code === 0 && upgrade.output.includes(`Upgrading     from npx → ${version}`), upgrade.output);
 
   const alpine = await container("docker.io/library/alpine:latest", `wget -qO- ${origin}/install.sh | sh; echo "exit=$?"`, { env });
   check("Alpine gets the musl refusal and the npx line", /uses musl/.test(alpine.output) && /npx -y operator-mcp setup/.test(alpine.output) && /exit=1/.test(alpine.output), alpine.output);
