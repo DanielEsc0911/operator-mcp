@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -190,15 +190,22 @@ describe("entry", () => {
 });
 
 describe("claude-desktop and cursor", () => {
+  afterEach(() => vi.unstubAllEnvs());
   it("knows Claude Desktop's config on macOS and Windows, and offers nothing on Linux", () => {
     expect(desktopConfigPath("/Users/ada", "darwin")).toBe(
       join("/Users/ada", "Library", "Application Support", "Claude", "claude_desktop_config.json"),
     );
-    expect(desktopConfigPath("C:/Users/ada", "win32")).toBe(join("C:/Users/ada", "AppData", "Roaming", "Claude", "claude_desktop_config.json"));
+    expect(desktopConfigPath("C:/Users/ada", "win32", {})).toBe(join("C:/Users/ada", "AppData", "Roaming", "Claude", "claude_desktop_config.json"));
     expect(desktopConfigPath("/home/ada", "linux")).toBeNull();
   });
 
+  it("prefers APPDATA for Claude Desktop on Windows", () => {
+    expect(desktopConfigPath("C:/Users/ada", "win32", { APPDATA: "D:/Roam" })).toBe(join("D:/Roam", "Claude", "claude_desktop_config.json"));
+    expect(desktopConfigPath("C:/Users/ada", "win32", {})).toBe(join("C:/Users/ada", "AppData", "Roaming", "Claude", "claude_desktop_config.json"));
+  });
+
   it("detects Claude Desktop by its config directory, except on Linux", () => {
+    vi.stubEnv("APPDATA", "");
     const root = home("Library/Application Support/Claude", "AppData/Roaming/Claude");
     const found = detectClients(root).map((client) => client.id);
     expect(found.includes("claude-desktop")).toBe(process.platform !== "linux");

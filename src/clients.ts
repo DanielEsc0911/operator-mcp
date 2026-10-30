@@ -36,9 +36,13 @@ export function serverCommand(profile: string, runtime: Runtime = process): Serv
   return { command: "npx", args: ["-y", "operator-mcp", ...flag] };
 }
 
-export function desktopConfigPath(home: string, platform: NodeJS.Platform = process.platform): string | null {
+export function desktopConfigPath(
+  home: string,
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
   if (platform === "darwin") return join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
-  if (platform === "win32") return join(home, "AppData", "Roaming", "Claude", "claude_desktop_config.json");
+  if (platform === "win32") return join(env.APPDATA || join(home, "AppData", "Roaming"), "Claude", "claude_desktop_config.json");
   return null;
 }
 
