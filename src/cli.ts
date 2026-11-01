@@ -1,6 +1,6 @@
 import { runDoctor } from "./doctor.js";
 import { humanMessage } from "./errors.js";
-import { firstPositional, flagProblem } from "./flags.js";
+import { firstPositional, flagProblem, hasFlag } from "./flags.js";
 import { detectLang, t, useLang } from "./i18n/index.js";
 import { runInstall } from "./install.js";
 import { serve } from "./serve.js";
@@ -11,14 +11,15 @@ export type Output = NodeJS.WritableStream;
 export type Streams = { stdin: NodeJS.ReadStream; stdout: Output; stderr: Output };
 
 const MIN_NODE_MAJOR = 22;
+const SIGINT_EXIT = 130;
 async function route(argv: string[], streams: Streams): Promise<number | null> {
-  if (argv[0] === "--version" || argv[0] === "-v") return (streams.stdout.write(`${version}\n`), 0);
+  if (hasFlag(argv, "--version", "-v")) return (streams.stdout.write(`${version}\n`), 0);
   const problem = flagProblem(argv);
   if (problem) {
     const text = problem.missingValue ? t().missingValue(problem.flag) : t().unknownOption(problem.flag, problem.near);
     return (streams.stderr.write(`operator-mcp: ${text}\n`), 2);
   }
-  if (argv.includes("--help") || argv.includes("-h")) return (streams.stdout.write(t().usage(version)), 0);
+  if (hasFlag(argv, "--help", "-h")) return (streams.stdout.write(t().usage(version)), 0);
 
   const command = firstPositional(argv);
   if (command === "setup") return runSetup(argv, streams);
@@ -48,4 +49,9 @@ export async function runCli(
     streams.stderr.write(`operator-mcp: ${humanMessage(error)}\n`);
     return 1;
   }
+}
+
+export function finish(code: number | null, proc: { exitCode?: number | string | null; exit: (code: number) => never }): void {
+  if (code === SIGINT_EXIT) proc.exit(code);
+  if (code !== null) proc.exitCode = code;
 }

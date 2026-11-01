@@ -126,6 +126,21 @@ describe("runDoctor", () => {
     expect(text).not.toContain("is reachable");
   });
 
+  it("treats a login-required instance's JSON 401 Error as reachable and goes on to the key check", async () => {
+    saveConfig("default", { url: "https://op.example.com", apiKey: "k" });
+    fetchMock.mockImplementation(async (url: URL) =>
+      String(url).endsWith("/users/me") ? respond(ME) : respond({ _type: "Error", message: "Authentication required" }, 401));
+    expect(await doctor()).toBe(0);
+    expect(text).toContain("is reachable");
+    expect(text).toContain("Ada Lovelace");
+  });
+
+  it("reports an invalid OPENPROJECT_PROFILE as a failed check and suggests setup for it", async () => {
+    expect(await doctor(["doctor"], { OPENPROJECT_PROFILE: "bad name!" })).toBe(1);
+    expect(text).toContain("Invalid profile name");
+    expect(text).toContain('setup --profile bad name!');
+  });
+
   it("prints the underlying network reason and the certificate hint", async () => {
     saveConfig("default", { url: "https://op.example.com", apiKey: "k" });
     const cause = Object.assign(new Error("self-signed certificate"), { code: "DEPTH_ZERO_SELF_SIGNED_CERT" });

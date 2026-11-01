@@ -4,7 +4,8 @@ import { join } from "node:path";
 import type { Streams } from "./cli.js";
 import { OpenProjectClient } from "./client.js";
 import { detectClients, selfCommand, serverName, type Runner } from "./clients.js";
-import { type Config, loadConfig, profileDir, resolveProfile } from "./config.js";
+import { type Config, loadConfig, profileDir } from "./config.js";
+import { flagValue } from "./flags.js";
 import { humanMessage, networkReason } from "./errors.js";
 import { t } from "./i18n/index.js";
 import { spawnRunner } from "./install.js";
@@ -14,6 +15,10 @@ export type Check = { ok: boolean; line: string; next?: string };
 
 const pass = (line: string): Check => ({ ok: true, line });
 const fail = (line: string, next: string): Check => ({ ok: false, line, next });
+
+const profileFlag = (profile: string) => (profile === "default" ? "" : ` --profile ${profile}`);
+const requestedProfile = (argv: string[], env: NodeJS.ProcessEnv) =>
+  flagValue(argv, "--profile") || env.OPENPROJECT_PROFILE || "default";
 
 function configFileCheck(config: Config, env: NodeJS.ProcessEnv, flag: string, home: string): Check {
   const path = join(profileDir(config.profile), "config.json");
@@ -33,7 +38,7 @@ async function reachableCheck(url: string): Promise<Check> {
   try {
     const response = await fetch(new URL(`${url}/api/v3`), { signal: AbortSignal.timeout(10_000) });
     const root = await response.json().catch(() => null);
-    if (root?._type !== "Root") return fail(t().unreachable(url, t().notOpenProject(response.status)), t().checkNetwork);
+    if (root?._type !== "Root" && root?._type !== "Error") return fail(t().unreachable(url, t().notOpenProject(response.status)), t().checkNetwork);
     return pass(t().reachable(url));
   } catch (error) {
     return fail(t().unreachable(url, networkReason(error)), t().checkNetwork);
@@ -68,9 +73,9 @@ export async function doctorChecks(argv: string[], env: NodeJS.ProcessEnv, home:
   try {
     config = loadConfig(argv, env);
   } catch (error) {
-    return [fail(humanMessage(error), t().run(`${selfCommand()} setup`))];
+    return [fail(humanMessage(error), t().run(`${selfCommand()} setup${profileFlag(requestedProfile(argv, env))}`))];
   }
-  const flag = config.profile === "default" ? "" : ` --profile ${config.profile}`;
+  const flag = profileFlag(config.profile);
   const configured = Boolean(config.url && config.apiKey);
   return [
     configFileCheck(config, env, flag, home),
@@ -95,7 +100,7 @@ export async function runDoctor(
 ): Promise<number> {
   const out = streams.stdout;
   const s = style(out);
-  out.write(`\n  ${s.bold(s.accent("OPerator"))}  ${s.muted(t().doctorTitle(resolveProfile(argv, env)))}\n\n`);
+  out.write(`\n  ${s.bold(s.accent("OPerator"))}  ${s.muted(t().doctorTitle(requestedProfile(argv, env)))}\n\n`);
   const healthy = await printChecks(out, doctorChecks(argv, env, home, run));
   out.write("\n");
   return healthy ? 0 : 1;

@@ -56,12 +56,13 @@ export function humanMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-const CERTIFICATE_CODE = /CERT|ISSUER|SELF_SIGNED|UNABLE_TO_VERIFY/;
+const CERTIFICATE_CODE = /^(?:SELF_SIGNED_CERT_IN_CHAIN|DEPTH_ZERO_SELF_SIGNED_CERT|UNABLE_TO_GET_ISSUER_CERT(?:_LOCALLY)?|UNABLE_TO_VERIFY_LEAF_SIGNATURE)$/;
 
 export function networkReason(error: unknown): string {
   const cause = error instanceof Error ? (error.cause as { code?: string; message?: string } | undefined) : undefined;
-  const detail = [cause?.code, cause?.message].filter(Boolean).join(": ");
-  const reason = detail && !humanMessage(error).includes(detail) ? `${humanMessage(error)} (${detail})` : humanMessage(error);
+  const message = humanMessage(error);
+  const detail = [cause?.code, cause?.message].filter((part) => part && !message.includes(part)).join(": ");
+  const reason = detail ? `${message} (${detail})` : message;
   const certificate = CERTIFICATE_CODE.test(cause?.code ?? "") ? " Point NODE_EXTRA_CA_CERTS at your organization's CA file to trust it." : "";
   return `${reason}${certificate}`;
 }

@@ -1,7 +1,7 @@
 import { PassThrough } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { createInterface } from "node:readline/promises";
-import { SetupAborted, ask, choose, confirmList, interruptible, readHidden } from "../src/prompts.js";
+import { SetupAborted, ask, askHidden, choose, confirmList, interruptible, readHidden } from "../src/prompts.js";
 import { style } from "../src/ui.js";
 
 function fakeTty() {
@@ -56,12 +56,27 @@ describe("readHidden", () => {
     expect(await answer).toBe("secret-key");
   });
 
-  it("ignores a lone ESC and leaves stdin paused", async () => {
+  it("ignores a lone ESC before the newline", async () => {
     const { stdin, stdout } = fakeTty();
     const answer = readHidden("Key: ", stdin, stdout);
-    stdin.write("ab\u001bc\n");
+    stdin.write("ab\u001b\n");
+    expect(await answer).toBe("ab");
+  });
+
+  it("drops an escape sequence split across chunks", async () => {
+    const { stdin, stdout } = fakeTty();
+    const answer = readHidden("Key: ", stdin, stdout);
+    stdin.write("ab\u001b[20");
+    stdin.write("0~cd\u001b");
+    stdin.write("[Ae\n");
+    expect(await answer).toBe("abcde");
+  });
+
+  it("drops SS3 and Alt+key sequences", async () => {
+    const { stdin, stdout } = fakeTty();
+    const answer = readHidden("Key: ", stdin, stdout);
+    stdin.write("a\u001bOPb\u001bxc\n");
     expect(await answer).toBe("abc");
-    expect(stdin.pause).toHaveBeenCalled();
   });
 
   it("rejects with SetupAborted on ctrl-c after restoring the terminal", async () => {
@@ -70,6 +85,36 @@ describe("readHidden", () => {
     stdin.write("\u0003");
     await expect(answer).rejects.toBeInstanceOf(SetupAborted);
     expect(stdin.setRawMode).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe("under a live terminal readline", () => {
+  function terminal() {
+    const { stdin, stdout, written } = fakeTty();
+    const rl = createInterface({ input: stdin, output: new PassThrough(), terminal: true });
+    return { stdin, stdout, rl, written };
+  }
+
+  it("answers the next ask after a hidden read", async () => {
+    const { stdin, stdout, rl } = terminal();
+    const key = askHidden(rl, "Key: ", stdin, stdout);
+    stdin.write("secret\n");
+    expect(await key).toBe("secret");
+    const next = ask(rl, "Next: ");
+    stdin.write("hello\n");
+    expect(await Promise.race([next, new Promise((r) => setTimeout(() => r("hung"), 500))])).toBe("hello");
+    rl.close();
+  });
+
+  it("still sees ctrl-c in interruptible after a hidden read", async () => {
+    const { stdin, stdout, rl } = terminal();
+    const key = askHidden(rl, "Key: ", stdin, stdout);
+    stdin.write("secret\n");
+    await key;
+    const pending = interruptible(rl, new Promise(() => {}));
+    stdin.write("\x03");
+    await expect(pending).rejects.toBeInstanceOf(SetupAborted);
+    rl.close();
   });
 });
 
@@ -125,6 +170,12 @@ describe("choose", () => {
     const { rl, out, s, shown } = scripted("7", "2");
     expect(await choose(rl, out, s, "Pick", options)).toBe("billing");
     expect(shown()).toContain("Pick a number from 1 to 2");
+    rl.close();
+  });
+
+  it("asks again for numeric input that is not an in-range integer", async () => {
+    const { rl, out, s } = scripted("-1", "1.5", "9", "1");
+    expect(await choose(rl, out, s, "Pick", options)).toBe("acme");
     rl.close();
   });
 

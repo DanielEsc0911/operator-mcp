@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { runCli } from "./cli.js";
+import { finish, runCli } from "./cli.js";
 
-const code = await runCli(process.argv.slice(2), process);
-if (code !== null) process.exitCode = code;
+finish(await runCli(process.argv.slice(2), process), process);

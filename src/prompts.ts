@@ -10,7 +10,8 @@ export class SetupAborted extends Error {
 
 const ETX = 3;
 const CTRL_U = 21;
-const ESCAPE_SEQUENCE = /\x1b\[(?:20[01]~|[0-9;]*[A-Za-z~])/g;
+const ESCAPE_SEQUENCE = /\x1b(?:\[[0-?]*[ -/]*[@-~]|O[@-~]|[^[O\r\n])/g;
+const INCOMPLETE_ESCAPE = /\x1b(?:\[[0-?]*[ -/]*|O)?$/;
 const BACKSPACE = [8, 127];
 
 type RawInput = NodeJS.ReadStream & { isRaw?: boolean };
@@ -41,16 +42,18 @@ export function readHidden(question: string, stdin: RawInput, stdout: NodeJS.Wri
     stdin.resume();
 
     let value = "";
+    let pending = "";
     const restore = () => {
       stdin.off("data", onData);
       stdin.setRawMode(wasRaw);
       for (const listener of borrowed) stdin.on("data", listener);
-      stdin.pause();
       stdout.write("\n");
     };
 
     const onData = (chunk: Buffer) => {
-      for (const char of chunk.toString("utf8").replace(ESCAPE_SEQUENCE, "")) {
+      const text = pending + chunk.toString("utf8");
+      pending = INCOMPLETE_ESCAPE.exec(text)?.[0] ?? "";
+      for (const char of text.slice(0, text.length - pending.length).replace(ESCAPE_SEQUENCE, "")) {
         const code = char.codePointAt(0) ?? 0;
         if (code === ETX) return (restore(), reject(new SetupAborted()));
         if (char === "\n" || char === "\r") return (restore(), resolve(value));
@@ -97,8 +100,8 @@ export async function choose(
   for (;;) {
     const answer = await ask(rl, PROMPT);
     if (answer === "" || answer === "0") return "";
-    if (!/^\d+$/.test(answer)) return answer;
-    const picked = options[Number(answer) - 1];
+    if (!/^[-+]?[\d.]+$/.test(answer)) return answer;
+    const picked = /^\d+$/.test(answer) ? options[Number(answer) - 1] : undefined;
     if (picked) return picked[1];
     out.write(`  ${s.muted(t().outOfRange(options.length))}\n`);
   }
