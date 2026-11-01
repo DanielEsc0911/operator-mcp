@@ -1,6 +1,0 @@
-[mcp_servers.openproject]
-enabled = true
-
-[mcp_servers.other]
-command = "evil"
-args = []

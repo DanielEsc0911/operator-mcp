@@ -38,8 +38,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- `install` and `doctor` know more agent clients: Windsurf, Kiro, Qwen Code, Kimi,
-  iFlow, Antigravity and MiMo Code.
+- `install` and `doctor` know more agent clients: Antigravity CLI, Qwen Code, Kimi CLI,
+  Kimi Code, iFlow CLI, Kiro, Windsurf and MiMo Code.
 - `briefing`: pending, unread and recent in one call, grouped by project, with true
   status counts, scoped to the default project, and tolerant of a failing section.
 - `standup`: your time entries (total hours over every fetched entry) and the work

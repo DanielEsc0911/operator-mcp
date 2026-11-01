@@ -28,7 +28,10 @@
     "openproject",
     "project-management",
     "ai-agents",
-    "claude"
+    "claude",
+    "codex",
+    "gemini-cli",
+    "cursor"
   ],
   "scripts": {
     "build": "tsc",
