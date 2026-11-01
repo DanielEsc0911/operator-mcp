@@ -19,8 +19,9 @@ open, with the commit range.
 | Chunk 2 — review fixes (G1–G14) | done | `47978c9`..`65457ed` |
 | Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..`2d2a636` |
 | Chunk 3 — review fixes (H1–H14) | done | `ee7f443`..`e29cdba` |
-| Chunk 4 — Release, testing infra, final gate (4a–4f) | 4a–4e done, 4f pending | `6c295e0`..`3a2e130` |
+| Chunk 4 — Release, testing infra, final gate (4a–4f) | done (4a–4f) | `6c295e0`..`3a2e130`, 4f in `6dd5151` |
 | Chunk 4 — review fixes (J1–J12) | done | `7af1408`..`9e8f9ed` |
+| Final gate — review fixes (K1–K15) | done | `45870a5`..`c95239f` |
 
 ## Hand-off notes
 
@@ -225,3 +226,24 @@ Open items:
 - Deviation: the old doc count said twelve; counted blocks in src/ now give thirteen.
 - Live suite: `npm run test:docker` 3 files, 17 tests passed, container removed. Final: typecheck silent, 482 unit tests green.
 - Open for 4f: workflows still never run on GitHub; README tool table and CHANGELOG items from Chunk 3 note; `list_metadata` README/tool docs for the new `workPackage` argument.
+
+### Final gate: K1-K15 and 4f (`45870a5`..`6dd5151`)
+
+- K1/K2 standup: entries fetched at pageSize 100 sorted `spentOn desc`, `totalHours` sums all fetched, 15 rows shown, `truncated` when total > 15, `urlTemplate`, both scopes in the description.
+- K3: no confirm added to ordinary writes (ruled). Server instructions gained the data-not-instructions line; CLAUDE.md, README, CHANGELOG, authoring skill name exactly which calls need confirm.
+- K4: read-only guard builds the URL first and allows only `POST` to a pathname ending `/form`.
+- K5: `projectOrDefault` (shared.ts) sends a given `project` through `resolveProjectId` in search, create, list_users and list_metadata. Existing tests with identifier projects now route `GET /projects/<identifier>` and expect numeric-id paths.
+- K6/K9: 20-row defaults, lean rows (`flattenWorkPackage` gained `omit`; `flattenNotification` lost `url` and its base URL argument), `urlTemplate` on lists, `list_activities` returns `{ total, activities }` with comments cut at 500 and default limit 10 (60 comments of 960 chars would not fit 8 KB at 50). `my_work` moved to `src/tools/myWork.ts` to keep workPackages.ts under 150 lines.
+- K7, K8, K10-K15 as listed; K12 uses `/principals?filter id=` and falls back to `/users/<id>` when the lookup is empty. K14 also renamed the live-test argument.
+- One comment added (principal ids share the user id space): fourteen in src/, counted as blocks; CLAUDE.md and the review skill say fourteen.
+- Sizes on the shared fixture (`test/support/realistic.ts`, `test/tools/sizes.test.ts`): briefing 6734 B, standup 6333, my_work 7174, list_notifications 6670, search_work_packages 7174, list_activities 6447.
+- Final: typecheck silent, 504 unit tests in 33 files green, `npm run test:docker` 3 files / 17 tests passed, no container left.
+- 4f done: CHANGELOG `[Unreleased]`, README (standup, `<version>` pins, `--flag=value`, rolling `.bak`, proxy note, activities need a work package, safety), CLAUDE.md, CONTRIBUTING, all four skills. `src/resolve.ts` is 155 lines (limit is approximate).
+
+### Final hand-off: what the user must do next
+
+1. Review and merge `feat/hardening` (nothing has been pushed, tagged or published).
+2. Run the GitHub workflows (ci, codeql, live, release) for the first time; `setup-bun` and `bun` on PATH may need adjustments.
+3. Choose and release a new version (no bump was made); the README snippets say `operator-mcp@<version>` for you to fill in.
+4. Reinstall or update the binary (`operator-mcp install`) so Antigravity (agy) picks up the new tools; its cache refreshes on reconnect.
+5. Optionally mark "Culminado" and "Rechazado" as closed statuses in the instance so they stop counting as open.
