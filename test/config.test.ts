@@ -164,7 +164,8 @@ describe("loadConfig", () => {
   it("names the file and the parse error when config.json is corrupt, and saveConfig will not overwrite it", () => {
     const path = saveConfig("bad", { url: "https://op.acme.com", apiKey: "k" });
     writeFileSync(path, "{ not json");
-    expect(() => loadConfig(["--profile", "bad"], {})).toThrow(new RegExp(`${path}.*JSON`));
+    const pattern = new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*JSON`);
+    expect(() => loadConfig(["--profile", "bad"], {})).toThrow(pattern);
     expect(() => saveConfig("bad", { url: "https://op.acme.com", apiKey: "new" })).toThrow(/mv /);
     expect(readFileSync(path, "utf8")).toBe("{ not json");
   });

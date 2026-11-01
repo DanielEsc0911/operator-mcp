@@ -35,7 +35,7 @@ describe("readConventions", () => {
   it("does not overwrite an unreadable manual when adding a rule", () => {
     chmodSync(path, 0o000);
     try {
-      expect(() => addRule(path, "Workflow", "New rule.")).toThrow(/EACCES/);
+      expect(() => addRule(path, "Workflow", "New rule.")).toThrow(/EACCES|EPERM/);
     } finally {
       chmodSync(path, 0o600);
     }
@@ -197,7 +197,7 @@ describe("file fidelity", () => {
     expect(readFileSync(path, "utf8")).toBe("## W\n- first\n- last\n");
   });
 
-  it("keeps the mode of an existing manual", () => {
+  it.skipIf(process.platform === "win32")("keeps the mode of an existing manual", () => {
     chmodSync(path, 0o644);
     addRule(path, "Etiquette", "New one.");
     expect(statSync(path).mode & 0o777).toBe(0o644);
