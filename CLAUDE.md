@@ -25,8 +25,8 @@ When two designs both work, ship the one with fewer moving parts.
 functions, one responsibility each, obvious data flow. Comments are rare and earn
 their place: a comment explains something the code *cannot* — an external API's
 counterintuitive contract, a workaround, a constraint from outside the file. Never
-write a comment that restates the line below it. There are exactly eight comments in
-`src/`; each records an OpenProject, Node or agent-client constraint. Do not add a ninth without
+write a comment that restates the line below it. There are exactly ten comments in
+`src/`; each records an OpenProject, Node or agent-client constraint. Do not add an eleventh without
 a reason of the same kind.
 
 ## Navigating this project — use CodeGraph

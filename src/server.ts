@@ -1,8 +1,10 @@
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OpenProjectClient, type Identity } from "./client.js";
 import type { Config } from "./config.js";
 import { MANUAL_WARNING_BYTES, readConventions } from "./conventions.js";
 import { registerActivityTools } from "./tools/activities.js";
+import { registerBriefingTools } from "./tools/briefing.js";
 import { registerConventionTools } from "./tools/conventions.js";
 import { registerIdentityTools } from "./tools/identity.js";
 import { registerMetaTools } from "./tools/meta.js";
@@ -10,11 +12,10 @@ import { registerNotificationTools } from "./tools/notifications.js";
 import { registerRawTools } from "./tools/raw.js";
 import { registerStandupTools } from "./tools/standup.js";
 import { registerTimeTools } from "./tools/time.js";
-import { registerBriefingTools } from "./tools/briefing.js";
 import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
-export const version = "1.3.1";
+export const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 function plain(value: string): string {
   return value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, " ").trim().slice(0, 80);

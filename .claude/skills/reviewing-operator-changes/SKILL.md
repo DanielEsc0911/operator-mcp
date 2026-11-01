@@ -59,11 +59,11 @@ grep -rn "from \"\\.\\.*/[^\"]*\"" src/ | grep -v "\.js\"" | grep -v "\.json\""
 **Every zod field has `.describe()`.** These are agent-facing docs, not type-checker
 noise. A field an agent cannot choose a value for is a broken tool.
 
-**Comments are rare and earn their place.** There are exactly eight in `src/`:
+**Comments are rare and earn their place.** There are exactly ten in `src/`:
 `lockVersion` locking, `offset` being a page number, ISO 8601 durations, the `o`/`c`
-status operators, `t`/`f` boolean filter values, readline's unmutable echo, the
+status operators, the `<>d` date operator, the activities endpoint ignoring `pageSize`, `t`/`f` boolean filter values, readline's unmutable echo, the
 `apikey` Basic-auth username, and the claude CLI owning its config format. Each
-records an external constraint the code cannot express. A ninth needs a reason of
+records an external constraint the code cannot express. An eleventh needs a reason of
 the same kind. Delete any comment that restates what the line does.
 
 **Tests never reach the network.** `test/` mocks `fetch`. Anything needing a real

@@ -23,8 +23,7 @@ export type SearchArgs = {
 };
 
 // OpenProject expresses "any open status" and "any closed status" as filter
-// operators with no values, not as status names. "On or after a date" is the
-// between operator `<>d` with an empty upper bound; `>d` is rejected.
+// operators with no values, not as status names.
 async function statusFilter(client: OpenProjectClient, status: string, project?: string): Promise<Filter> {
   const kind = status.trim().toLowerCase();
   if (kind === "open") return { status: { operator: "o", values: [] } };
@@ -45,6 +44,7 @@ export async function buildSearchFilters(client: OpenProjectClient, args: Search
   if (args.type) filters.push({ type: { operator: "=", values: [await resolveId(client, "types", args.type, args.project)] } });
   if (args.priority) filters.push({ priority: { operator: "=", values: [await resolveId(client, "priorities", args.priority)] } });
   if (args.query) filters.push({ search: { operator: "**", values: [args.query] } });
+  // "On or after a date" is the between operator `<>d` with an empty upper bound; `>d` is rejected.
   if (args.updatedSince) filters.push({ updatedAt: { operator: "<>d", values: [args.updatedSince, ""] } });
   return filters;
 }
