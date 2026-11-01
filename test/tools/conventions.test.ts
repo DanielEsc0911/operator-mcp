@@ -154,7 +154,7 @@ describe("the conventions resource", () => {
     const client = await connect(withManual());
     const result = await client.readResource({ uri: "openproject://conventions" });
 
-    expect(result.contents[0].text).toBe(MANUAL);
+    expect((result.contents[0] as { text: string }).text).toBe(MANUAL);
     expect(result.contents[0].mimeType).toBe("text/markdown");
   });
 });

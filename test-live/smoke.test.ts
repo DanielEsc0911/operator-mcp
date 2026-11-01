@@ -20,6 +20,7 @@ describe.skipIf(!configured)("live OpenProject instance", () => {
       apiKey: apiKey!,
       conventionsPath: "",
       readOnly: false,
+      allowDelete: true,
       defaultProject: project,
     });
   });

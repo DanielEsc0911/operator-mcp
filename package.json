@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:live": "vitest run --config vitest.live.config.ts",
     "test:install": "node test-install/run.mjs",

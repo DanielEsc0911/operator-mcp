@@ -119,15 +119,15 @@ describe("removeRule", () => {
   it("removes an exact bullet and backs the file up first", () => {
     const result = removeRule(path, "Workflow", "Move to `In progress` only once a branch exists.");
     expect(result.removed).toBe(true);
-    expect(existsSync(result.backupPath!)).toBe(true);
-    expect(readFileSync(result.backupPath!, "utf8")).toBe(MANUAL);
+    expect(existsSync((result as { backupPath: string }).backupPath)).toBe(true);
+    expect(readFileSync((result as { backupPath: string }).backupPath, "utf8")).toBe(MANUAL);
     expect(readFileSync(path, "utf8")).not.toContain("only once a branch exists");
   });
 
   it("changes nothing and reports the real bullets when the rule does not match", () => {
     const result = removeRule(path, "Workflow", "something that is not there");
     expect(result.removed).toBe(false);
-    expect(result.backupPath).toBeUndefined();
+    expect("backupPath" in result).toBe(false);
     expect(result.bullets).toEqual(["Move to `In progress` only once a branch exists."]);
     expect(readFileSync(path, "utf8")).toBe(MANUAL);
   });

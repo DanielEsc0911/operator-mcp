@@ -5,7 +5,7 @@ import type { Config } from "../src/config.js";
 
 const config: Config = {
   profile: "test", url: "https://op.acme.com", apiKey: "secret",
-  conventionsPath: "/nonexistent", readOnly: false,
+  conventionsPath: "/nonexistent", readOnly: false, allowDelete: false,
 };
 
 const TYPES = { total: 2, count: 2, _embedded: { elements: [{ id: 1, name: "Task" }, { id: 7, name: "Bug" }] } };

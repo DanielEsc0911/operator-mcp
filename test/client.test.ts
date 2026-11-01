@@ -220,7 +220,7 @@ describe("collectAll", () => {
   const page = (ids: number[], total: number) => ({ total, count: ids.length, _embedded: { elements: ids.map((id) => ({ id })) } });
   const run = (fetchMock: ReturnType<typeof vi.fn>) => {
     vi.stubGlobal("fetch", fetchMock);
-    return new OpenProjectClient({ profile: "t", url: "https://op.acme.com", apiKey: "k", conventionsPath: "/x", readOnly: false }).collectAll("/projects");
+    return new OpenProjectClient({ profile: "t", url: "https://op.acme.com", apiKey: "k", conventionsPath: "/x", readOnly: false, allowDelete: false }).collectAll("/projects");
   };
   afterEach(() => vi.unstubAllGlobals());
 
