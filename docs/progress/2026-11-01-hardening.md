@@ -18,7 +18,7 @@ open, with the commit range.
 | Chunk 2 — Agent tools (2a–2i) | done | `b636897`..`26d77aa` (2i skipped) |
 | Chunk 2 — review fixes (G1–G14) | done | `47978c9`..`65457ed` |
 | Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..`2d2a636` |
-| Chunk 4 — Release, testing infra, final gate (4a–4f) | todo | |
+| Chunk 4 — Release, testing infra, final gate (4a–4f) | 4a–4e done, 4f pending | `6c295e0`..`3a2e130` |
 
 ## Hand-off notes
 
@@ -155,3 +155,43 @@ Open for Chunk 4: README mentions of backups (`.bak` is now one rolling file), `
   50 notifications), standup 8012 B (20 entries + 20 changes, 25 total), my_work 7279 B (20 rows). Standup is close
   to the 8192 B budget.
 - Open: bun binary `--version` check; standup headroom is thin if comments get longer.
+
+### Chunk 4, tasks 4a–4e (2026-11-01, `6c295e0`..`3a2e130`)
+
+Done: 4a `tsconfig.test.json` (module NodeNext, resolveJsonModule) + `npm run typecheck` (src then tests), used by CI and
+release; fixed the 8 type errors it surfaced (all in tests). 4b `npm run test:docker` (`scripts/test-docker.sh`,
+`scripts/seed-openproject.rb`, `.github/workflows/live.yml` on dispatch + weekly). 4c live suite rewritten
+(`test-live/smoke.test.ts`, `tools.test.ts`, `support/live.ts`). 4d `scripts/binary-smoke.mjs` + CI job `binary`; release
+uses the script. 4e actions pinned to SHAs, npm 11.21.1 exact, tarball packed in `verify` and published from the artifact,
+`attest-build-provenance` for `.gz` binaries and the `.tgz` (also attached to the release), README "Verifying a release".
+451 unit tests green, typecheck silent, no `src/` changes, comment count unchanged (ten).
+
+Live suite on Docker (`openproject/openproject:16.6.10`, same digest as the local `:16`), clean boot, 16/16 green, ~95 s total,
+container removed afterwards (script uses a trap): metadata (types/statuses/priorities), open-status `o`, `<>d` with open
+upper bound (and `>d` rejected), `groupBy=status` top-level `groups`, PATCH ok + stale lockVersion 409, activities ignore
+`pageSize`/`sortBy`, time entry with only a workPackage link + `user=me` and `spentOn <>d`, `readIAN` filter, `collectAll`
+over 105 work packages (two pages), `briefing`, `standup`, `update_work_package` writing a version by name, `list_activities`
+newest-first with limit, `mark_notifications_read` by ids flips exactly the chosen one (seeded via `Notification.create!`,
+non-System admin user; only runs when `OPENPROJECT_LIVE_DISPOSABLE=1`, which the docker script sets).
+
+Binary smoke: real Bun 1.4.4 (via `npx -y bun@1.4.4`, nothing installed) compiled `bun-linux-x64`: `--version` (literal
+constant works), initialize, tools/list, `whoami` call against a stub server, `setup --non-interactive` in a temp HOME, and
+`install --yes` registers the binary under its own path (`execPath` is the binary, confirmed). All ok.
+
+Deviations / findings:
+- Seed facts needed on 16.6: the project needs `workspace_type: "project"`; time tracking needs the `costs` module enabled
+  (otherwise 403 on POST /time_entries); `journal_aggregation_time_minutes = 0` so a comment is its own activity; notifications
+  must be created after a `sleep 20` because the creation's journal jobs delete earlier ones; use host `localhost`, not
+  127.0.0.1 (host_name check). Versions are created via `POST /versions` with a numeric definingProject link.
+- Non-interactive `setup` does not register agents; the smoke script checks registration through `install --yes`.
+- Live DELETE cleanup uses `allowDelete: true` in the live config only.
+- actionlint run through docker `rhysd/actionlint:1.7.7` (mounted with `:z`, which relabelled `.github` for SELinux): clean.
+- Action SHAs use the major-tag comment (v7, v8, v3, v4); attest-build-provenance v4.2.2; setup-bun v2.2.0.
+
+Open items:
+- BUG FOUND LIVE: `list_metadata kind=activities` is broken on OpenProject 16.6: `/time_entries/activities` has no index
+  route (404; only `/time_entries/activities/{id}`). The live test omits that kind. Needs a fix (e.g. read allowed values from
+  the time entry form/schema, or probe ids) or a documented limitation: for 4f or a follow-up.
+- `list_notifications` etc. are not live-tested beyond the id filter.
+- 4f final gate still pending (README tool table, CHANGELOG items listed in the Chunk 3 note, comment count check).
+- Workflows are not run on GitHub (no push); first real run may need adjustments (e.g. `setup-bun` and `bun` on PATH).
