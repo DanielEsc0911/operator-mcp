@@ -15,6 +15,7 @@ Opciones:
   --lang <en|es>                 Idioma de setup, install y doctor (por defecto: el de tu sistema)
   --non-interactive              setup: sin preguntas; la clave sale de OPENPROJECT_API_KEY
   --url <url>                    setup: la dirección de tu instancia de OpenProject
+  --read-only                    setup: guarda el perfil como solo lectura (nunca escribe)
   --yes                          install: registra todos los agentes encontrados sin preguntar
 
 Entorno:

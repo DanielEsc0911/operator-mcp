@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { OpenProjectClient, type Filter, type Identity } from "./client.js";
-import { normalizeUrl, profileDir } from "./config.js";
+import { normalizeUrl, profileDir, readStored, type StoredConfig } from "./config.js";
 import { STARTER_MANUAL } from "./conventions.js";
 import { t } from "./i18n/index.js";
 
@@ -51,14 +51,8 @@ export function keyHint(url: string): string {
   return t().keyHint(url);
 }
 
-export function storedCredentials(profile: string): Partial<Credentials> | null {
-  const path = join(profileDir(profile), "config.json");
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf8")) as Partial<Credentials>;
-  } catch {
-    return {};
-  }
+export function storedCredentials(profile: string): StoredConfig | null {
+  return existsSync(join(profileDir(profile), "config.json")) ? readStored(profile) : null;
 }
 
 export function describeExisting(profile: string): string | null {

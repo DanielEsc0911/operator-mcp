@@ -1,6 +1,6 @@
 export class ConfigError extends Error {
-  constructor() {
-    super("Not configured. Run: npx operator-mcp setup");
+  constructor(message = "Not configured. Run: npx operator-mcp setup") {
+    super(message);
   }
 }
 

@@ -63,9 +63,11 @@ async function keptConnection(profile: string, rl: Interface, line: Line): Promi
   }
 }
 
-function save(profile: string, credentials: Credentials, defaultProject: string | undefined, { out, s }: Line): void {
+function save(profile: string, argv: string[], credentials: Credentials, defaultProject: string | undefined, { out, s }: Line): void {
   const home = homedir();
-  step(out, s, t().saved, t().done, tilde(saveConfig(profile, { ...credentials, defaultProject }), home));
+  const readOnly = argv.includes("--read-only") || storedCredentials(profile)?.readOnly === true;
+  const data = { ...credentials, defaultProject, ...(readOnly && { readOnly }) };
+  step(out, s, t().saved, t().done, tilde(saveConfig(profile, data), home));
   const manual = scaffoldConventions(join(profileDir(profile), "conventions.md"));
   step(out, s, t().manual, t().done, manual ? `${tilde(manual, home)} ${s.muted(`· ${t().manualNew}`)}` : t().manualKept);
 }
@@ -101,7 +103,7 @@ async function interactive(argv: string[], streams: Streams, rl: Interface, prof
   ]);
   const { url, apiKey } = (await keptConnection(profile, rl, line)) ?? (await promptCredentials(rl, streams, line));
   const defaultProject = await pickProject({ url, apiKey }, rl, streams, line);
-  save(profile, { url, apiKey }, defaultProject, line);
+  save(profile, argv, { url, apiKey }, defaultProject, line);
   line.out.write("\n");
   const agents: Client[] = await patchAgents(argv, streams, rl, home);
   line.out.write("\n");
@@ -117,7 +119,7 @@ export async function runSetup(argv: string[], streams: Streams): Promise<number
   if (argv.includes("--non-interactive")) {
     const credentials = nonInteractiveInput(argv, process.env);
     await verified(credentials, line);
-    save(profile, credentials, process.env.OPENPROJECT_DEFAULT_PROJECT, line);
+    save(profile, argv, credentials, process.env.OPENPROJECT_DEFAULT_PROJECT?.trim() || undefined, line);
     line.out.write(`  ${t().nextNonInteractive}\n`);
     return 0;
   }

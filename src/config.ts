@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { ConfigError } from "./errors.js";
 
 export type Config = {
   profile: string;
@@ -12,10 +13,11 @@ export type Config = {
   allowDelete: boolean;
 };
 
-type StoredConfig = {
+export type StoredConfig = {
   url?: string;
   apiKey?: string;
   defaultProject?: string;
+  readOnly?: boolean;
 };
 
 const PROFILE_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
@@ -74,30 +76,44 @@ function warnIfShared(path: string): void {
   process.stderr.write(`operator-mcp: ${path} is readable by other users. Run: chmod 600 ${path}\n`);
 }
 
-function readStored(profile: string): StoredConfig {
+function parseStored(path: string): StoredConfig {
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as StoredConfig;
+  } catch (error) {
+    throw new ConfigError(
+      `Cannot read ${path}: ${(error as Error).message}. Fix the file, or move it aside (mv ${path} ${path}.broken) and run: npx operator-mcp setup`,
+    );
+  }
+}
+
+export function readStored(profile: string): StoredConfig {
   const path = join(profileDir(profile), "config.json");
   if (!existsSync(path)) return {};
   warnIfShared(path);
-  try {
-    return JSON.parse(readFileSync(path, "utf8")) as StoredConfig;
-  } catch {
-    return {};
-  }
+  return parseStored(path);
+}
+
+function envValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
+  return env[key]?.trim() || undefined;
+}
+
+export function parseReadOnly(raw: string | undefined): boolean {
+  return !["", "0", "false", "no", "off"].includes((raw ?? "").trim().toLowerCase());
 }
 
 export function loadConfig(argv: string[] = process.argv, env: NodeJS.ProcessEnv = process.env): Config {
   const profile = resolveProfile(argv, env);
   const stored = readStored(profile);
-  const readOnly = env.OPENPROJECT_READ_ONLY;
-  const url = normalizeUrl(env.OPENPROJECT_URL ?? stored.url ?? "");
+  const readOnlyEnv = envValue(env, "OPENPROJECT_READ_ONLY");
+  const url = normalizeUrl(envValue(env, "OPENPROJECT_URL") ?? stored.url ?? "");
   assertSecureUrl(url, env);
   return {
     profile,
     url,
-    apiKey: env.OPENPROJECT_API_KEY ?? stored.apiKey ?? "",
-    defaultProject: env.OPENPROJECT_DEFAULT_PROJECT ?? stored.defaultProject,
-    conventionsPath: env.OPENPROJECT_CONVENTIONS_PATH ?? join(profileDir(profile), "conventions.md"),
-    readOnly: readOnly === "1" || readOnly === "true",
+    apiKey: envValue(env, "OPENPROJECT_API_KEY") ?? stored.apiKey ?? "",
+    defaultProject: envValue(env, "OPENPROJECT_DEFAULT_PROJECT") ?? stored.defaultProject,
+    conventionsPath: envValue(env, "OPENPROJECT_CONVENTIONS_PATH") ?? join(profileDir(profile), "conventions.md"),
+    readOnly: readOnlyEnv !== undefined ? parseReadOnly(readOnlyEnv) : stored.readOnly !== undefined && stored.readOnly !== false,
     allowDelete: env.OPENPROJECT_ALLOW_DELETE === "1",
   };
 }
@@ -106,6 +122,8 @@ export function saveConfig(profile: string, data: StoredConfig): string {
   const dir = profileDir(profile);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const path = join(dir, "config.json");
+  if (existsSync(path)) parseStored(path);
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(path, 0o600);
   return path;
 }

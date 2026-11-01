@@ -13,6 +13,7 @@ Options:
   --lang <en|es>                 Language for setup, install and doctor (default: from your locale)
   --non-interactive              setup: no prompts; key from OPENPROJECT_API_KEY
   --url <url>                    setup: the OpenProject instance URL
+  --read-only                    setup: save the profile as read-only (no writes, ever)
   --yes                          install: register every detected agent without asking
 
 Environment:

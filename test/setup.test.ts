@@ -166,6 +166,33 @@ describe("runSetup --non-interactive", () => {
     expect(describeExisting("ci")).toContain("https://op.example.com");
   });
 
+  it("writes readOnly with --read-only, and keeps it on a later run without the flag", async () => {
+    vi.stubEnv("OPENPROJECT_API_KEY", env.OPENPROJECT_API_KEY);
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 2, count: 1, _embedded: { elements: [] } }),
+    );
+    const base = ["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"];
+    await runSetup([...base, "--read-only"], capture().streams);
+    const file = join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "ci", "config.json");
+    expect(JSON.parse(readFileSync(file, "utf8")).readOnly).toBe(true);
+
+    await runSetup(base, capture().streams);
+    expect(JSON.parse(readFileSync(file, "utf8")).readOnly).toBe(true);
+  });
+
+  it("refuses to overwrite a corrupt config.json", async () => {
+    vi.stubEnv("OPENPROJECT_API_KEY", env.OPENPROJECT_API_KEY);
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 2, count: 1, _embedded: { elements: [] } }),
+    );
+    const file = saveConfig("ci", { url: "https://op.example.com", apiKey: "k" });
+    writeFileSync(file, "{ nope");
+    await expect(
+      runSetup(["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"], capture().streams),
+    ).rejects.toThrow(/Cannot read/);
+    expect(readFileSync(file, "utf8")).toBe("{ nope");
+  });
+
   it("exits non-zero on a rejected key and saves nothing", async () => {
     vi.stubEnv("OPENPROJECT_API_KEY", "wrong");
     fetchMock.mockResolvedValue(respond({}, 401));
