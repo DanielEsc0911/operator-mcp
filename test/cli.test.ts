@@ -72,4 +72,31 @@ describe("runCli", () => {
     expect(err).toContain("Node 22");
     expect(doctor).not.toHaveBeenCalled();
   });
+
+  it("accepts --flag=value and routes past it", async () => {
+    await runCli(["--profile=work", "doctor"], streams);
+    expect(doctor).toHaveBeenCalledWith(["--profile=work", "doctor"], streams);
+  });
+
+  it("errors, exit 2, when a value flag has no value", async () => {
+    expect(await runCli(["doctor", "--profile"], streams)).toBe(2);
+    expect(await runCli(["doctor", "--profile", "--yes"], streams)).toBe(2);
+    expect(await runCli(["doctor", "--profile="], streams)).toBe(2);
+    expect(err).toContain("--profile needs a value");
+    expect(doctor).not.toHaveBeenCalled();
+  });
+
+  it("exits 2 on an unknown flag and suggests the nearest", async () => {
+    expect(await runCli(["setup", "--read-onyl"], streams)).toBe(2);
+    expect(err).toContain("Did you mean --read-only");
+    expect(setup).not.toHaveBeenCalled();
+  });
+
+  it("prints usage for --help on any subcommand without running it", async () => {
+    for (const command of ["setup", "install", "doctor"]) expect(await runCli([command, "--help"], streams)).toBe(0);
+    expect(out).toContain("Usage:");
+    expect(setup).not.toHaveBeenCalled();
+    expect(install).not.toHaveBeenCalled();
+    expect(doctor).not.toHaveBeenCalled();
+  });
 });

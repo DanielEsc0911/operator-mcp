@@ -29,6 +29,8 @@ Documentación: https://github.com/DanielEsc0911/operator-mcp#readme
 export const es: Catalog = {
   usage,
   unknownCommand: (command: string) => `no existe el comando "${command}". Prueba: operator-mcp --help`,
+  unknownOption: (flag: string, near?: string) => `opción desconocida "${flag}"${near ? `. ¿Quisiste decir ${near}?` : ""} Prueba: operator-mcp --help`,
+  missingValue: (flag: string) => `${flag} necesita un valor, por ejemplo ${flag}=nombre`,
   nodeTooOld: (min: number, current: string) =>
     `operator-mcp necesita Node ${min} o posterior; este es Node ${current}. Actualiza Node y vuelve a intentarlo.`,
   and: "y",

@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { OpenProjectClient, type Filter, type Identity } from "./client.js";
 import { normalizeUrl, profileDir, readStored, type StoredConfig } from "./config.js";
 import { STARTER_MANUAL } from "./conventions.js";
+import { flagValue } from "./flags.js";
 import { t } from "./i18n/index.js";
 
 export type Credentials = { url: string; apiKey: string };
@@ -59,11 +60,6 @@ export function describeExisting(profile: string): string | null {
   const stored = storedCredentials(profile);
   if (!stored) return null;
   return `${stored.url ?? "—"} · ${stored.apiKey ? maskKey(stored.apiKey) : "—"}`;
-}
-
-function flagValue(argv: string[], flag: string): string | undefined {
-  const index = argv.indexOf(flag);
-  return index === -1 ? undefined : argv[index + 1];
 }
 
 export function nonInteractiveInput(argv: string[], env: NodeJS.ProcessEnv): Credentials {

@@ -1,5 +1,6 @@
 import { runDoctor } from "./doctor.js";
 import { humanMessage } from "./errors.js";
+import { firstPositional, flagProblem } from "./flags.js";
 import { detectLang, t, useLang } from "./i18n/index.js";
 import { runInstall } from "./install.js";
 import { serve } from "./serve.js";
@@ -10,15 +11,14 @@ export type Output = NodeJS.WritableStream;
 export type Streams = { stdin: NodeJS.ReadStream; stdout: Output; stderr: Output };
 
 const MIN_NODE_MAJOR = 22;
-const VALUE_FLAGS = ["--profile", "--url", "--lang"];
-
-function firstPositional(argv: string[]): string | undefined {
-  return argv.find((arg, index) => !arg.startsWith("-") && !VALUE_FLAGS.includes(argv[index - 1]));
-}
-
 async function route(argv: string[], streams: Streams): Promise<number | null> {
   if (argv[0] === "--version" || argv[0] === "-v") return (streams.stdout.write(`${version}\n`), 0);
-  if (argv[0] === "--help" || argv[0] === "-h") return (streams.stdout.write(t().usage(version)), 0);
+  const problem = flagProblem(argv);
+  if (problem) {
+    const text = problem.missingValue ? t().missingValue(problem.flag) : t().unknownOption(problem.flag, problem.near);
+    return (streams.stderr.write(`operator-mcp: ${text}\n`), 2);
+  }
+  if (argv.includes("--help") || argv.includes("-h")) return (streams.stdout.write(t().usage(version)), 0);
 
   const command = firstPositional(argv);
   if (command === "setup") return runSetup(argv, streams);

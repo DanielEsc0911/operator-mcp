@@ -234,3 +234,9 @@ describe("saveConfig", () => {
     expect(statSync(path).mode & 0o777).toBe(0o600);
   });
 });
+
+describe("resolveProfile with --profile=value", () => {
+  it("reads the inline form", () => {
+    expect(resolveProfile(["--profile=work"], {})).toBe("work");
+  });
+});

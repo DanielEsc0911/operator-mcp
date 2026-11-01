@@ -2,6 +2,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { ConfigError } from "./errors.js";
+import { flagValue } from "./flags.js";
 
 export type Config = {
   profile: string;
@@ -61,8 +62,7 @@ export function profileDir(profile: string): string {
 }
 
 export function resolveProfile(argv: string[], env: NodeJS.ProcessEnv): string {
-  const flag = argv.indexOf("--profile");
-  const profile = flag !== -1 && argv[flag + 1] ? argv[flag + 1] : envValue(env, "OPENPROJECT_PROFILE") ?? "default";
+  const profile = flagValue(argv, "--profile") || envValue(env, "OPENPROJECT_PROFILE") || "default";
   if (!PROFILE_NAME.test(profile)) {
     throw new Error(
       `Invalid profile name "${profile}". Use letters, digits, ".", "_" or "-", starting with a letter or digit, at most 64 characters.`,

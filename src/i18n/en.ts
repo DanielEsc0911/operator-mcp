@@ -27,6 +27,8 @@ Docs: https://github.com/DanielEsc0911/operator-mcp#readme
 export const en = {
   usage,
   unknownCommand: (command: string) => `unknown command "${command}". Try: operator-mcp --help`,
+  unknownOption: (flag: string, near?: string) => `unknown option "${flag}"${near ? `. Did you mean ${near}?` : ""} Try: operator-mcp --help`,
+  missingValue: (flag: string) => `${flag} needs a value, like ${flag}=name`,
   nodeTooOld: (min: number, current: string) => `operator-mcp needs Node ${min} or newer; this is Node ${current}. Upgrade Node and retry.`,
   and: "and",
   done: "done",
