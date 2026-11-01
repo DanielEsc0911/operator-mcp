@@ -68,6 +68,7 @@ describe("api_request", () => {
     await callTool(client, "api_request", {
       method: "POST",
       path: "/work_packages/1234/watchers",
+      confirm: true,
       body: { user: { href: "/api/v3/users/12" } },
     });
 
@@ -78,13 +79,23 @@ describe("api_request", () => {
     const client = await connect({ ...testConfig, allowDelete: true });
     fetchMock.mockResolvedValue(respond(null, 204));
 
-    expect((await callTool(client, "api_request", { method: "DELETE", path: "/work_packages/1234/watchers/12" })).json())
+    expect((await callTool(client, "api_request", { method: "DELETE", path: "/work_packages/1234/watchers/12", confirm: true })).json())
       .toEqual({ ok: true });
+  });
+
+  it("refuses a non-GET without confirm and sends nothing", async () => {
+    const client = await connect();
+    fetchMock.mockClear();
+    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1" });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("confirm: true");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("is blocked for writes in read-only mode", async () => {
     const client = await connect({ ...testConfig, readOnly: true });
-    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1234" });
+    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1234", confirm: true });
 
     expect(result.isError).toBe(true);
     expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");

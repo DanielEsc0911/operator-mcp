@@ -96,10 +96,21 @@ describe("mark_notifications_read", () => {
   it("marks the whole filtered collection when asked for all", async () => {
     routes({ "/users/me": ME, "/notifications/read_ian": null });
     const client = await connect();
-    await callTool(client, "mark_notifications_read", { all: true, reason: "mentioned" });
+    await callTool(client, "mark_notifications_read", { all: true, reason: "mentioned", confirm: true });
 
     expect(pathsCalled()).toContain("/api/v3/notifications/read_ian");
     expect(filtersOf()).toContainEqual({ reason: { operator: "=", values: ["mentioned"] } });
+  });
+
+  it("refuses all: true without confirm and sends nothing", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect();
+    fetchMock.mockClear();
+    const result = await callTool(client, "mark_notifications_read", { all: true });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("confirm: true");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("refuses when given neither ids nor all", async () => {

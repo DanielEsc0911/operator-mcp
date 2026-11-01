@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Filter } from "../client.js";
 import { flattenNotification } from "../hal.js";
-import { handler, type ToolContext } from "./shared.js";
+import { handler, requireConfirm, type ToolContext } from "./shared.js";
 
 const REASONS = [
   "assigned", "mentioned", "commented", "created", "dateAlert", "prioritized",
@@ -53,12 +53,13 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
         "Mark specific notifications read by id, or every notification matching a filter with all: true. Use this after triaging so the feed stays meaningful.",
       inputSchema: {
         ids: z.array(z.number().int()).optional().describe("Notification ids to mark read."),
-        all: z.boolean().optional().describe("Mark the whole collection read, narrowed by the filters below."),
+        all: z.boolean().optional().describe("Mark the whole collection read, narrowed by the filters below. Needs confirm: true."),
+        confirm: z.boolean().optional().describe("Required with all: true. Only set it after the user explicitly agreed to mark that many notifications read."),
         reason: z.enum(REASONS).optional().describe("With all: only this reason."),
         project: z.string().optional().describe("With all: only this numeric project id."),
       },
     },
-    handler(async ({ ids, all, reason, project }: { ids?: number[]; all?: boolean } & FeedArgs) => {
+    handler(async ({ ids, all, reason, project, confirm }: { ids?: number[]; all?: boolean; confirm?: boolean } & FeedArgs) => {
       if (!ids?.length && !all) throw new Error("Nothing selected. Pass ids, or all: true to mark the whole feed.");
 
       if (ids?.length) {
@@ -66,6 +67,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
         return { marked: ids.length };
       }
 
+      requireConfirm(confirm, config.readOnly, "Marking the whole feed read");
       const filters = feedFilters({ reason, project });
       await client.request("POST", "/notifications/read_ian", {
         query: { filters: filters.length ? JSON.stringify(filters) : undefined },

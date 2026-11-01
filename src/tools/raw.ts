@@ -1,12 +1,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { handler, type ToolContext } from "./shared.js";
+import { handler, requireConfirm, type ToolContext } from "./shared.js";
 
 type RawArgs = {
   method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
   query?: Record<string, string>;
   body?: Record<string, unknown>;
+  confirm?: boolean;
 };
 
 export function registerRawTools(server: McpServer, { client }: ToolContext): void {
@@ -26,14 +27,16 @@ export function registerRawTools(server: McpServer, { client }: ToolContext): vo
           .optional()
           .describe("Query parameters. Encode `filters` and `sortBy` yourself, as JSON strings."),
         body: z.record(z.string(), z.unknown()).optional().describe("JSON request body."),
+        confirm: z.boolean().optional().describe("Required for every non-GET method. Only set it after the user explicitly asked for this change and saw what will be sent."),
       },
     },
-    handler(async ({ method, path, query, body }: RawArgs) => {
+    handler(async ({ method, path, query, body, confirm }: RawArgs) => {
       if (method === "DELETE" && !client.config.allowDelete) {
         throw new Error(
           "DELETE is disabled on this server. Tell the user what you wanted to delete; they can delete it in OpenProject, or set OPENPROJECT_ALLOW_DELETE=1 in this server's environment to allow it here.",
         );
       }
+      if (method !== "GET") requireConfirm(confirm, client.config.readOnly, `${method} ${path}`);
       const result = await client.request(method, path.startsWith("/") ? path : `/${path}`, { query, body });
       return result ?? { ok: true };
     }),
