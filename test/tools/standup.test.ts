@@ -85,6 +85,25 @@ describe("standup", () => {
     expect(Buffer.byteLength(result.text)).toBeLessThan(8_192);
     expect(result.json().timeEntries).toMatchObject({ total: 25, truncated: true });
     expect(result.json().changedWorkPackages).toMatchObject({ total: 25, truncated: true });
-    expect(result.json().timeEntries.rows).toHaveLength(20);
+    expect(result.json().timeEntries.rows).toHaveLength(15);
+  });
+
+
+  it("sums every fetched entry, newest first, while showing only the first rows", async () => {
+    const entries = Array.from({ length: 25 }, () => entry("PT1H", "2026-10-30"));
+    fetchMock.mockImplementation(async (url: URL) => {
+      if (url.pathname === "/api/v3/users/me") return respond(ME);
+      const elements = url.pathname === "/api/v3/time_entries" ? entries : [];
+      return respond({ total: elements.length, count: elements.length, _embedded: { elements } });
+    });
+    const result = (await callTool(await connect(), "standup", { since: "2026-10-01" })).json();
+    const call = fetchMock.mock.calls.find(([url]) => (url as URL).pathname === "/api/v3/time_entries")!;
+
+    expect((call[0] as URL).searchParams.get("pageSize")).toBe("100");
+    expect(JSON.parse((call[0] as URL).searchParams.get("sortBy")!)).toEqual([["spentOn", "desc"]]);
+    expect(result.timeEntries.totalHours).toBe(25);
+    expect(result.timeEntries.rows).toHaveLength(15);
+    expect(result.timeEntries.truncated).toBe(true);
+    expect(result.urlTemplate).toBe("https://op.acme.com/work_packages/{id}");
   });
 });

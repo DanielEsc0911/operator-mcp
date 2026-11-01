@@ -5,7 +5,8 @@ import { localDate } from "./time.js";
 import { buildSearchFilters, collectionPath } from "./workPackages.js";
 import { handler, type ToolContext } from "./shared.js";
 
-const ROWS = 20;
+const ROWS = 15;
+const ENTRY_FETCH = 100;
 
 function previousWorkingDayOffset(): number {
   const weekday = new Date().getDay();
@@ -26,7 +27,11 @@ export function registerStandupTools(server: McpServer, { client }: ToolContext)
       title: "Standup",
       annotations: { readOnlyHint: true },
       description:
-        "\"What did I do yesterday\" in one call: your time entries since a date (with total hours, `truncated` when more exist than are listed) and the work packages assigned to you that changed since, with their current status.",
+        "\"What did I do yesterday\" in one call. `timeEntries`: your time on the whole instance since a date; `totalHours` sums your latest " +
+        ENTRY_FETCH +
+        " entries and `rows` shows the first " +
+        ROWS +
+        ". `changedWorkPackages`: work packages assigned to you that changed since, in the default project if one is set. `truncated` means more exist than are listed. Build a work package link from `urlTemplate`.",
       inputSchema: {
         since: z
           .string()
@@ -42,7 +47,8 @@ export function registerStandupTools(server: McpServer, { client }: ToolContext)
             { user: { operator: "=", values: ["me"] } },
             { spentOn: { operator: "<>d", values: [from, ""] } },
           ],
-          pageSize: ROWS,
+          pageSize: ENTRY_FETCH,
+          sortBy: [["spentOn", "desc"]],
         }),
         client.collection(collectionPath(config.defaultProject), {
           filters: await buildSearchFilters(client, { assignee: "me", updatedSince: from }),
@@ -52,11 +58,12 @@ export function registerStandupTools(server: McpServer, { client }: ToolContext)
       ]);
       return {
         since: from,
+        urlTemplate: `${config.url}/work_packages/{id}`,
         timeEntries: {
           total: entries.total,
-          ...(entries.total > entries.elements.length ? { truncated: true } : {}),
+          ...(entries.total > ROWS ? { truncated: true } : {}),
           totalHours: Math.round(entries.elements.reduce((sum, entry) => sum + hoursOf(entry.hours), 0) * 100) / 100,
-          rows: entries.elements.map((entry) => ({
+          rows: entries.elements.slice(0, ROWS).map((entry) => ({
             spentOn: entry.spentOn,
             hours: Math.round(hoursOf(entry.hours) * 100) / 100,
             workPackageId: linkId(entry, "workPackage"),
@@ -66,8 +73,8 @@ export function registerStandupTools(server: McpServer, { client }: ToolContext)
         },
         changedWorkPackages: {
           total: changed.total,
-          ...(changed.total > changed.elements.length ? { truncated: true } : {}),
-          rows: changed.elements.map((wp) => ({
+          ...(changed.total > ROWS ? { truncated: true } : {}),
+          rows: changed.elements.slice(0, ROWS).map((wp) => ({
             id: wp.id, subject: wp.subject, status: linkTitle(wp, "status"), updatedAt: wp.updatedAt,
           })),
         },
