@@ -245,4 +245,12 @@ describe("collectAll", () => {
     expect(result.truncated).toBe(true);
     expect(result.total).toBe(5_000);
   });
+
+  it("appends the cause code that fetch hides behind 'fetch failed'", async () => {
+    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND op.acme.com"), { code: "ENOTFOUND" });
+    fetchMock.mockRejectedValue(new TypeError("fetch failed", { cause }));
+    await expect(new OpenProjectClient(config).request("GET", "/users/me")).rejects.toThrow(
+      "Cannot reach https://op.acme.com: fetch failed (ENOTFOUND: getaddrinfo ENOTFOUND op.acme.com)",
+    );
+  });
 });

@@ -55,3 +55,13 @@ export function describeHttpError(status: number, baseUrl: string, body: unknown
 export function humanMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+
+const CERTIFICATE_CODE = /CERT|ISSUER|SELF_SIGNED|UNABLE_TO_VERIFY/;
+
+export function networkReason(error: unknown): string {
+  const cause = error instanceof Error ? (error.cause as { code?: string; message?: string } | undefined) : undefined;
+  const detail = [cause?.code, cause?.message].filter(Boolean).join(": ");
+  const reason = detail && !humanMessage(error).includes(detail) ? `${humanMessage(error)} (${detail})` : humanMessage(error);
+  const certificate = CERTIFICATE_CODE.test(cause?.code ?? "") ? " Point NODE_EXTRA_CA_CERTS at your organization's CA file to trust it." : "";
+  return `${reason}${certificate}`;
+}

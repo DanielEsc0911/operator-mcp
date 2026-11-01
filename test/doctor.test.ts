@@ -17,12 +17,14 @@ function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-function doctor(argv: string[] = ["doctor"], env: NodeJS.ProcessEnv = {}) {
-  return runDoctor(argv, streams, env, home);
+function doctor(argv: string[] = ["doctor"], env: NodeJS.ProcessEnv = {}, run: (command: string, args: string[]) => string = () => {
+  throw new Error("no claude");
+}) {
+  return runDoctor(argv, streams, env, home, run);
 }
 
 beforeEach(() => {
-  fetchMock = vi.fn(async (url: URL) => (String(url).endsWith("/users/me") ? respond(ME) : respond({})));
+  fetchMock = vi.fn(async (url: URL) => (String(url).endsWith("/users/me") ? respond(ME) : respond({ _type: "Root" })));
   vi.stubGlobal("fetch", fetchMock);
   home = mkdtempSync(join(tmpdir(), "operator-doctor-"));
   vi.stubEnv("XDG_CONFIG_HOME", join(home, ".config"));
@@ -85,7 +87,7 @@ describe("runDoctor", () => {
 
   it("explains a rejected key", async () => {
     saveConfig("default", { url: "https://op.example.com", apiKey: "k" });
-    fetchMock.mockImplementation(async (url: URL) => (String(url).endsWith("/users/me") ? respond({}, 401) : respond({})));
+    fetchMock.mockImplementation(async (url: URL) => (String(url).endsWith("/users/me") ? respond({}, 401) : respond({ _type: "Root" })));
     expect(await doctor()).toBe(1);
     expect(text).toContain("/my/access_token");
   });
@@ -102,5 +104,43 @@ describe("runDoctor", () => {
     expect(text).toContain("✓ Gemini CLI runs: npx -y operator-mcp");
     expect(text).toContain("✗ Codex CLI has no \"openproject\" entry");
     expect(text).toContain("operator-mcp install");
+  });
+
+  it("reports a corrupt config file as a failed check instead of crashing", async () => {
+    saveConfig("default", { url: "https://op.example.com", apiKey: "k" });
+    writeFileSync(join(profileDir("default"), "config.json"), "{ nope");
+    expect(await doctor()).toBe(1);
+    expect(text).toContain("✗ Cannot read");
+  });
+
+  it("reports an http:// url as a failed check", async () => {
+    expect(await doctor(["doctor"], { OPENPROJECT_URL: "http://op.example.com", OPENPROJECT_API_KEY: "k" })).toBe(1);
+    expect(text).toContain("✗");
+  });
+
+  it("does not call a server that answers something else OpenProject", async () => {
+    saveConfig("default", { url: "https://op.example.com", apiKey: "k" });
+    fetchMock.mockImplementation(async () => new Response("<html>login</html>", { headers: { "Content-Type": "text/html" } }));
+    expect(await doctor()).toBe(1);
+    expect(text).toContain("not as OpenProject");
+    expect(text).not.toContain("is reachable");
+  });
+
+  it("prints the underlying network reason and the certificate hint", async () => {
+    saveConfig("default", { url: "https://op.example.com", apiKey: "k" });
+    const cause = Object.assign(new Error("self-signed certificate"), { code: "DEPTH_ZERO_SELF_SIGNED_CERT" });
+    fetchMock.mockRejectedValue(new TypeError("fetch failed", { cause }));
+    expect(await doctor()).toBe(1);
+    expect(text).toContain("DEPTH_ZERO_SELF_SIGNED_CERT");
+    expect(text).toContain("NODE_EXTRA_CA_CERTS");
+  });
+
+  it("asks `claude mcp get`, which sees project-scoped entries too", async () => {
+    saveConfig("default", { url: "https://op.example.com", apiKey: "k" });
+    mkdirSync(join(home, ".claude"));
+    const run = vi.fn(() => "openproject:\n  Scope: Project config\n  Command: npx\n  Args: -y operator-mcp\n");
+    await doctor(["doctor"], {}, run);
+    expect(run).toHaveBeenCalledWith("claude", ["mcp", "get", "openproject"]);
+    expect(text).toContain("✓ Claude Code runs: npx -y operator-mcp");
   });
 });

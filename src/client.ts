@@ -1,5 +1,5 @@
 import type { Config } from "./config.js";
-import { ConfigError, OpenProjectError, ReadOnlyError, UnexpectedResponseError, describeHttpError } from "./errors.js";
+import { ConfigError, OpenProjectError, ReadOnlyError, UnexpectedResponseError, describeHttpError, networkReason } from "./errors.js";
 import type { HalResource } from "./hal.js";
 
 export type Filter = Record<string, { operator: string; values: string[] }>;
@@ -65,7 +65,7 @@ export class OpenProjectClient {
       });
       text = await response.text();
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = networkReason(error);
       if (method === "GET") throw new Error(`Cannot reach ${this.config.url}: ${reason}`);
       throw new UnexpectedResponseError(method, `The request to ${this.config.url} failed before a full answer arrived (${reason}).`);
     }
