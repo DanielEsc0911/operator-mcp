@@ -42,8 +42,10 @@ function mcpServersClient(id: string, label: string, path: (home: string) => str
 
 const claudeServer = (home: string, name: string) => (home ? readJson(join(home, ".claude.json")).mcpServers?.[name] : undefined);
 
-function claudeAdd(name: string, command: string, args: string[], saved: Record<string, string> = {}): string[] {
-  const env = Object.entries(saved).flatMap(([key, value]) => ["-e", `${key}=${value}`]);
+const SECRET_KEY = /KEY|TOKEN|SECRET|PASSWORD/i;
+
+function claudeAdd(name: string, command: string, args: string[], saved: Record<string, string> = {}, hideSecrets = false): string[] {
+  const env = Object.entries(saved).flatMap(([key, value]) => ["-e", `${key}=${hideSecrets && SECRET_KEY.test(key) ? "<your value>" : value}`]);
   return ["mcp", "add", name, "--scope", "user", ...env, "--", command, ...args];
 }
 
@@ -85,7 +87,7 @@ export const CLIENTS: Client[] = [
       } catch {}
       return commandLine(claudeServer(home, name));
     },
-    manual: ({ home, name, command, args }) => `claude ${claudeAdd(name, command, args, claudeServer(home, name)?.env).join(" ")}`,
+    manual: ({ home, name, command, args }) => `claude ${claudeAdd(name, command, args, claudeServer(home, name)?.env, true).join(" ")}`,
   },
   {
     id: "codex",

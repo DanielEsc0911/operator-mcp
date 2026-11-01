@@ -229,6 +229,16 @@ describe("Claude Code add failure (H2)", () => {
     write(root, ".claude.json", JSON.stringify({ mcpServers: { openproject: entry } }));
     expect(findClient("claude-code")!.manual(target(root))).toContain("-e OPENPROJECT_READ_ONLY=1 --");
   });
+
+  it("the manual command never prints a secret from the old env", () => {
+    const root = home();
+    const env = { OPENPROJECT_API_KEY: "sk-secret", OPENPROJECT_READ_ONLY: "1" };
+    write(root, ".claude.json", JSON.stringify({ mcpServers: { openproject: { ...entry, env } } }));
+    const manual = findClient("claude-code")!.manual(target(root));
+    expect(manual).not.toContain("sk-secret");
+    expect(manual).toContain("-e OPENPROJECT_API_KEY=<your value>");
+    expect(manual).toContain("-e OPENPROJECT_READ_ONLY=1");
+  });
 });
 
 describe("JSONC (R37)", () => {
