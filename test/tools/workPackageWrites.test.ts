@@ -121,6 +121,31 @@ describe("update_work_package", () => {
     });
   });
 
+  it("resolves the type and version in the work package's own project", async () => {
+    routes({
+      "/users/me": ME, "/work_packages/1234": workPackage,
+      "/projects/3/types": TYPES,
+      "/projects/3/versions": { total: 1, count: 1, _embedded: { elements: [{ id: 21, name: "v2.0" }] } },
+    });
+    const client = await connect({ ...testConfig, defaultProject: "other" });
+    await callTool(client, "update_work_package", { id: 1234, type: "Bug", version: "v2.0" });
+
+    expect(bodyOf(callsTo("/work_packages/1234")[1])._links).toEqual({
+      type: { href: "/api/v3/types/7" },
+      version: { href: "/api/v3/versions/21" },
+    });
+  });
+
+  it("clears dates with null and rejects empty names", async () => {
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    const client = await connect();
+    await callTool(client, "update_work_package", { id: 1234, dueDate: null, startDate: null });
+    const empty = await callTool(client, "update_work_package", { id: 1234, status: "" });
+
+    expect(bodyOf(callsTo("/work_packages/1234")[1])).toEqual({ lockVersion: 7, dueDate: null, startDate: null });
+    expect(empty.isError).toBe(true);
+  });
+
   it("sends only the fields that were supplied", async () => {
     routes({ "/users/me": ME, "/work_packages/1234": workPackage });
     const client = await connect();

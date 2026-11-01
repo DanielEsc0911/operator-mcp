@@ -92,14 +92,24 @@ describe("list_notifications", () => {
 });
 
 describe("mark_notifications_read", () => {
-  it("marks each id individually", async () => {
-    routes({ "/users/me": ME, "/notifications/88/read_ian": null, "/notifications/89/read_ian": null });
+  it("marks the ids in one bulk request with an id filter", async () => {
+    routes({ "/users/me": ME, "/notifications/read_ian": null });
     const client = await connect();
     const result = (await callTool(client, "mark_notifications_read", { ids: [88, 89] })).json();
 
-    expect(pathsCalled()).toContain("/api/v3/notifications/88/read_ian");
-    expect(pathsCalled()).toContain("/api/v3/notifications/89/read_ian");
+    expect(pathsCalled().filter((path) => path.includes("read_ian"))).toEqual(["/api/v3/notifications/read_ian"]);
+    expect(filtersOf()).toEqual([{ id: { operator: "=", values: ["88", "89"] } }]);
     expect(result).toEqual({ marked: 2 });
+  });
+
+  it("rejects ids that are not positive or are more than 100, sending nothing", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect();
+    const before = fetchMock.mock.calls.length;
+
+    expect((await callTool(client, "mark_notifications_read", { ids: [0] })).isError).toBe(true);
+    expect((await callTool(client, "mark_notifications_read", { ids: Array.from({ length: 101 }, (_, i) => i + 1) })).isError).toBe(true);
+    expect(fetchMock.mock.calls.length).toBe(before);
   });
 
   it("marks the whole filtered collection when asked for all", async () => {

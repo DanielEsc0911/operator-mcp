@@ -90,6 +90,17 @@ describe("log_time", () => {
     vi.useRealTimers();
   });
 
+  it("refuses less than one minute, sending nothing", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect();
+    const before = fetchMock.mock.calls.length;
+    const result = await callTool(client, "log_time", { workPackageId: 1234, hours: 0.004 });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("at least one minute");
+    expect(fetchMock.mock.calls.length).toBe(before);
+  });
+
   it("resolves a named activity", async () => {
     routes({ "/users/me": ME, "/time_entries": ENTRY, "/time_entries/activities": ACTIVITIES });
     const client = await connect();

@@ -40,6 +40,16 @@ describe("api_request", () => {
     });
   });
 
+  it("truncates a response over 50 KB and says how to narrow it", async () => {
+    const client = await connect();
+    fetchMock.mockResolvedValue(respond({ blob: "x".repeat(60_000) }));
+    const result = await callTool(client, "api_request", { method: "GET", path: "/types" });
+
+    expect(result.isError).toBe(false);
+    expect(result.text.length).toBeLessThan(52_000);
+    expect(result.text).toContain("[truncated:");
+  });
+
   it("accepts a path without a leading slash", async () => {
     const client = await connect();
     fetchMock.mockResolvedValue(respond({ ok: true }));

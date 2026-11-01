@@ -1,7 +1,7 @@
 import { segment, type OpenProjectClient } from "./client.js";
 import { flattenNamed, linkHref } from "./hal.js";
 
-export type MetaKind = "types" | "statuses" | "priorities" | "activities";
+export type MetaKind = "types" | "statuses" | "priorities" | "activities" | "versions";
 
 type Named = { id: number; name: string };
 
@@ -10,6 +10,7 @@ const PATHS: Record<MetaKind, string> = {
   statuses: "/statuses",
   priorities: "/priorities",
   activities: "/time_entries/activities",
+  versions: "/versions",
 };
 
 const SINGULAR: Record<MetaKind, string> = {
@@ -17,6 +18,7 @@ const SINGULAR: Record<MetaKind, string> = {
   statuses: "status",
   priorities: "priority",
   activities: "activity",
+  versions: "version",
 };
 
 const cache = new Map<string, Named[]>();
@@ -26,7 +28,7 @@ export function clearMetadataCache(): void {
 }
 
 function pathFor(kind: MetaKind, project?: string): string {
-  return kind === "types" && project ? `/projects/${segment(project)}/types` : PATHS[kind];
+  return (kind === "types" || kind === "versions") && project ? `/projects/${segment(project)}${PATHS[kind]}` : PATHS[kind];
 }
 
 export async function listMetadata(

@@ -35,7 +35,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
         unreadOnly: z.boolean().optional().describe("Only notifications you have not read yet."),
         reason: z.enum(REASONS).optional().describe("Why the notification exists."),
         project: z.string().optional().describe("Project identifier, name or numeric id."),
-        limit: z.number().int().positive().optional().describe("Maximum notifications. Defaults to 50."),
+        limit: z.number().int().positive().max(100).optional().describe("Maximum notifications, at most 100. Defaults to 50."),
       },
     },
     handler(async (args: FeedArgs) => {
@@ -55,7 +55,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       description:
         "Mark specific notifications read by id, or every notification matching a filter with all: true. Use this after triaging so the feed stays meaningful.",
       inputSchema: {
-        ids: z.array(z.number().int()).optional().describe("Notification ids to mark read."),
+        ids: z.array(z.number().int().positive()).max(100).optional().describe("Notification ids to mark read, at most 100. They are marked in one request: all or none."),
         all: z.boolean().optional().describe("Mark the whole collection read, narrowed by the filters below. Needs confirm: true."),
         confirm: z.boolean().optional().describe("Required with all: true. Only set it after the user explicitly agreed to mark that many notifications read."),
         reason: z.enum(REASONS).optional().describe("With all: only this reason."),
@@ -66,7 +66,8 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       if (!ids?.length && !all) throw new Error("Nothing selected. Pass ids, or all: true to mark the whole feed.");
 
       if (ids?.length) {
-        for (const id of ids) await client.request("POST", `/notifications/${id}/read_ian`);
+        const filters: Filter[] = [{ id: { operator: "=", values: ids.map(String) } }];
+        await client.request("POST", "/notifications/read_ian", { query: { filters: JSON.stringify(filters) } });
         return { marked: ids.length };
       }
 

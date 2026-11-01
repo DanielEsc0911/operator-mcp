@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { segment } from "../client.js";
-import { flattenWorkPackage } from "../hal.js";
+import { flattenWorkPackage, linkId } from "../hal.js";
 import { handler, type ToolContext } from "./shared.js";
 import { WRITE_SCHEMA, buildPayload, type WriteArgs } from "./workPackageFields.js";
 
@@ -19,9 +19,9 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       inputSchema: {
         ...WRITE_SCHEMA,
         project: z.string().optional().describe("Project identifier or id. Defaults to the configured default project."),
-        type: z.string().describe('Type name or id, for example "Bug". Use list_metadata to see the valid names.'),
-        subject: z.string().describe("Title of the work package."),
-        assignee: z.string().optional().describe('Assignee name, email, numeric id, or "me".'),
+        type: z.string().min(1).describe('Type name or id, for example "Bug". Use list_metadata to see the valid names.'),
+        subject: z.string().min(1).describe("Title of the work package."),
+        assignee: z.string().min(1).optional().describe('Assignee name, email, numeric id, or "me".'),
         parent: z.number().int().optional().describe("Id of the parent work package."),
       },
     },
@@ -48,7 +48,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
         ...WRITE_SCHEMA,
         id: z.number().int().describe("Work package id."),
         lockVersion: z.number().int().optional().describe("The lockVersion you read from get_work_package. Required when description is set; optional otherwise (the current one is read for you)."),
-        assignee: z.string().nullable().optional().describe('Assignee name, email, numeric id, "me", or null to clear.'),
+        assignee: z.string().min(1).nullable().optional().describe('Assignee name, email, numeric id, "me", or null to clear.'),
         parent: z.number().int().nullable().optional().describe("Parent work package id, or null to detach."),
       },
     },
@@ -56,15 +56,19 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       if (args.description !== undefined && lockVersion === undefined) {
         throw new Error("Changing the description needs lockVersion. Call get_work_package first, then pass its lockVersion, so a colleague's edit is not overwritten.");
       }
-      const { fields, links } = await buildPayload(client, args, config.defaultProject);
-      if (!Object.keys(fields).length && !Object.keys(links).length) {
+      if (Object.values(args).every((value) => value === undefined)) {
         throw new Error("Nothing to update. Supply at least one field.");
       }
+      const needsProject = args.type !== undefined || args.version !== undefined;
+      const current = lockVersion === undefined || needsProject
+        ? await client.request("GET", `/work_packages/${id}`)
+        : undefined;
+      const project = current ? String(linkId(current, "project") ?? "") : config.defaultProject;
+      const { fields, links } = await buildPayload(client, args, project || undefined);
 
       // OpenProject uses optimistic locking: a PATCH without the resource's
       // current lockVersion is rejected, and a stale one returns 409.
-      const version = lockVersion ?? (await client.request("GET", `/work_packages/${id}`)).lockVersion;
-      const body: Record<string, unknown> = { lockVersion: version, ...fields };
+      const body: Record<string, unknown> = { lockVersion: lockVersion ?? current?.lockVersion, ...fields };
       if (Object.keys(links).length) body._links = links;
 
       const updated = await client.request("PATCH", `/work_packages/${id}`, { body });
@@ -80,7 +84,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       description: "Add a markdown comment. Everyone watching the work package gets a notification.",
       inputSchema: {
         id: z.number().int().describe("Work package id."),
-        comment: z.string().describe("Markdown comment body."),
+        comment: z.string().min(1).describe("Markdown comment body."),
       },
     },
     handler(async ({ id, comment }: { id: number; comment: string }) => {

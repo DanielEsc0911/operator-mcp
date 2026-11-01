@@ -12,19 +12,21 @@ export type WriteArgs = {
   priority?: string;
   assignee?: string | null;
   parent?: number | null;
-  startDate?: string;
-  dueDate?: string;
+  version?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
   percentageDone?: number;
 };
 
 export const WRITE_SCHEMA = {
-  subject: z.string().optional().describe("Title of the work package."),
+  subject: z.string().min(1).optional().describe("Title of the work package."),
   description: z.string().optional().describe("Markdown body."),
-  type: z.string().optional().describe('Type name or id, for example "Bug".'),
-  status: z.string().optional().describe('Status name or id, for example "In progress".'),
-  priority: z.string().optional().describe('Priority name or id, for example "High".'),
-  startDate: z.string().optional().describe("ISO date."),
-  dueDate: z.string().optional().describe("ISO date."),
+  type: z.string().min(1).optional().describe('Type name or id, for example "Bug".'),
+  status: z.string().min(1).optional().describe('Status name or id, for example "In progress".'),
+  priority: z.string().min(1).optional().describe('Priority name or id, for example "High".'),
+  version: z.string().min(1).optional().describe("Version name or id, looked up in the work package's project. See list_metadata with kind `versions`. Other fields (category, accountable, estimates, custom fields) go through api_request."),
+  startDate: z.string().nullable().optional().describe("ISO date, or null to clear."),
+  dueDate: z.string().nullable().optional().describe("ISO date, or null to clear."),
   percentageDone: z.number().int().min(0).max(100).optional().describe("Completion percentage."),
 };
 
@@ -41,9 +43,10 @@ export async function buildPayload(
   if (args.percentageDone !== undefined) fields.percentageDone = args.percentageDone;
 
   const links: Links = {};
-  if (args.type) links.type = { href: await resolveHref(client, "types", args.type, project) };
-  if (args.status) links.status = { href: await resolveHref(client, "statuses", args.status, project) };
-  if (args.priority) links.priority = { href: await resolveHref(client, "priorities", args.priority) };
+  if (args.type !== undefined) links.type = { href: await resolveHref(client, "types", args.type, project) };
+  if (args.status !== undefined) links.status = { href: await resolveHref(client, "statuses", args.status, project) };
+  if (args.priority !== undefined) links.priority = { href: await resolveHref(client, "priorities", args.priority) };
+  if (args.version !== undefined) links.version = { href: await resolveHref(client, "versions", args.version, project) };
   if (args.assignee !== undefined) {
     links.assignee = { href: args.assignee === null ? null : await resolveUserHref(client, args.assignee, project) };
   }

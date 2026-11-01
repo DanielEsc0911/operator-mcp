@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { handler, requireConfirm, type ToolContext } from "./shared.js";
 
+const MAX_BYTES = 50 * 1024;
+
 type RawArgs = {
   method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
@@ -39,7 +41,9 @@ export function registerRawTools(server: McpServer, { client }: ToolContext): vo
       }
       if (method !== "GET") requireConfirm(confirm, client.config.readOnly, `${method} ${path}`);
       const result = await client.request(method, path.startsWith("/") ? path : `/${path}`, { query, body });
-      return result ?? { ok: true };
+      const text = JSON.stringify(result ?? { ok: true });
+      if (text.length <= MAX_BYTES) return text;
+      return `${text.slice(0, MAX_BYTES)}\n[truncated: the response is ${text.length} characters. Narrow it with filters, a smaller pageSize, or a deeper path.]`;
     }),
   );
 }

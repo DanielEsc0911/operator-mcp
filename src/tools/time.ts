@@ -30,7 +30,7 @@ export function registerTimeTools(server: McpServer, { client }: ToolContext): v
       description: "Record time spent on a work package. Hours are given as a decimal number; 2.5 means two and a half.",
       inputSchema: {
         workPackageId: z.number().int().describe("Work package the time was spent on."),
-        hours: z.number().positive().describe("Decimal hours, for example 2.5."),
+        hours: z.number().min(1 / 60, "hours must be at least one minute (0.0167)").describe("Decimal hours, at least one minute (0.0167), for example 2.5."),
         date: z.string().optional().describe("ISO date the work happened. Defaults to today."),
         comment: z.string().optional().describe("What the time was spent doing."),
         activity: z.string().optional().describe('Activity name or id, for example "Development". See list_metadata.'),

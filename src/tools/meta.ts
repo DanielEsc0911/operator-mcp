@@ -10,15 +10,15 @@ export function registerMetaTools(server: McpServer, { client }: ToolContext): v
       title: "List metadata",
       annotations: { readOnlyHint: true },
       description:
-        "Ids and names for work package types, statuses, priorities, or time entry activities. Call this when a write is rejected for an unknown value, or when you need the exact wording this instance uses.",
+        "Ids and names for work package types, statuses, priorities, versions, or time entry activities. Call this when a write is rejected for an unknown value, or when you need the exact wording this instance uses.",
       inputSchema: {
         kind: z
-          .enum(["types", "statuses", "priorities", "activities"])
-          .describe("Which list to fetch. `activities` means time entry activities."),
+          .enum(["types", "statuses", "priorities", "activities", "versions"])
+          .describe("Which list to fetch. `activities` means time entry activities; `versions` are the project's versions."),
         project: z
           .string()
           .optional()
-          .describe("Restrict types to one project. Ignored for the other kinds."),
+          .describe("Restrict types or versions to one project. Ignored for the other kinds."),
       },
     },
     handler(({ kind, project }: { kind: MetaKind; project?: string }) =>
