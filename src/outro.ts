@@ -1,5 +1,5 @@
 import type { Client } from "./clients.js";
-import { selfCommand } from "./clients.js";
+import { selfCommand } from "./serverCommand.js";
 import { t } from "./i18n/index.js";
 import { card, type Output, type Style } from "./ui.js";
 

@@ -99,6 +99,18 @@ describe("request", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("lets only a POST to a form endpoint through in read-only mode", async () => {
+    const client = new OpenProjectClient({ ...config, readOnly: true });
+    for (const [method, path] of [["PATCH", "/projects/1?x=/form"], ["PATCH", "/projects/1#/form"], ["DELETE", "/work_packages/1/form"]]) {
+      await expect(client.request(method, path)).rejects.toBeInstanceOf(ReadOnlyError);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValue(respond({ id: 1 }));
+    await client.request("POST", "/time_entries/form", { body: {} });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("allows GET in read-only mode", async () => {
     fetchMock.mockResolvedValue(respond({ id: 1 }));
     await new OpenProjectClient({ ...config, readOnly: true }).request("GET", "/users/me");
@@ -159,5 +171,98 @@ describe("me", () => {
     await client.me();
 
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe("response integrity", () => {
+  const html = () => new Response("<html>Sign in</html>", { status: 200, headers: { "Content-Type": "text/html" } });
+
+  it("warns that a write may have happened when a 2xx answer is not JSON", async () => {
+    fetchMock.mockResolvedValue(html());
+    const client = new OpenProjectClient(config);
+    await expect(client.request("POST", "/work_packages", { body: {} })).rejects.toThrow(/non-JSON page.*write may already have happened/);
+  });
+
+  it("uses plainer text for a GET", async () => {
+    fetchMock.mockResolvedValue(html());
+    const client = new OpenProjectClient(config);
+    const error = await client.request("GET", "/statuses").catch((e) => e);
+    expect(error.message).toContain("non-JSON page");
+    expect(error.message).not.toContain("write may");
+  });
+
+  it("accepts an empty 204 and an empty 200", async () => {
+    const client = new OpenProjectClient(config);
+    fetchMock.mockResolvedValueOnce(respond(null, 204));
+    expect(await client.request("POST", "/notifications/read_ian")).toBeNull();
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 200 }));
+    expect(await client.request("POST", "/notifications/read_ian")).toBeNull();
+  });
+
+  it("warns that a write may have happened when a non-GET times out", async () => {
+    fetchMock.mockRejectedValue(new DOMException("timed out", "TimeoutError"));
+    const client = new OpenProjectClient(config);
+    await expect(client.request("POST", "/work_packages", { body: {} })).rejects.toThrow(/timed out.*write may already have happened/);
+    await expect(client.request("GET", "/statuses")).rejects.toThrow(/Cannot reach/);
+  });
+
+  it("warns the same way when the body stream breaks mid-read on a POST", async () => {
+    const body = new ReadableStream({ pull: (controller) => controller.error(new TypeError("terminated")) });
+    fetchMock.mockResolvedValue(new Response(body, { status: 201 }));
+    const error = await new OpenProjectClient(config).request("POST", "/work_packages", { body: {} }).catch((e) => e);
+    expect(error.message).toMatch(/terminated.*write may already have happened/);
+  });
+
+  it("warns the same way for a network error on PATCH", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+    await expect(new OpenProjectClient(config).request("PATCH", "/work_packages/1", { body: {} })).rejects.toThrow(
+      /fetch failed.*write may already have happened/,
+    );
+  });
+
+  it("says a non-HTML, non-JSON 2xx GET is not a JSON resource", async () => {
+    fetchMock.mockResolvedValue(new Response("a,b", { status: 200, headers: { "Content-Type": "text/csv" } }));
+    await expect(new OpenProjectClient(config).request("GET", "/export.csv")).rejects.toThrow(
+      "/export.csv is not a JSON resource (content-type text/csv); api_request only handles JSON.",
+    );
+  });
+});
+
+describe("collectAll", () => {
+  const page = (ids: number[], total: number) => ({ total, count: ids.length, _embedded: { elements: ids.map((id) => ({ id })) } });
+  const run = (fetchMock: ReturnType<typeof vi.fn>) => {
+    vi.stubGlobal("fetch", fetchMock);
+    return new OpenProjectClient({ profile: "t", url: "https://op.acme.com", apiKey: "k", conventionsPath: "/x", readOnly: false, allowDelete: false }).collectAll("/projects");
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("pages until it has everything", async () => {
+    const mock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(page([1, 2], 3))))
+      .mockResolvedValueOnce(new Response(JSON.stringify(page([3], 3))));
+    const result = await run(mock);
+
+    expect(result.elements.map((e) => e.id)).toEqual([1, 2, 3]);
+    expect(result.truncated).toBe(false);
+    expect((mock.mock.calls[1][0] as URL).searchParams.get("offset")).toBe("2");
+    expect((mock.mock.calls[1][0] as URL).searchParams.get("pageSize")).toBe("100");
+  });
+
+  it("stops at 2,000 items and says so", async () => {
+    const full = Array.from({ length: 100 }, (_, i) => i);
+    const mock = vi.fn(async () => new Response(JSON.stringify(page(full, 5_000))));
+    const result = await run(mock);
+
+    expect(result.elements).toHaveLength(2_000);
+    expect(result.truncated).toBe(true);
+    expect(result.total).toBe(5_000);
+  });
+
+  it("appends the cause code that fetch hides behind 'fetch failed'", async () => {
+    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND op.acme.com"), { code: "ENOTFOUND" });
+    fetchMock.mockRejectedValue(new TypeError("fetch failed", { cause }));
+    await expect(new OpenProjectClient(config).request("GET", "/users/me")).rejects.toThrow(
+      "Cannot reach https://op.acme.com: fetch failed (ENOTFOUND: getaddrinfo ENOTFOUND op.acme.com)",
+    );
   });
 });

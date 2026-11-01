@@ -16,17 +16,20 @@ server.registerTool(
   "list_metadata",
   {
     title: "List metadata",
+    annotations: { readOnlyHint: true },
     description:
-      "Ids and names for work package types, statuses, priorities, or time entry activities. Call this when a write is rejected for an unknown value.",
+      "Ids and names for work package types, statuses, priorities, versions, or time entry activities. Call this when a write is rejected for an unknown value.",
     inputSchema: {
-      kind: z.enum(["types", "statuses", "priorities", "activities"])
+      kind: z.enum(["types", "statuses", "priorities", "activities", "versions"])
         .describe("Which list to fetch. `activities` means time entry activities."),
       project: z.string().optional()
-        .describe("Restrict types to one project. Ignored for the other kinds."),
+        .describe("Project identifier, name or id. Restricts types or versions to one project."),
+      workPackageId: z.number().int().optional()
+        .describe("Required for `activities`, whose allowed values depend on the work package."),
     },
   },
-  handler(({ kind, project }: { kind: MetaKind; project?: string }) =>
-    listMetadata(client, kind, project ?? client.config.defaultProject),
+  handler(async ({ kind, project, workPackageId }: { kind: MetaKind; project?: string; workPackageId?: number }) =>
+    listMetadata(client, kind, await projectOrDefault(client, project), { workPackage: workPackageId }),
   ),
 );
 ```
@@ -54,6 +57,17 @@ server.registerTool(
    (`src/server.ts`) or the tool does not exist.
 9. **Relative imports end in `.js`.** `./shared.js`, `../hal.js` — even from a `.ts` file.
 
+10. **Annotations on every tool.** `readOnlyHint: true` for reads; for writes set
+    `destructiveHint` honestly (`update_work_package` overwrites, so `true`).
+11. **`requireConfirm` for writes that instance text could trigger** (non-GET
+    `api_request`, manual edits, bulk notification changes). Ordinary work package
+    writes are deliberately not confirm-gated; read-only mode is the hard guard.
+12. **Lean lists.** A list returns `{ total, <rows> }`, never a bare array, and puts
+    the link once in `urlTemplate` (`${config.url}/work_packages/{id}`) instead of a
+    `url` on every row. Leave out what the query already states (the assignee you
+    filtered on). Defaults must keep the response under 8 KB on the realistic fixture
+    (`test/tools/sizes.test.ts`). Project arguments go through `projectOrDefault`.
+
 ## Shared write arguments
 
 `create_work_package` and `update_work_package` both spread `WRITE_SCHEMA` from
@@ -70,7 +84,7 @@ second job.
 
 ## Before you edit
 
-`handler` reaches 19 symbols and `OpenProjectClient.request` has 7 callers. Run
+`handler` and `OpenProjectClient.request` are used by every tool. Run
 `codegraph_impact` on anything in `shared.ts`, `client.ts`, `hal.ts`, or
 `resolve.ts` before changing its signature.
 

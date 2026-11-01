@@ -87,6 +87,7 @@ describe("resolveProfile", () => {
 
   it("falls back to the environment", () => {
     expect(resolveProfile([], { OPENPROJECT_PROFILE: "acme" })).toBe("acme");
+    expect(resolveProfile([], { OPENPROJECT_PROFILE: "  " })).toBe("default");
   });
 
   it("defaults to 'default'", () => {
@@ -130,22 +131,49 @@ describe("loadConfig", () => {
     expect(config.conventionsPath).toBe("/repo/conventions.md");
   });
 
-  it("reads read-only mode", () => {
-    expect(loadConfig([], { OPENPROJECT_READ_ONLY: "1" }).readOnly).toBe(true);
-    expect(loadConfig([], { OPENPROJECT_READ_ONLY: "true" }).readOnly).toBe(true);
+  it.each(["1", "true", "TRUE", "yes", " 1 ", "on", "banana"])("treats OPENPROJECT_READ_ONLY=%j as read-only", (value) => {
+    expect(loadConfig([], { OPENPROJECT_READ_ONLY: value }).readOnly).toBe(true);
+  });
+
+  it.each(["", "  ", "0", "false", "No", "OFF"])("treats OPENPROJECT_READ_ONLY=%j as writable", (value) => {
+    expect(loadConfig([], { OPENPROJECT_READ_ONLY: value }).readOnly).toBe(false);
+  });
+
+  it("is writable when nothing is set", () => {
     expect(loadConfig([], {}).readOnly).toBe(false);
+  });
+
+  it("reads readOnly from the profile, and lets the environment override it", () => {
+    saveConfig("ro", { url: "https://op.acme.com", apiKey: "k", readOnly: true });
+    expect(loadConfig(["--profile", "ro"], {}).readOnly).toBe(true);
+    expect(loadConfig(["--profile", "ro"], { OPENPROJECT_READ_ONLY: "0" }).readOnly).toBe(false);
+    expect(loadConfig(["--profile", "ro"], { OPENPROJECT_READ_ONLY: "" }).readOnly).toBe(true);
+  });
+
+  it("treats blank environment values as unset and trims url and key", () => {
+    saveConfig("acme", { url: "https://op.acme.com", apiKey: "stored-key", defaultProject: "website" });
+    const config = loadConfig(["--profile", "acme"], {
+      OPENPROJECT_URL: "  ", OPENPROJECT_API_KEY: "", OPENPROJECT_DEFAULT_PROJECT: " ",
+    });
+    expect(config).toMatchObject({ url: "https://op.acme.com", apiKey: "stored-key", defaultProject: "website" });
+    expect(loadConfig([], { OPENPROJECT_URL: " https://x.example.com ", OPENPROJECT_API_KEY: " key\n" })).toMatchObject({
+      url: "https://x.example.com", apiKey: "key",
+    });
+  });
+
+  it("names the file and the parse error when config.json is corrupt, and saveConfig will not overwrite it", () => {
+    const path = saveConfig("bad", { url: "https://op.acme.com", apiKey: "k" });
+    writeFileSync(path, "{ not json");
+    const pattern = new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*JSON`);
+    expect(() => loadConfig(["--profile", "bad"], {})).toThrow(pattern);
+    expect(() => saveConfig("bad", { url: "https://op.acme.com", apiKey: "new" })).toThrow(/mv /);
+    expect(readFileSync(path, "utf8")).toBe("{ not json");
   });
 
   it("returns empty credentials rather than throwing when unconfigured", () => {
     const config = loadConfig([], {});
     expect(config.url).toBe("");
     expect(config.apiKey).toBe("");
-  });
-
-  it("ignores an unreadable config file", () => {
-    mkdirSync(profileDir("broken"), { recursive: true });
-    writeFileSync(join(profileDir("broken"), "config.json"), "{ not json");
-    expect(loadConfig(["--profile", "broken"], {}).url).toBe("");
   });
 });
 
@@ -198,5 +226,18 @@ describe("saveConfig", () => {
     expect(JSON.parse(readFileSync(path, "utf8")).apiKey).toBe("secret");
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(statSync(profileDir("acme")).mode & 0o777).toBe(0o700);
+  });
+
+  it.skipIf(process.platform === "win32")("tightens an existing 0644 file", () => {
+    const path = saveConfig("acme", { url: "https://op.acme.com", apiKey: "secret" });
+    chmodSync(path, 0o644);
+    saveConfig("acme", { url: "https://op.acme.com", apiKey: "secret2" });
+    expect(statSync(path).mode & 0o777).toBe(0o600);
+  });
+});
+
+describe("resolveProfile with --profile=value", () => {
+  it("reads the inline form", () => {
+    expect(resolveProfile(["--profile=work"], {})).toBe("work");
   });
 });

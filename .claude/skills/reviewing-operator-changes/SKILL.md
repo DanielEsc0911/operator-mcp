@@ -11,8 +11,8 @@ quietly breaks. Walk the list against the diff, then run the commands.
 ## Verify
 
 ```bash
-npx tsc --noEmit    # must be silent
-npm test            # 23 files, 254 tests, ~3s
+npm run typecheck   # src and tests; must be silent
+npm test            # 33 files, 504 tests, ~4s
 ```
 
 Both must pass before the change is described as done. Report the actual output —
@@ -27,8 +27,8 @@ ask, do not add.
 
 **stdout belongs to the transport.** The stdio server speaks JSON-RPC on stdout; one
 stray `console.log` on a path the server can reach corrupts the stream and the client
-disconnects. Diagnostics use `process.stderr.write`. Terminal commands (`cli.ts`, `setup.ts`,
-`install.ts`, `doctor.ts`, `prompts.ts`) write only to the `Streams` that `runCli`
+disconnects. Diagnostics use `process.stderr.write`. Terminal commands (`cli.ts`, `setup.ts`, `credentials.ts`,
+`install.ts`, `doctor.ts`, `prompts.ts`, `select.ts`, `searchSelect.ts`, `ui.ts`, `outro.ts`, `i18n/`) write only to the `Streams` that `runCli`
 hands them; `test/importGraph.test.ts` fails if `server.ts` can reach one.
 
 ```bash
@@ -59,15 +59,15 @@ grep -rn "from \"\\.\\.*/[^\"]*\"" src/ | grep -v "\.js\"" | grep -v "\.json\""
 **Every zod field has `.describe()`.** These are agent-facing docs, not type-checker
 noise. A field an agent cannot choose a value for is a broken tool.
 
-**Comments are rare and earn their place.** There are exactly eight in `src/`:
+**Comments are rare and earn their place.** There are exactly fourteen in `src/`:
 `lockVersion` locking, `offset` being a page number, ISO 8601 durations, the `o`/`c`
-status operators, `t`/`f` boolean filter values, readline's unmutable echo, the
-`apikey` Basic-auth username, and the claude CLI owning its config format. Each
-records an external constraint the code cannot express. A ninth needs a reason of
+status operators, the `<>d` date operator, the activities endpoint ignoring `pageSize`, `t`/`f` boolean filter values, readline's unmutable echo, the
+`apikey` Basic-auth username, and the claude CLI owning its config format, cmd.exe re-parsing a shell-spawned command line, a TOML multi-line value ending at its closing-bracket line, group and placeholder ids sharing the user id space, and `POST .../form` writing nothing (exempt from read-only). Each
+records an external constraint the code cannot express. A fifteenth needs a reason of
 the same kind. Delete any comment that restates what the line does.
 
 **Tests never reach the network.** `test/` mocks `fetch`. Anything needing a real
-instance belongs in `test-live/`, behind the `OPENPROJECT_URL` / `OPENPROJECT_API_KEY`
+instance belongs in `test-live/`, behind the `OPENPROJECT_LIVE_DISPOSABLE` (Docker-only)
 guard.
 
 ## Quality pass

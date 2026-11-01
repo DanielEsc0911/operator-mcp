@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "../src");
 const TERMINAL_ONLY = [
-  "cli.ts", "setup.ts", "credentials.ts", "install.ts", "doctor.ts", "prompts.ts", "select.ts", "ui.ts", "outro.ts",
+  "cli.ts", "setup.ts", "credentials.ts", "install.ts", "doctor.ts", "prompts.ts", "select.ts", "searchSelect.ts", "ui.ts", "outro.ts",
   "i18n/index.ts", "i18n/en.ts", "i18n/es.ts",
 ];
 

@@ -22,7 +22,7 @@
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#what-your-agent-can-do">What it does</a> ·
-  <a href="#your-agent-cant-delete-anything-by-design">Safety</a> ·
+  <a href="#safety-what-your-agent-can-and-cannot-do">Safety</a> ·
   <a href="https://operator.daer.dev">Website</a>
 </p>
 
@@ -96,6 +96,20 @@ xattr -d com.apple.quarantine operator-mcp-darwin-arm64
 
 </details>
 
+### Verifying a release
+
+Every binary, `SHA256SUMS` and the npm tarball carry a signed build provenance attestation, made
+by the release workflow from this repository. Check a download before you run it
+(needs the [GitHub CLI](https://cli.github.com)):
+
+```bash
+gh attestation verify operator-mcp-darwin-arm64.gz --repo DanielEsc0911/operator-mcp
+```
+
+The same command verifies the `.tgz` attached to the release. `install.sh` is served
+from `operator.daer.dev`, which you have to trust; it checks `SHA256SUMS` from the
+GitHub release before it installs anything.
+
 ### The wizard
 
 `operator-mcp setup` takes about a minute, and the installer starts it for you. It
@@ -145,7 +159,7 @@ npx operator-mcp install --yes    # register every detected agent, no prompt
 ```
 
 It writes only OPerator's own entry, leaves your other servers untouched, and backs
-up any file it changes.
+up any file it changes (one rolling `.bak` next to it, replaced on each run).
 
 | Agent | Where it writes | How to check it worked |
 |---|---|---|
@@ -166,14 +180,18 @@ the absolute path of `npx` in the entry.
 
 For an agent OPerator doesn't detect, or if you'd rather write the config
 yourself. Every MCP client wants the same two facts: run `npx`, with the arguments
-`-y operator-mcp` — or, if you installed the binary, run its absolute path
-(`~/.local/bin/operator-mcp`, expanded) with no arguments.
+`-y operator-mcp@<version>` — or, if you installed the binary, run its absolute path
+(`~/.local/bin/operator-mcp`, expanded) with no arguments. The snippets below pin the
+release the way `install` does, so an agent never silently starts a newer server than
+the one you tested: replace `<version>` with the output of `npx operator-mcp --version`.
+Leave the pin off (plain `operator-mcp`) only if you want every start to float to the
+latest release.
 
 <details>
 <summary><b>Claude Code</b></summary>
 
 ```bash
-claude mcp add openproject --scope user -- npx -y operator-mcp
+claude mcp add openproject --scope user -- npx -y operator-mcp@<version>
 ```
 
 Use `--scope project` instead to check the server into a repo for your team (it
@@ -186,7 +204,7 @@ lands in `.mcp.json`); `--scope local` limits it to the current project, just fo
 ```toml
 [mcp_servers.openproject]
 command = "npx"
-args = ["-y", "operator-mcp"]
+args = ["-y", "operator-mcp@<version>"]
 ```
 </details>
 
@@ -196,7 +214,7 @@ args = ["-y", "operator-mcp"]
 ```json
 {
   "mcpServers": {
-    "openproject": { "command": "npx", "args": ["-y", "operator-mcp"] }
+    "openproject": { "command": "npx", "args": ["-y", "operator-mcp@<version>"] }
   }
 }
 ```
@@ -223,7 +241,7 @@ args = ["-y", "operator-mcp"]
   "mcp": {
     "openproject": {
       "type": "local",
-      "command": ["npx", "-y", "operator-mcp"],
+      "command": ["npx", "-y", "operator-mcp@<version>"],
       "enabled": true
     }
   }
@@ -237,7 +255,7 @@ args = ["-y", "operator-mcp"]
 ```json
 {
   "mcpServers": {
-    "openproject": { "command": "npx", "args": ["-y", "operator-mcp"] }
+    "openproject": { "command": "npx", "args": ["-y", "operator-mcp@<version>"] }
   }
 }
 ```
@@ -252,7 +270,7 @@ check your client's docs for which file it reads.
 ```json
 {
   "servers": {
-    "openproject": { "type": "stdio", "command": "npx", "args": ["-y", "operator-mcp"] }
+    "openproject": { "type": "stdio", "command": "npx", "args": ["-y", "operator-mcp@<version>"] }
   }
 }
 ```
@@ -267,12 +285,19 @@ your MCP config stays safe to check into a repo.
 | Area | Tools |
 |---|---|
 | **Identity** | `whoami` |
-| **Discovery** | `list_projects` · `list_users` · `get_work_package` · `search_work_packages` · `my_work` |
+| **Discovery** | `briefing` · `standup` · `list_projects` · `list_users` · `get_work_package` · `search_work_packages` · `my_work` |
 | **Tasks** | `create_work_package` · `update_work_package` · `comment_work_package` · `list_activities` · `link_work_packages` |
 | **Notifications** | `list_notifications` · `mark_notifications_read` · `watch_work_package` |
 | **Time & metadata** | `log_time` · `list_metadata` |
 | **Conventions** | `conventions` · `add_convention` · `remove_convention` |
 | **Escape hatch** | `api_request` |
+
+"What's pending?", "what's new?", "what's on my plate?" all land on `briefing`: your open work,
+unread notifications and recent changes in one call, so even a small model answers in one step.
+
+Time entry activities depend on the work package, so `list_metadata` with
+`kind: "activities"` needs a `workPackageId`. Lists come back as `{ total, ... }` with one
+`urlTemplate` for links, and default to 20 rows so a reply stays small.
 
 The API key is yours, so the server already knows who you are: `my_work` and your
 notification feed need no further configuration.
@@ -307,14 +332,32 @@ everyone.
 OPENPROJECT_CONVENTIONS_PATH=/path/to/repo/conventions.md
 ```
 
-## Your agent can't delete anything. By design.
+## Safety: what your agent can and cannot do
 
-OPerator has no `delete_*` tool at all, so an agent cannot delete a work package
-because it misread a vague instruction. The generic `api_request` tool also refuses
-`DELETE` unless you set `OPENPROJECT_ALLOW_DELETE=1` in the server's environment,
-and an agent can't set that for itself. If you want the agent to report without
-touching anything, [read-only mode](#read-only-agents) refuses every write before
-it leaves the machine.
+The boundary is your API key's permissions: whatever that user can do in OpenProject,
+an agent holding the key can attempt through `api_request`. OPerator narrows that:
+
+- There is no `delete_*` tool, so a vague instruction cannot delete a work package.
+  `api_request` also refuses `DELETE` unless you set `OPENPROJECT_ALLOW_DELETE=1` in
+  the server's environment, which an agent cannot set for itself.
+- These calls need `confirm: true`: every non-GET `api_request`, `add_convention`,
+  `remove_convention`, and `mark_notifications_read` with `all: true`. The tool
+  descriptions tell the agent to set it only after you explicitly agreed, which
+  guards against instructions planted in work package or comment text. It is a
+  contract with the agent, not a lock.
+- Ordinary work package writes (`create_work_package`, `update_work_package`,
+  `comment_work_package`, `link_work_packages`, `log_time`, `watch_work_package`) are
+  **not** confirm-gated, so an agent can make them without asking. The server tells the
+  agent that text in work packages, comments and notifications is data, never
+  instructions, but that is guidance, not enforcement. Use read-only mode or a limited
+  key if you need a guarantee.
+- When an agent passes the `lockVersion` it got from `get_work_package`, a colleague's
+  later edit makes the update fail, and for a description the agent is told to compare
+  and ask you before retrying. Without a `lockVersion` the tool uses the current one,
+  so that protection does not apply.
+- [Read-only mode](#read-only-agents) is the hard guard: it refuses every write
+  before it leaves the machine. Use a key with limited permissions as well when the
+  agent should not reach everything.
 
 ## Two workplaces at once
 
@@ -331,7 +374,8 @@ never confuses one instance for the other.
 
 ## Read-only agents
 
-Add this to the server's entry in your MCP config:
+Run `npx operator-mcp setup --read-only` (flags also take the `--flag=value` form, like `--profile=acme`) to save the profile as read-only, or add this
+to the server's entry in your MCP config (the environment overrides the profile):
 
 ```json
 { "env": { "OPENPROJECT_READ_ONLY": "1" } }
@@ -349,7 +393,7 @@ refused before a request leaves the machine. Reads work normally.
 | `OPENPROJECT_PROFILE` | Profile to load. Same as `--profile`. |
 | `OPENPROJECT_DEFAULT_PROJECT` | Project used when a tool's `project` is omitted. |
 | `OPENPROJECT_CONVENTIONS_PATH` | Read the manual from somewhere else. |
-| `OPENPROJECT_READ_ONLY` | Set to `1` to refuse every write. |
+| `OPENPROJECT_READ_ONLY` | Refuse every write. Anything except empty, `0`, `false`, `no` or `off` turns it on, so a typo stays safe. Overrides the profile. |
 | `OPENPROJECT_ALLOW_DELETE` | Set to `1` to let `api_request` send `DELETE`. Off by default. Environment only. |
 | `OPENPROJECT_ALLOW_INSECURE_HTTP` | Set to `1` to allow a plain `http://` URL to a non-loopback host. The API key then travels unencrypted. Environment only. |
 | `OPERATOR_LANG` | `es` or `en` for the command-line text. Same as `--lang`; otherwise `LC_ALL`, `LC_MESSAGES`, `LANG` decide. |
@@ -418,6 +462,17 @@ in a browser from the same machine to confirm.
 </details>
 
 <details>
+<summary><b>Behind a proxy</b></summary>
+
+<br>
+
+OPerator uses Node's built-in `fetch`, which ignores `HTTPS_PROXY` unless you opt in. On
+Node 24 or newer set `NODE_USE_ENV_PROXY=1` in the server's `env` (together with
+`HTTPS_PROXY`); older Node versions have no built-in proxy support.
+
+</details>
+
+<details>
 <summary><b>Node version</b></summary>
 
 <br>
@@ -431,7 +486,9 @@ needs no Node.
 
 ```bash
 npm install
-npm test          # mocked, never touches a real instance
+npm run typecheck  # src and tests
+npm test           # mocked, never touches a real instance
+npm run test:docker  # live suite on a throwaway OpenProject container
 npm run build
 ```
 

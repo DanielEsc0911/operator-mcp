@@ -39,11 +39,9 @@ describe("flattenWorkPackage", () => {
       priority: "High",
       project: "Website",
       assignee: "Ada Lovelace",
-      author: "Ana Ruiz",
       parent: 1200,
       dueDate: "2026-08-03",
       percentageDone: 40,
-      lockVersion: 7,
     });
   });
 
@@ -51,12 +49,15 @@ describe("flattenWorkPackage", () => {
     expect(flat.url).toBe("https://op.acme.com/work_packages/1234");
   });
 
-  it("omits description by default so list results stay small", () => {
-    expect(flat.description).toBeUndefined();
+  it("omits detail fields by default so list results stay small", () => {
+    expect(flat).not.toHaveProperty("description");
+    expect(flat).not.toHaveProperty("lockVersion");
+    expect(flat).not.toHaveProperty("author");
   });
 
-  it("includes description on request", () => {
-    const detailed = flattenWorkPackage(workPackage, BASE, { includeDescription: true });
+  it("includes detail fields on request", () => {
+    const detailed = flattenWorkPackage(workPackage, BASE, { detail: true });
+    expect(detailed).toMatchObject({ author: "Ana Ruiz", lockVersion: 7 });
     expect(detailed.description).toContain("Users land on /dashboard");
   });
 
@@ -66,7 +67,7 @@ describe("flattenWorkPackage", () => {
 });
 
 describe("flattenNotification", () => {
-  const flat = flattenNotification(notification, BASE);
+  const flat = flattenNotification(notification);
 
   it("flattens to the fields an agent triages on", () => {
     expect(flat).toMatchObject({
@@ -77,15 +78,15 @@ describe("flattenNotification", () => {
       actor: "Ana Ruiz",
       workPackageId: 1234,
       workPackageSubject: "Fix login redirect",
-      url: "https://op.acme.com/work_packages/1234",
     });
+    expect(flat.url).toBeUndefined();
   });
 
-  it("falls back to the notification centre when the resource is not a work package", () => {
+  it("names a resource that is not a work package", () => {
     const wiki = { ...notification, _links: { ...notification._links, resource: { href: "/api/v3/wiki_pages/4", title: "Onboarding" } } };
-    const flatWiki = flattenNotification(wiki, BASE);
+    const flatWiki = flattenNotification(wiki);
     expect(flatWiki.workPackageId).toBeUndefined();
-    expect(flatWiki.url).toBe("https://op.acme.com/notifications");
+    expect(flatWiki.resource).toBe("Onboarding");
   });
 });
 
@@ -95,14 +96,18 @@ describe("flattenProject and flattenNamed", () => {
     description: { raw: "Public site" }, _links: {},
   };
 
-  it("flattens a project", () => {
-    expect(flattenProject(project, BASE)).toMatchObject({
+  it("flattens a project without its description, which bloats long lists", () => {
+    expect(flattenProject(project, BASE)).toEqual({
       id: 3, name: "Website", identifier: "website", active: true,
-      description: "Public site", url: "https://op.acme.com/projects/website",
+      url: "https://op.acme.com/projects/website",
     });
   });
 
   it("reduces metadata resources to id and name", () => {
     expect(flattenNamed({ id: 7, name: "Bug", _links: {} })).toEqual({ id: 7, name: "Bug" });
+  });
+
+  it("keeps isClosed on statuses, since status names don't say which ones are closed", () => {
+    expect(flattenNamed({ id: 18, name: "Done", isClosed: false, _links: {} })).toEqual({ id: 18, name: "Done", isClosed: false });
   });
 });

@@ -40,6 +40,26 @@ describe("api_request", () => {
     });
   });
 
+  it("truncates a response over 50 KB and says how to narrow it", async () => {
+    const client = await connect();
+    fetchMock.mockResolvedValue(respond({ blob: "x".repeat(60_000) }));
+    const result = await callTool(client, "api_request", { method: "GET", path: "/types" });
+
+    expect(result.isError).toBe(false);
+    const body = result.json();
+    expect(body.truncated).toBe(true);
+    expect(body.bytes).toBeGreaterThan(50 * 1024);
+    expect(Buffer.byteLength(body.preview)).toBeLessThanOrEqual(50 * 1024);
+  });
+
+  it("measures the cap in bytes, not characters", async () => {
+    const client = await connect();
+    fetchMock.mockResolvedValue(respond({ blob: "é".repeat(30_000) }));
+    const body = (await callTool(client, "api_request", { method: "GET", path: "/types" })).json();
+
+    expect(body.truncated).toBe(true);
+  });
+
   it("accepts a path without a leading slash", async () => {
     const client = await connect();
     fetchMock.mockResolvedValue(respond({ ok: true }));
@@ -68,6 +88,7 @@ describe("api_request", () => {
     await callTool(client, "api_request", {
       method: "POST",
       path: "/work_packages/1234/watchers",
+      confirm: true,
       body: { user: { href: "/api/v3/users/12" } },
     });
 
@@ -78,16 +99,32 @@ describe("api_request", () => {
     const client = await connect({ ...testConfig, allowDelete: true });
     fetchMock.mockResolvedValue(respond(null, 204));
 
-    expect((await callTool(client, "api_request", { method: "DELETE", path: "/work_packages/1234/watchers/12" })).json())
+    expect((await callTool(client, "api_request", { method: "DELETE", path: "/work_packages/1234/watchers/12", confirm: true })).json())
       .toEqual({ ok: true });
+  });
+
+  it("refuses a non-GET without confirm and sends nothing", async () => {
+    const client = await connect();
+    fetchMock.mockClear();
+    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1" });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("confirm: true");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("is blocked for writes in read-only mode", async () => {
     const client = await connect({ ...testConfig, readOnly: true });
-    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1234" });
+    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1234", confirm: true });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
+  });
+
+  it("reports read-only before it asks for confirm", async () => {
+    const client = await connect({ ...testConfig, readOnly: true });
+    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1234" });
+    expect(result.text).toContain("read-only mode");
   });
 
   it("still allows reads in read-only mode", async () => {
