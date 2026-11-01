@@ -80,6 +80,7 @@ function parseStored(path: string): StoredConfig {
   try {
     return JSON.parse(readFileSync(path, "utf8")) as StoredConfig;
   } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
     throw new ConfigError(
       `Cannot read ${path}: ${(error as Error).message}. Fix the file, or move it aside (mv ${path} ${path}.broken) and run: npx operator-mcp setup`,
     );
@@ -126,7 +127,7 @@ export function saveConfig(profile: string, data: StoredConfig): string {
   const dir = profileDir(profile);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const path = join(dir, "config.json");
-  if (existsSync(path)) parseStored(path);
+  parseStored(path);
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
   chmodSync(path, 0o600);
   return path;
