@@ -20,6 +20,7 @@ open, with the commit range.
 | Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..`2d2a636` |
 | Chunk 3 — review fixes (H1–H14) | done | `ee7f443`..`e29cdba` |
 | Chunk 4 — Release, testing infra, final gate (4a–4f) | 4a–4e done, 4f pending | `6c295e0`..`3a2e130` |
+| Chunk 4 — review fixes (J1–J12) | done | `7af1408`..`9e8f9ed` |
 
 ## Hand-off notes
 
@@ -211,3 +212,16 @@ Open items:
 - H14: re-export removed; call sites import from `serverCommand.js`.
 - Deviations: a lone ESC followed by a character is now treated as Alt+key and dropped (ESC before Enter is still ignored). Two comments added (cmd.exe, TOML value end): count in CLAUDE.md and the review skill is now twelve. Only H1 was confirmed red-before-fix by running; the others were written alongside the fix.
 - Open: manual Claude Code snippet prints env values from the old entry (as approved), which may include secrets.
+
+### Chunk 4 review fixes (J1-J12, `7af1408`..`9e8f9ed`)
+
+- J1: binary-smoke resolves argv[2]. Compiled with bun 1.4.4 into the scratchpad and ran the smoke with a relative path (`./bin/operator-mcp-linux-x64`): all 6 checks ok. Binary deleted.
+- J2: smoke + tools live suites gated on `disposable` (live.ts, needs OPENPROJECT_LIVE_DISPOSABLE=1); picker unchanged. CONTRIBUTING, CLAUDE.md, testing skill updated.
+- J3: cleanup deletes work packages first, collects failures and throws. Verified on Docker: after the suite the operator-live project had 0 work packages besides the seed, 0 versions, 0 time entries (queried before container removal).
+- J4: hookTimeout 120 s. J5-J7, J10: release.yml (publish is the last step, setup-bun with the SHA ci.yml uses, persist-credentials false on publish, SHA256SUMS attested; README says so).
+- J8: seed polls GoodJob for unfinished due jobs, capped at 90 s. J9: image pinned to `16.6.10@sha256:eb08fa63...a74e` (RepoDigests of the local pull).
+- J11: on Docker, `POST /time_entries/form` with no work package returns empty allowedValues, so `workPackage` is required for `activities` (list_metadata arg, error otherwise; log_time passes its own). Cached per work package. Form POSTs are exempt from read-only (one comment; count is now thirteen in CLAUDE.md and the review skill). Unit mocks fixed, live test added (list + log by name). Red without the src change: 8 tests.
+- J12: manual() prints `<your value>` for KEY/TOKEN/SECRET/PASSWORD env names; test red before.
+- Deviation: the old doc count said twelve; counted blocks in src/ now give thirteen.
+- Live suite: `npm run test:docker` 3 files, 17 tests passed, container removed. Final: typecheck silent, 482 unit tests green.
+- Open for 4f: workflows still never run on GitHub; README tool table and CHANGELOG items from Chunk 3 note; `list_metadata` README/tool docs for the new `workPackage` argument.
