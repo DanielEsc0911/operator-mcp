@@ -49,9 +49,12 @@ export function editJson(path: string, edit: (document: Record<string, any>) => 
   writeMerged(path, `${JSON.stringify(document, null, 2)}\n`);
 }
 
+const withoutTrailingCommas = (text: string) =>
+  text.replace(/"(?:[^"\\]|\\.)*"|,(\s*[}\]])/g, (match, close) => close ?? match);
+
 export function readJson(path: string): Record<string, any> {
   try {
-    return JSON.parse(stripJsonComments(readFileSync(path, "utf8")));
+    return JSON.parse(withoutTrailingCommas(stripJsonComments(readFileSync(path, "utf8"))));
   } catch {
     return {};
   }
@@ -70,13 +73,27 @@ export function tomlKey(name: string): string {
 const quote = JSON.stringify;
 const tomlLines = (text: string) => text.split(/\r?\n/);
 
+const spelledKey = (name: string) => [name, quote(name), `'${name}'`].map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+
 function findTable(lines: string[], name: string): { start: number; end: number } | null {
-  const keys = [name, quote(name)].map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  const header = new RegExp(`^\\s*\\[\\s*mcp_servers\\s*\\.\\s*(?:${keys})\\s*\\]\\s*(?:#.*)?$`);
+  const header = new RegExp(`^\\s*\\[\\s*mcp_servers\\s*\\.\\s*(?:${spelledKey(name)})\\s*\\]\\s*(?:#.*)?$`);
   const start = lines.findIndex((line) => header.test(line));
   if (start === -1) return null;
   const after = lines.findIndex((line, index) => index > start && line.trimStart().startsWith("["));
   return { start, end: after === -1 ? lines.length : after };
+}
+
+function definedElsewhere(lines: string[], name: string): boolean {
+  const form = new RegExp(`^\\s*(?:mcp_servers\\s*\\.\\s*)?(?:${spelledKey(name)})\\s*[=.]`);
+  return lines.some((line) => form.test(line));
+}
+
+// A multi-line value runs to the line that starts with its closing bracket; a `]` inside a string does not end it.
+function valueEnd(lines: string[], start: number): number {
+  const value = lines[start].replace(/^[^=]*=\s*/, "").trim();
+  if (!value.startsWith("[") || value.endsWith("]")) return start;
+  const close = lines.findIndex((line, index) => index > start && line.trim().startsWith("]"));
+  return close === -1 ? lines.length - 1 : close;
 }
 
 export function upsertTomlServer(text: string, name: string, command: string, args: string[]): string {
@@ -85,15 +102,15 @@ export function upsertTomlServer(text: string, name: string, command: string, ar
   const table = findTable(lines, name);
   const body = [`command = ${quote(command)}`, `args = [${args.map((arg) => quote(arg)).join(", ")}]`];
   if (!table) {
+    if (definedElsewhere(lines, name)) throw new Error(`\`${name}\` is already defined in config.toml in a form this installer will not rewrite`);
     const block = [`[mcp_servers.${tomlKey(name)}]`, ...body, ""].join(eol);
     return text.trim() === "" ? block : `${text.trimEnd()}${eol}${eol}${block}`;
   }
   const kept: string[] = [];
-  let inArgs = false;
-  for (const line of lines.slice(table.start + 1, table.end)) {
-    if (inArgs) inArgs = !line.includes("]");
-    else if (/^\s*args\s*=/.test(line)) inArgs = !line.includes("]");
-    else if (!/^\s*command\s*=/.test(line)) kept.push(line);
+  const existing = lines.slice(table.start + 1, table.end);
+  for (let i = 0; i < existing.length; i++) {
+    if (/^\s*args\s*=/.test(existing[i])) i = valueEnd(existing, i);
+    else if (!/^\s*command\s*=/.test(existing[i])) kept.push(existing[i]);
   }
   lines.splice(table.start + 1, table.end - table.start - 1, ...body, ...kept);
   return lines.join(eol);
@@ -103,8 +120,13 @@ export function tomlEntry(path: string, name: string): string[] | null {
   const lines = existsSync(path) ? tomlLines(readFileSync(path, "utf8")) : [];
   const table = findTable(lines, name);
   if (!table) return null;
-  const value = (key: string) =>
-    lines.slice(table.start + 1, table.end).find((line) => line.startsWith(`${key} = `))?.slice(key.length + 3);
+  const section = lines.slice(table.start + 1, table.end);
+  const value = (key: string) => {
+    const start = section.findIndex((line) => new RegExp(`^\\s*${key}\\s*=`).test(line));
+    if (start === -1) return undefined;
+    const text = section.slice(start, valueEnd(section, start) + 1).join("\n");
+    return withoutTrailingCommas(text.replace(/^[^=]*=\s*/, ""));
+  };
   try {
     return commandLine({ command: JSON.parse(value("command") ?? "null"), args: JSON.parse(value("args") ?? "[]") });
   } catch {

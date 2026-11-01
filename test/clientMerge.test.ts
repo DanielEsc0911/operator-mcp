@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { findClient, serverCommand, serverName } from "../src/clients.js";
-import { spawnRunner } from "../src/install.js";
+import { findClient } from "../src/clients.js";
+import { serverCommand, serverName } from "../src/serverCommand.js";
+import { cmdQuote, spawnRunner } from "../src/install.js";
 import { version } from "../src/server.js";
 
 const PINNED = `operator-mcp@${version}`;
@@ -114,6 +115,53 @@ describe("codex TOML edges (R13)", () => {
   });
 });
 
+describe("codex TOML forms (H4, H12, H13)", () => {
+  const codex = (text: string) => {
+    const root = home(".codex");
+    write(root, ".codex/config.toml", text);
+    return root;
+  };
+  const register = (root: string) => findClient("codex")!.register(target(root));
+
+  it("replaces a single-quoted header instead of appending a duplicate", () => {
+    const root = codex("[mcp_servers.'openproject']\ncommand = \"old\"\n");
+    register(root);
+    const text = read(root, ".codex/config.toml");
+    expect(text.match(/mcp_servers/g)).toHaveLength(1);
+    expect(text).toContain('command = "npx"');
+  });
+
+  it.each([
+    ["a dotted key under [mcp_servers]", '[mcp_servers]\nopenproject.command = "old"\n'],
+    ["an inline table under [mcp_servers]", '[mcp_servers]\nopenproject = { command = "old" }\n'],
+    ["a root dotted key", 'mcp_servers.openproject.command = "old"\n'],
+  ])("refuses to write when openproject is %s", (_form, text) => {
+    const root = codex(text);
+    expect(() => register(root)).toThrow(/will not rewrite/);
+    expect(read(root, ".codex/config.toml")).toBe(text);
+  });
+
+  it("reads command and args without spaces around = and over several lines", () => {
+    const root = codex('[mcp_servers.openproject]\ncommand="npx"\nargs=[\n  "-y",\n  "operator-mcp",\n]\n');
+    expect(findClient("codex")!.entry(root, "openproject")).toEqual(["npx", "-y", "operator-mcp"]);
+  });
+
+  it("replaces a multi-line args whose strings contain a bracket", () => {
+    const root = codex('[mcp_servers.openproject]\ncommand = "old"\nargs = [\n  "--x=[a]",\n]\nstartup_timeout_sec = 30\n');
+    register(root);
+    const text = read(root, ".codex/config.toml");
+    expect(text).not.toContain("--x=[a]");
+    expect(text).toContain("startup_timeout_sec = 30");
+    expect(text).not.toMatch(/^\]/m);
+  });
+
+  it("reads a JSON file with trailing commas", () => {
+    const root = home(".cursor");
+    write(root, ".cursor/mcp.json", '{ "mcpServers": { "openproject": { "command": "npx", "args": ["a",], }, }, }');
+    expect(findClient("cursor")!.entry(root, "openproject")).toEqual(["npx", "a"]);
+  });
+});
+
 describe("Windows (R14)", () => {
   it("wraps npx in cmd /c", () => {
     expect(serverCommand("default", { ...node, platform: "win32" })).toEqual({
@@ -127,6 +175,59 @@ describe("Windows (R14)", () => {
     spawnRunner("win32", spawn)("claude", ["mcp", "list"]);
     spawnRunner("linux", spawn)("claude", ["mcp", "list"]);
     expect(spawn.mock.calls.map((call: any[]) => call[2].shell)).toEqual([true, false]);
+  });
+});
+
+describe("cmd quoting (H3)", () => {
+  it("leaves plain arguments alone and quotes anything cmd would reinterpret", () => {
+    expect(cmdQuote("mcp")).toBe("mcp");
+    expect(cmdQuote("--scope")).toBe("--scope");
+    expect(cmdQuote("a b")).toBe('"a b"');
+    expect(cmdQuote("")).toBe('""');
+    expect(cmdQuote("k=a&b|c")).toBe('"k=a&b|c"');
+    expect(cmdQuote('say "hi"')).toBe('"say \\"hi\\""');
+    expect(cmdQuote("50%")).toBe('"50"^%""');
+  });
+
+  it("quotes the arguments on win32 only", () => {
+    const spawn = vi.fn(() => ({ status: 0, stdout: "" })) as any;
+    spawnRunner("win32", spawn)("claude", ["mcp", "add", "-e", "K=a&b"]);
+    spawnRunner("linux", spawn)("claude", ["mcp", "add", "-e", "K=a&b"]);
+    expect(spawn.mock.calls.map((call: any[]) => call[1])).toEqual([["mcp", "add", "-e", '"K=a&b"'], ["mcp", "add", "-e", "K=a&b"]]);
+  });
+});
+
+describe("Claude Code add failure (H2)", () => {
+  const entry = { command: "npx", args: ["-y", "operator-mcp@0.1"], env: { OPENPROJECT_READ_ONLY: "1" } };
+
+  it("restores the old entry when the new add fails, then reports the failure", () => {
+    const root = home();
+    write(root, ".claude.json", JSON.stringify({ mcpServers: { openproject: entry } }));
+    let adds = 0;
+    const run = vi.fn((_command: string, args: string[]) => {
+      if (args[1] === "add" && ++adds === 1) throw new Error("add failed");
+      return "";
+    });
+    expect(() => findClient("claude-code")!.register({ ...target(root), run })).toThrow("add failed");
+    expect(run).toHaveBeenLastCalledWith("claude", [
+      "mcp", "add", "openproject", "--scope", "user", "-e", "OPENPROJECT_READ_ONLY=1", "--", "npx", "-y", "operator-mcp@0.1",
+    ]);
+  });
+
+  it("does not try to restore when the remove itself failed", () => {
+    const root = home();
+    write(root, ".claude.json", JSON.stringify({ mcpServers: { openproject: entry } }));
+    const run = vi.fn(() => {
+      throw new Error("remove failed");
+    });
+    expect(() => findClient("claude-code")!.register({ ...target(root), run })).toThrow("remove failed");
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("the manual command carries the old env", () => {
+    const root = home();
+    write(root, ".claude.json", JSON.stringify({ mcpServers: { openproject: entry } }));
+    expect(findClient("claude-code")!.manual(target(root))).toContain("-e OPENPROJECT_READ_ONLY=1 --");
   });
 });
 

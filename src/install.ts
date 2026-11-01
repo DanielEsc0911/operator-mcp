@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { createInterface, type Interface } from "node:readline/promises";
-import { offeredClients, detectClients, selfCommand, serverCommand, serverName, type Client, type Runner, type Target } from "./clients.js";
+import { offeredClients, detectClients, type Client, type Runner, type Target } from "./clients.js";
+import { selfCommand, serverCommand, serverName } from "./serverCommand.js";
 import type { Streams } from "./cli.js";
 import { resolveProfile } from "./config.js";
 import { humanMessage } from "./errors.js";
@@ -13,9 +14,17 @@ import { pad, step, style, tilde, type Output, type Style } from "./ui.js";
 
 export type Outcome = { client: Client; updated: boolean; error?: string };
 
+const CMD_SPECIAL = /[\s"&|<>^%()!,;=]/;
+
+// cmd.exe re-parses the joined command line when Node spawns through a shell, and a `%` expands even inside quotes.
+export function cmdQuote(arg: string): string {
+  if (arg !== "" && !CMD_SPECIAL.test(arg)) return arg;
+  return `"${arg.replace(/"/g, '\\"').replace(/%/g, '"^%"')}"`;
+}
+
 export function spawnRunner(platform: NodeJS.Platform = process.platform, spawn: typeof spawnSync = spawnSync): Runner {
   return (command, args) => {
-    const result = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", shell: platform === "win32" });
+    const result = spawn(command, platform === "win32" ? args.map(cmdQuote) : args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", shell: platform === "win32" });
     if (result.error) throw new Error(`\`${command}\` is not on your PATH`);
     if (result.status !== 0) throw new Error(result.stderr?.trim() || `\`${command}\` exited with ${result.status}`);
     return result.stdout ?? "";

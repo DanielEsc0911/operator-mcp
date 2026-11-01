@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CLIENTS, desktopConfigPath, detectClients, findClient, serverCommand, serverName, mcpConfigSnippet } from "../src/clients.js";
+import { CLIENTS, detectClients, findClient, mcpConfigSnippet } from "../src/clients.js";
+import { desktopConfigPath, serverCommand, serverName } from "../src/serverCommand.js";
 import { version } from "../src/server.js";
 
 const PINNED = `operator-mcp@${version}`;

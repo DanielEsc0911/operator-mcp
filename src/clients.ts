@@ -1,9 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { commandLine, editJson, readJson, tomlEntry, upsertTomlServer, writeMerged } from "./clientFiles.js";
-import { desktopConfigPath, selfCommand, serverCommand, serverName, type ServerCommand } from "./serverCommand.js";
-
-export { desktopConfigPath, selfCommand, serverCommand, serverName, type ServerCommand };
+import { desktopConfigPath, serverCommand, serverName } from "./serverCommand.js";
 
 export type Runner = (command: string, args: string[]) => string;
 
@@ -42,7 +40,12 @@ function mcpServersClient(id: string, label: string, path: (home: string) => str
   };
 }
 
-const claudeServer = (home: string, name: string) => readJson(join(home, ".claude.json")).mcpServers?.[name];
+const claudeServer = (home: string, name: string) => (home ? readJson(join(home, ".claude.json")).mcpServers?.[name] : undefined);
+
+function claudeAdd(name: string, command: string, args: string[], saved: Record<string, string> = {}): string[] {
+  const env = Object.entries(saved).flatMap(([key, value]) => ["-e", `${key}=${value}`]);
+  return ["mcp", "add", name, "--scope", "user", ...env, "--", command, ...args];
+}
 
 function claudeGet(run: Runner, name: string): string[] | null {
   const text = run("claude", ["mcp", "get", name]);
@@ -66,9 +69,14 @@ export const CLIENTS: Client[] = [
     // Its `mcp add` refuses a name that exists, so an older entry goes first and its env is passed back.
     register: ({ home, name, command, args, run }) => {
       const existing = claudeServer(home, name);
-      const env = Object.entries<string>(existing?.env ?? {}).flatMap(([key, value]) => ["-e", `${key}=${value}`]);
-      if (existing) run("claude", ["mcp", "remove", name, "--scope", "user"]);
-      run("claude", ["mcp", "add", name, "--scope", "user", ...env, "--", command, ...args]);
+      if (!existing) return void run("claude", claudeAdd(name, command, args));
+      run("claude", ["mcp", "remove", name, "--scope", "user"]);
+      try {
+        run("claude", claudeAdd(name, command, args, existing.env));
+      } catch (error) {
+        if (existing.command) run("claude", claudeAdd(name, existing.command, existing.args ?? [], existing.env));
+        throw error;
+      }
     },
     entry: (home, name, run) => {
       try {
@@ -77,7 +85,7 @@ export const CLIENTS: Client[] = [
       } catch {}
       return commandLine(claudeServer(home, name));
     },
-    manual: ({ name, command, args }) => `claude mcp add ${name} --scope user -- ${[command, ...args].join(" ")}`,
+    manual: ({ home, name, command, args }) => `claude ${claudeAdd(name, command, args, claudeServer(home, name)?.env).join(" ")}`,
   },
   {
     id: "codex",
