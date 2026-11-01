@@ -102,6 +102,7 @@ export const CLIENTS: Client[] = [
     manual: ({ name, command, args }) => `# ~/.codex/config.toml\n${upsertTomlServer("", name, command, args).trimEnd()}`,
   },
   mcpServersClient("gemini", "Gemini CLI", (home) => join(home, ".gemini", "settings.json"), "~/.gemini/settings.json"),
+  mcpServersClient("antigravity", "Antigravity CLI", (home) => join(home, ".gemini", "config", "mcp_config.json"), "~/.gemini/config/mcp_config.json"),
   mcpServersClient("claude-desktop", "Claude Desktop", (home) => desktopConfigPath(home), "Claude Desktop: Settings → Developer → Edit Config"),
   mcpServersClient("cursor", "Cursor", (home) => join(home, ".cursor", "mcp.json"), "~/.cursor/mcp.json"),
   {

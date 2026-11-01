@@ -167,6 +167,7 @@ up any file it changes (one rolling `.bak` next to it, replaced on each run).
 | **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), `%APPDATA%\Claude\claude_desktop_config.json` (Windows); no Linux build, so not offered there | *Settings → Developer* shows `openproject` running |
 | **Codex CLI** | `~/.codex/config.toml` | `codex mcp list` shows `openproject` |
 | **Gemini CLI** | `~/.gemini/settings.json` | `/mcp` lists `openproject` |
+| **Antigravity CLI** (`agy`) | `~/.gemini/config/mcp_config.json` | `agy mcp list` shows `openproject` |
 | **Cursor** | `~/.cursor/mcp.json` | *Settings → MCP* shows `openproject` enabled |
 | **opencode** | `~/.config/opencode/opencode.json` | `/mcp` lists `openproject` |
 
@@ -214,6 +215,18 @@ args = ["-y", "operator-mcp@<version>"]
 {
   "mcpServers": {
     "openproject": { "command": "npx", "args": ["-y", "operator-mcp@<version>"] }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Antigravity CLI</b> — <code>~/.gemini/config/mcp_config.json</code></summary>
+
+```json
+{
+  "mcpServers": {
+    "openproject": { "command": "npx", "args": ["-y", "operator-mcp"] }
   }
 }
 ```
