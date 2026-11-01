@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { segment, type OpenProjectClient } from "../client.js";
 import { OpenProjectError } from "../errors.js";
 import { flattenWorkPackage, linkId } from "../hal.js";
-import { handler, type ToolContext } from "./shared.js";
+import { handler, projectOrDefault, type ToolContext } from "./shared.js";
 import { WRITE_SCHEMA, buildPayload, type WriteArgs } from "./workPackageFields.js";
 
 const RELATION_TYPES = ["relates", "duplicates", "blocks", "precedes", "includes", "requires"] as const;
@@ -33,7 +33,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       description: "Create a work package in a project. Type and subject are required; everything else is optional. Category, accountable, estimates and custom fields are not supported here: use api_request.",
       inputSchema: {
         ...WRITE_SCHEMA,
-        project: z.string().optional().describe("Project identifier or id. Defaults to the configured default project."),
+        project: z.string().optional().describe("Project identifier, name or id. Defaults to the configured default project."),
         type: z.string().min(1).describe('Type name or id, for example "Bug". Use list_metadata to see the valid names.'),
         subject: z.string().min(1).describe("Title of the work package."),
         assignee: z.string().min(1).optional().describe('Assignee name, email, numeric id, or "me".'),
@@ -41,7 +41,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       },
     },
     handler(async ({ project, ...args }: WriteArgs & { project?: string }) => {
-      const target = project ?? config.defaultProject;
+      const target = await projectOrDefault(client, project);
       if (!target) throw new Error("No project given and no default project configured. Pass `project`, or set one with the setup wizard.");
 
       const { fields, links } = await buildPayload(client, args, target);
@@ -56,7 +56,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     "update_work_package",
     {
       title: "Update a work package",
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
       description:
         "Change any subset of a work package's fields. Changing the description requires lockVersion from get_work_package, so you never overwrite someone else's edit; other fields handle the lock for you. Pass null for assignee or parent to clear it. Category, accountable, estimates and custom fields are not supported here: use api_request.",
       inputSchema: {
@@ -74,7 +74,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       if (Object.values(args).every((value) => value === undefined)) {
         throw new Error("Nothing to update. Supply at least one field.");
       }
-      const needsProject = args.type !== undefined || args.version !== undefined;
+      const needsProject = args.type !== undefined || args.version !== undefined || typeof args.assignee === "string";
       const current = lockVersion === undefined || needsProject
         ? await client.request("GET", `/work_packages/${id}`)
         : undefined;

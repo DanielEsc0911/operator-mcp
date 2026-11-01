@@ -108,7 +108,7 @@ describe("list_users", () => {
   };
 
   it("uses available_assignees when a project is given", async () => {
-    routes({ "/users/me": ME, "/projects/website/available_assignees": assignees });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/available_assignees": assignees });
     const client = await connect();
 
     expect((await callTool(client, "list_users", { project: "website" })).json()).toEqual({

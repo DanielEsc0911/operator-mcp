@@ -137,9 +137,19 @@ describe("resolveUserHref", () => {
     expect(await resolveUserHref(client(), "me")).toBe("/api/v3/users/12");
   });
 
-  it("accepts a numeric id directly", async () => {
+  it("resolves a numeric id through the principal's own self link, so a group id works", async () => {
+    fetchMock.mockResolvedValue(respond({
+      total: 1, count: 1, _embedded: { elements: [{ id: 8, name: "Dev Team", _links: { self: { href: "/api/v3/groups/8" } } }] },
+    }));
+    expect(await resolveUserHref(client(), 8)).toBe("/api/v3/groups/8");
+    const url = fetchMock.mock.calls[0][0] as URL;
+    expect(url.pathname).toBe("/api/v3/principals");
+    expect(JSON.parse(url.searchParams.get("filters")!)).toEqual([{ id: { operator: "=", values: ["8"] } }]);
+  });
+
+  it("falls back to a user href when the principal lookup finds nothing", async () => {
+    fetchMock.mockResolvedValue(respond({ total: 0, count: 0, _embedded: { elements: [] } }));
     expect(await resolveUserHref(client(), 12)).toBe("/api/v3/users/12");
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("looks a name up among a project's assignable people", async () => {
@@ -209,5 +219,16 @@ describe("resolveProjectId", () => {
   it("lists the projects it knows when nothing matches", async () => {
     fetchMock.mockImplementation(async (url: URL) => lookup(url));
     await expect(resolveProjectId(client(), "nope")).rejects.toThrow('No project "nope". Available: website (Website)');
+  });
+
+  it("lists at most 20 projects and points to list_projects", async () => {
+    const many = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, identifier: `p${i + 1}`, name: `Project ${i + 1}` }));
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/projects" ? respond({ total: 25, count: 25, _embedded: { elements: many } }) : notFound());
+    const message = await resolveProjectId(client(), "nope").catch((e) => e.message);
+    expect(message).toContain("p20 (Project 20)");
+    expect(message).not.toContain("p21 ");
+    expect(message).toContain("5 more");
+    expect(message).toContain("list_projects");
   });
 });

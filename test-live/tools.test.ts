@@ -24,7 +24,7 @@ describe.skipIf(!disposable)("live tools through the MCP server", () => {
   });
 
   it("lists activities for a work package and logs time by activity name", async () => {
-    const listed = await callTool(agent, "list_metadata", { kind: "activities", workPackage: wp.id });
+    const listed = await callTool(agent, "list_metadata", { kind: "activities", workPackageId: wp.id });
     expect(listed.json().map((activity: { name: string }) => activity.name)).toContain("Development");
     const logged = await callTool(agent, "log_time", { workPackageId: wp.id, hours: 0.25, activity: "Development" });
     expect(logged.isError, logged.text).toBe(false);

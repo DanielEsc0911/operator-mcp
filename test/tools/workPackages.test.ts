@@ -88,11 +88,11 @@ describe("get_work_package", () => {
 
 describe("search_work_packages", () => {
   it("queries the project path rather than a project filter, so identifiers work", async () => {
-    routes({ "/users/me": ME, "/projects/website/work_packages": RESULTS });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/work_packages": RESULTS });
     const client = await connect();
     await callTool(client, "search_work_packages", { project: "website" });
 
-    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/website/work_packages");
+    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/3/work_packages");
   });
 
   it("encodes the project as a single path segment", async () => {
@@ -100,7 +100,7 @@ describe("search_work_packages", () => {
     const client = await connect();
     await callTool(client, "search_work_packages", { project: "../../users/me" });
 
-    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/..%2F..%2Fusers%2Fme/work_packages");
+    expect((fetchMock.mock.calls.at(-2)![0] as URL).pathname).toBe("/api/v3/projects/..%2F..%2Fusers%2Fme");
   });
 
   it("uses the operator form for open and closed", async () => {
@@ -269,7 +269,7 @@ describe("assignee filters", () => {
   });
 
   it("looks a name up in /principals even inside a project", async () => {
-    routes({ "/users/me": ME, "/principals": PRINCIPALS, "/projects/website/work_packages": RESULTS });
+    routes({ "/users/me": ME, "/principals": PRINCIPALS, "/projects/website": { id: 3 }, "/projects/3/work_packages": RESULTS });
     await callTool(await connect(), "search_work_packages", { project: "website", assignee: "Left Project" });
 
     expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["44"] } });

@@ -42,9 +42,9 @@ afterEach(() => vi.unstubAllGlobals());
 describe("create_work_package", () => {
   it("posts to the project path with resolved links", async () => {
     routes({
-      "/users/me": ME, "/projects/website/types": TYPES, "/statuses": STATUSES,
-      "/projects/website/work_packages": workPackage,
-      "/projects/website/available_assignees": { total: 1, count: 1, _embedded: { elements: [{ id: 5, name: "Ana Ruiz" }] } },
+      "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/types": TYPES, "/statuses": STATUSES,
+      "/projects/3/work_packages": workPackage,
+      "/projects/3/available_assignees": { total: 1, count: 1, _embedded: { elements: [{ id: 5, name: "Ana Ruiz" }] } },
     });
     const client = await connect();
 
@@ -54,7 +54,7 @@ describe("create_work_package", () => {
       status: "In progress", dueDate: "2026-08-03",
     })).json();
 
-    const [call] = callsTo("/projects/website/work_packages");
+    const [call] = callsTo("/projects/3/work_packages");
     expect(call[1].method).toBe("POST");
     expect(bodyOf(call)).toEqual({
       subject: "Fix login redirect",
@@ -87,7 +87,7 @@ describe("create_work_package", () => {
   });
 
   it("names the valid types when the type is unknown", async () => {
-    routes({ "/users/me": ME, "/projects/website/types": TYPES });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/types": TYPES });
     const client = await connect();
     const result = await callTool(client, "create_work_package", { project: "website", type: "Epicc", subject: "x" });
 
@@ -96,7 +96,7 @@ describe("create_work_package", () => {
   });
 
   it("is blocked in read-only mode", async () => {
-    routes({ "/users/me": ME, "/types": TYPES });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/types": TYPES });
     const client = await connect({ ...testConfig, readOnly: true });
     const result = await callTool(client, "create_work_package", { project: "website", type: "7", subject: "x" });
 
@@ -296,5 +296,19 @@ describe("write tool descriptions", () => {
     for (const name of ["create_work_package", "update_work_package"]) {
       expect(tools.find((tool) => tool.name === name)!.description).toContain("api_request");
     }
+  });
+});
+
+describe("update_work_package project scoping", () => {
+  it("resolves the assignee in the work package's own project even with a lockVersion", async () => {
+    const other = { ...workPackage, id: 5, lockVersion: 4, _links: { ...workPackage._links, project: { href: "/api/v3/projects/9", title: "Other" } } };
+    routes({
+      "/users/me": ME, "/work_packages/5": other,
+      "/projects/9/available_assignees": { total: 1, count: 1, _embedded: { elements: [{ id: 31, name: "Ana Ruiz" }] } },
+    });
+    const result = await callTool(await connect({ ...testConfig, defaultProject: "website" }), "update_work_package", { id: 5, lockVersion: 4, assignee: "Ana Ruiz" });
+
+    expect(result.isError).toBe(false);
+    expect(bodyOf(callsTo("/work_packages/5").find(([, init]) => init.method === "PATCH")!)._links.assignee).toEqual({ href: "/api/v3/users/31" });
   });
 });

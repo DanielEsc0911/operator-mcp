@@ -22,6 +22,8 @@ const SINGULAR: Record<MetaKind, string> = {
   versions: "version",
 };
 
+const MAX_LISTED_PROJECTS = 20;
+
 const cache = new Map<string, Named[]>();
 
 export function clearMetadataCache(): void {
@@ -34,7 +36,7 @@ function pathFor(kind: MetaKind, project?: string): string {
 
 async function activitiesOf(client: OpenProjectClient, workPackage?: number): Promise<Named[]> {
   if (!workPackage) {
-    throw new Error("Time entry activities depend on the work package. Pass its id as `workPackage`.");
+    throw new Error("Time entry activities depend on the work package. Pass its id as `workPackageId`.");
   }
   const form = await client.request("POST", "/time_entries/form", {
     body: { _links: { workPackage: { href: `/api/v3/work_packages/${workPackage}` } } },
@@ -103,13 +105,19 @@ export async function resolveId(
   return href.slice(href.lastIndexOf("/") + 1);
 }
 
+// Groups and placeholder users share the id space with users, so the self link says which one an id is.
+async function principalHref(client: OpenProjectClient, id: string | number): Promise<string> {
+  const { elements } = await client.collection("/principals", { filters: [{ id: { operator: "=", values: [String(id)] } }] });
+  return (elements[0] && linkHref(elements[0], "self")) ?? `/api/v3/users/${id}`;
+}
+
 export async function resolveUserHref(
   client: OpenProjectClient,
   value: string | number,
   project?: string,
 ): Promise<string> {
   if (isMe(value)) return `/api/v3/users/${(await client.me()).id}`;
-  if (isNumeric(value)) return `/api/v3/users/${value}`;
+  if (isNumeric(value)) return principalHref(client, value);
 
   const path = project ? `/projects/${segment(project)}/available_assignees` : "/principals";
   const { elements } = await client.collectAll(path);
@@ -139,8 +147,9 @@ export async function resolveProjectId(client: OpenProjectClient, value: string 
     (project) => String(project.identifier).toLowerCase() === needle || String(project.name ?? "").toLowerCase() === needle,
   );
   if (!match) {
-    const known = elements.map((project) => `${project.identifier} (${project.name})`).join(", ");
-    throw new Error(`No project "${value}". Available: ${known}`);
+    const shown = elements.slice(0, MAX_LISTED_PROJECTS).map((project) => `${project.identifier} (${project.name})`).join(", ");
+    const more = elements.length > MAX_LISTED_PROJECTS ? ` and ${elements.length - MAX_LISTED_PROJECTS} more` : "";
+    throw new Error(`No project "${value}". Available: ${shown}${more}. Call list_projects to search them all.`);
   }
   return String(match.id);
 }

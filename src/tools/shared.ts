@@ -1,5 +1,6 @@
 import type { OpenProjectClient } from "../client.js";
 import { ReadOnlyError, humanMessage } from "../errors.js";
+import { resolveProjectId } from "../resolve.js";
 
 export type ToolContext = { client: OpenProjectClient };
 
@@ -29,4 +30,8 @@ export function requireConfirm(confirm: boolean | undefined, readOnly: boolean, 
       `${action} needs confirm: true. Show the user exactly what will happen and ask first; set confirm only when they explicitly agree.`,
     );
   }
+}
+
+export async function projectOrDefault(client: OpenProjectClient, project?: string): Promise<string | undefined> {
+  return project ? resolveProjectId(client, project) : client.config.defaultProject;
 }

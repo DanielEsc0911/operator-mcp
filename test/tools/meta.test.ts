@@ -35,7 +35,7 @@ describe("list_metadata", () => {
   it("lists activities from the form of the given work package", async () => {
     const client = await connect();
     fetchMock.mockResolvedValue(respond({ _embedded: { schema: { activity: { _embedded: { allowedValues: [{ id: 3, name: "Development" }] } } } } }));
-    const result = await callTool(client, "list_metadata", { kind: "activities", workPackage: 12 });
+    const result = await callTool(client, "list_metadata", { kind: "activities", workPackageId: 12 });
 
     expect(result.json()).toEqual([{ id: 3, name: "Development" }]);
     expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/time_entries/form");

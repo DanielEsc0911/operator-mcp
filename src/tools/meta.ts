@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { listMetadata, type MetaKind } from "../resolve.js";
-import { handler, type ToolContext } from "./shared.js";
+import { handler, projectOrDefault, type ToolContext } from "./shared.js";
 
 export function registerMetaTools(server: McpServer, { client }: ToolContext): void {
   server.registerTool(
@@ -18,16 +18,16 @@ export function registerMetaTools(server: McpServer, { client }: ToolContext): v
         project: z
           .string()
           .optional()
-          .describe("Restrict types or versions to one project. Ignored for the other kinds."),
-        workPackage: z
+          .describe("Project identifier, name or id. Restricts types or versions to one project. Ignored for the other kinds."),
+        workPackageId: z
           .number()
           .int()
           .optional()
           .describe("Work package id. Required for `activities`, whose allowed values depend on the work package; ignored for the other kinds."),
       },
     },
-    handler(({ kind, project, workPackage }: { kind: MetaKind; project?: string; workPackage?: number }) =>
-      listMetadata(client, kind, project ?? client.config.defaultProject, { workPackage }),
+    handler(async ({ kind, project, workPackageId }: { kind: MetaKind; project?: string; workPackageId?: number }) =>
+      listMetadata(client, kind, await projectOrDefault(client, project), { workPackage: workPackageId }),
     ),
   );
 }

@@ -4,7 +4,7 @@ import { segment, type Filter, type OpenProjectClient } from "../client.js";
 import { flattenWorkPackage } from "../hal.js";
 import { isMe, resolveId, resolveUserHref } from "../resolve.js";
 import { latestComments } from "./activities.js";
-import { handler, type ToolContext } from "./shared.js";
+import { handler, projectOrDefault, type ToolContext } from "./shared.js";
 
 const MAX_PAGE_SIZE = 100;
 
@@ -81,7 +81,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
       description:
         "Find work packages by project, assignee, status, type, priority, text, or recency. Descriptions are omitted; use get_work_package for one item's full detail.",
       inputSchema: {
-        project: z.string().optional().describe("Project identifier or id. Defaults to the configured default project."),
+        project: z.string().optional().describe("Project identifier, name or id. Defaults to the configured default project."),
         assignee: z.string().optional().describe('Assignee. Use "me" for yourself, otherwise a user name, email or numeric id.'),
         status: z
           .string()
@@ -98,7 +98,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
       },
     },
     handler(async (args: SearchArgs) => {
-      const project = args.project ?? config.defaultProject;
+      const project = await projectOrDefault(client, args.project);
       const { total, elements } = await client.collection(collectionPath(project), {
         filters: await buildSearchFilters(client, { ...args, project }),
         pageSize: Math.min(args.limit ?? 25, MAX_PAGE_SIZE),
