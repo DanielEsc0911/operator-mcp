@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { buildInstructions } from "../src/server.js";
+import { buildInstructions, version } from "../src/server.js";
 import { connect } from "./support/harness.js";
 import type { Config } from "../src/config.js";
 
@@ -67,6 +68,12 @@ describe("tool registration", () => {
   });
 
   afterEach(() => vi.unstubAllGlobals());
+
+  it("reports the version in package.json", async () => {
+    const { version: published } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    expect(version).toBe(published);
+    expect((await connect()).getServerVersion()?.version).toBe(published);
+  });
 
   it("registers exactly the twenty-two planned tools", async () => {
     const client = await connect();

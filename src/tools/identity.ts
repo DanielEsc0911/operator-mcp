@@ -1,7 +1,7 @@
+import { existsSync } from "node:fs";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { segment } from "../client.js";
-import { readConventions } from "../conventions.js";
 import { flattenProject } from "../hal.js";
 import { handler, type ToolContext } from "./shared.js";
 
@@ -27,7 +27,7 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
         profile: config.profile,
         defaultProject: config.defaultProject,
         readOnly: config.readOnly,
-        conventionsLoaded: readConventions(config.conventionsPath) !== null,
+        conventionsLoaded: existsSync(config.conventionsPath),
       };
     }),
   );

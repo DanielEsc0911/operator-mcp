@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OpenProjectClient, type Identity } from "./client.js";
 import type { Config } from "./config.js";
@@ -15,7 +14,7 @@ import { registerTimeTools } from "./tools/time.js";
 import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
-export const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
+export const version = "1.3.1";
 
 function plain(value: string): string {
   return value.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g, " ").trim().slice(0, 80);
@@ -51,10 +50,19 @@ async function lookUpIdentity(client: OpenProjectClient): Promise<Identity | nul
   }
 }
 
+function readManualOrWarn(path: string): string | null {
+  try {
+    return readConventions(path);
+  } catch (error) {
+    process.stderr.write(`operator-mcp: cannot read ${path}, starting without the manual: ${error instanceof Error ? error.message : String(error)}\n`);
+    return null;
+  }
+}
+
 export async function createServer(config: Config): Promise<McpServer> {
   const client = new OpenProjectClient(config);
   const identity = await lookUpIdentity(client);
-  const manual = readConventions(config.conventionsPath);
+  const manual = readManualOrWarn(config.conventionsPath);
 
   const bytes = manual ? Buffer.byteLength(manual) : 0;
   if (bytes > MANUAL_WARNING_BYTES) {

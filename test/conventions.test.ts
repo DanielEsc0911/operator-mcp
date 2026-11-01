@@ -28,8 +28,18 @@ beforeEach(() => {
 });
 
 describe("readConventions", () => {
-  it("returns null when the path cannot be read as a file", () => {
-    expect(readConventions(dirname(path))).toBeNull();
+  it("throws when the manual exists but cannot be read", () => {
+    expect(() => readConventions(dirname(path))).toThrow();
+  });
+
+  it("does not overwrite an unreadable manual when adding a rule", () => {
+    chmodSync(path, 0o000);
+    try {
+      expect(() => addRule(path, "Workflow", "New rule.")).toThrow(/EACCES/);
+    } finally {
+      chmodSync(path, 0o600);
+    }
+    expect(readFileSync(path, "utf8")).toBe(MANUAL);
   });
 
   it("returns the file verbatim", () => {

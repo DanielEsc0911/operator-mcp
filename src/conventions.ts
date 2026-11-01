@@ -44,10 +44,10 @@ function sizeWarning(text: string): { warning?: string } {
 
 export function readConventions(path: string): string | null {
   try {
-    return existsSync(path) ? readFileSync(path, "utf8") : null;
+    return readFileSync(path, "utf8");
   } catch (error) {
-    process.stderr.write(`operator-mcp: cannot read ${path}: ${error instanceof Error ? error.message : String(error)}\n`);
-    return null;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
   }
 }
 
