@@ -22,7 +22,7 @@
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#what-your-agent-can-do">What it does</a> ·
-  <a href="#your-agent-cant-delete-anything-by-design">Safety</a> ·
+  <a href="#safety-what-your-agent-can-and-cannot-do">Safety</a> ·
   <a href="https://operator.daer.dev">Website</a>
 </p>
 
@@ -297,14 +297,24 @@ everyone.
 OPENPROJECT_CONVENTIONS_PATH=/path/to/repo/conventions.md
 ```
 
-## Your agent can't delete anything. By design.
+## Safety: what your agent can and cannot do
 
-OPerator has no `delete_*` tool at all, so an agent cannot delete a work package
-because it misread a vague instruction. The generic `api_request` tool also refuses
-`DELETE` unless you set `OPENPROJECT_ALLOW_DELETE=1` in the server's environment,
-and an agent can't set that for itself. If you want the agent to report without
-touching anything, [read-only mode](#read-only-agents) refuses every write before
-it leaves the machine.
+The boundary is your API key's permissions: whatever that user can do in OpenProject,
+an agent holding the key can attempt through `api_request`. OPerator narrows that:
+
+- There is no `delete_*` tool, so a vague instruction cannot delete a work package.
+  `api_request` also refuses `DELETE` unless you set `OPENPROJECT_ALLOW_DELETE=1` in
+  the server's environment, which an agent cannot set for itself.
+- Every non-GET `api_request`, every `add_convention` and `remove_convention`, and
+  `mark_notifications_read` with `all: true` need `confirm: true`. The tool
+  descriptions tell the agent to set it only after you explicitly agreed, which
+  guards against instructions planted in work package or comment text. It is a
+  contract with the agent, not a lock.
+- Changing a description needs the `lockVersion` from `get_work_package`, so an agent
+  cannot silently overwrite a colleague's edit.
+- [Read-only mode](#read-only-agents) is the hard guard: it refuses every write
+  before it leaves the machine. Use a key with limited permissions as well when the
+  agent should not reach everything.
 
 ## Two workplaces at once
 
@@ -321,7 +331,8 @@ never confuses one instance for the other.
 
 ## Read-only agents
 
-Add this to the server's entry in your MCP config:
+Run `npx operator-mcp setup --read-only` to save the profile as read-only, or add this
+to the server's entry in your MCP config (the environment overrides the profile):
 
 ```json
 { "env": { "OPENPROJECT_READ_ONLY": "1" } }
@@ -339,7 +350,7 @@ refused before a request leaves the machine. Reads work normally.
 | `OPENPROJECT_PROFILE` | Profile to load. Same as `--profile`. |
 | `OPENPROJECT_DEFAULT_PROJECT` | Project used when a tool's `project` is omitted. |
 | `OPENPROJECT_CONVENTIONS_PATH` | Read the manual from somewhere else. |
-| `OPENPROJECT_READ_ONLY` | Set to `1` to refuse every write. |
+| `OPENPROJECT_READ_ONLY` | Refuse every write. Anything except empty, `0`, `false`, `no` or `off` turns it on, so a typo stays safe. Overrides the profile. |
 | `OPENPROJECT_ALLOW_DELETE` | Set to `1` to let `api_request` send `DELETE`. Off by default. Environment only. |
 | `OPENPROJECT_ALLOW_INSECURE_HTTP` | Set to `1` to allow a plain `http://` URL to a non-loopback host. The API key then travels unencrypted. Environment only. |
 | `OPERATOR_LANG` | `es` or `en` for the command-line text. Same as `--lang`; otherwise `LC_ALL`, `LC_MESSAGES`, `LANG` decide. |

@@ -81,7 +81,11 @@ split it by responsibility. `OpenProjectClient` is the only class.
 Write what an agent needs to choose correctly, not what a type checker needs.
 
 **No `delete_*` tools, ever.** Destruction goes through `api_request`, where it
-cannot happen by misreading a vague instruction.
+cannot happen by misreading a vague instruction. This is a speed bump, not a wall:
+the API key's permissions are the real boundary and read-only mode is the hard guard.
+Every non-GET `api_request`, every manual edit and every bulk notification change
+needs `confirm: true` (`requireConfirm` in `shared.ts`), so text planted on the
+instance cannot act on its own.
 
 **Every write checks `config.readOnly`.** HTTP writes are guarded inside
 `OpenProjectClient.request`. Filesystem writes — the conventions manual — are
