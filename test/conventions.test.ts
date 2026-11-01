@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { readConventions, addRule, removeRule } from "../src/conventions.js";
 
 let path: string;
@@ -127,5 +127,81 @@ describe("removeRule", () => {
   it("will not remove a bullet from a different section", () => {
     const result = removeRule(path, "Etiquette", "Reproduce before assigning.");
     expect(result.removed).toBe(false);
+  });
+});
+
+describe("fences", () => {
+  const FENCED = "# M\n\n## Git\n- keep\n\n```sh\n# not a heading\n- not a bullet\n## Nor this\n```\n\n## Later\n- other\n";
+
+  it("does not end a section at a fenced # line", () => {
+    writeFileSync(path, FENCED);
+    addRule(path, "Git", "Added.");
+    const lines = readFileSync(path, "utf8").split("\n");
+    expect(lines.indexOf("- Added.")).toBeGreaterThan(lines.indexOf("## Nor this"));
+    expect(lines.indexOf("- Added.")).toBeLessThan(lines.indexOf("## Later"));
+    expect(findFenceIntact(readFileSync(path, "utf8"))).toBe(true);
+  });
+
+  it("does not find a fenced bullet to remove", () => {
+    writeFileSync(path, FENCED);
+    expect(removeRule(path, "Git", "not a bullet").removed).toBe(false);
+  });
+
+  function findFenceIntact(text: string) {
+    return text.includes("```sh\n# not a heading\n- not a bullet\n## Nor this\n```");
+  }
+});
+
+describe("rule text", () => {
+  it("keeps #1234 and **Never** intact, stripping only a leading bullet marker", () => {
+    addRule(path, "Etiquette", "* **Never** close #1234 yourself.");
+    expect(readFileSync(path, "utf8")).toContain("\n- **Never** close #1234 yourself.\n");
+  });
+
+  it("treats an exact duplicate as a no-op and says so", () => {
+    const first = addRule(path, "Etiquette", "Be kind.");
+    const before = readFileSync(path, "utf8");
+    const second = addRule(path, "Etiquette", "- Be kind.");
+
+    expect(first.added).toBe(true);
+    expect(second.added).toBe(false);
+    expect(second.note).toContain("nothing changed");
+    expect(readFileSync(path, "utf8")).toBe(before);
+  });
+
+  it("says the change takes effect next session", () => {
+    expect(addRule(path, "Etiquette", "New one.").note).toContain("next session");
+  });
+
+  it("returns a warning when the manual outgrows the threshold", () => {
+    writeFileSync(path, `## Big\n${"- filler line of text\n".repeat(600)}`);
+    expect(addRule(path, "Big", "One more.").warning).toContain("sent on every session");
+    expect(addRule(path, "Small", "x").warning).toBeDefined();
+    writeFileSync(path, MANUAL);
+    expect(addRule(path, "Etiquette", "Short.").warning).toBeUndefined();
+  });
+
+  it("lands every rule when adds run concurrently", async () => {
+    await Promise.all(["a", "b", "c", "d"].map(async (rule) => addRule(path, "Etiquette", `Rule ${rule}.`)));
+    const text = readFileSync(path, "utf8");
+    for (const rule of ["a", "b", "c", "d"]) expect(text).toContain(`- Rule ${rule}.`);
+  });
+});
+
+describe("removing multi-line bullets", () => {
+  it("removes a bullet with its continuation and nested lines, and nothing else", () => {
+    writeFileSync(path, "## W\n- first\n- long rule that\n  wraps here\n  - nested one\n  - nested two\n\n- last\n");
+    const result = removeRule(path, "W", "long rule that wraps here");
+
+    expect(result.removed).toBe(true);
+    expect(readFileSync(path, "utf8")).toBe("## W\n- first\n\n- last\n");
+  });
+
+  it("keeps exactly one rolling .bak", () => {
+    removeRule(path, "Etiquette", "Comment on the work package when you push.");
+    removeRule(path, "Git / GitLab", "Commit subject: `[#1234] <imperative summary>`");
+    const backups = readdirSync(dirname(path)).filter((name) => name.endsWith(".bak"));
+
+    expect(backups).toEqual(["conventions.md.bak"]);
   });
 });

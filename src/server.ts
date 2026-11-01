@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OpenProjectClient, type Identity } from "./client.js";
 import type { Config } from "./config.js";
-import { readConventions } from "./conventions.js";
+import { MANUAL_WARNING_BYTES, readConventions } from "./conventions.js";
 import { registerConventionTools } from "./tools/conventions.js";
 import { registerIdentityTools } from "./tools/identity.js";
 import { registerMetaTools } from "./tools/meta.js";
@@ -12,7 +12,6 @@ import { registerBriefingTools } from "./tools/briefing.js";
 import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
-const MANUAL_WARNING_BYTES = 10_000;
 export const version = "1.3.1";
 
 function plain(value: string): string {
