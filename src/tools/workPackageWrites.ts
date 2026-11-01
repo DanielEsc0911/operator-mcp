@@ -41,15 +41,19 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     {
       title: "Update a work package",
       description:
-        "Change any subset of a work package's fields. The optimistic lock is handled for you. Pass null for assignee or parent to clear it.",
+        "Change any subset of a work package's fields. Changing the description requires lockVersion from get_work_package, so you never overwrite someone else's edit; other fields handle the lock for you. Pass null for assignee or parent to clear it.",
       inputSchema: {
         ...WRITE_SCHEMA,
         id: z.number().int().describe("Work package id."),
+        lockVersion: z.number().int().optional().describe("The lockVersion you read from get_work_package. Required when description is set; optional otherwise (the current one is read for you)."),
         assignee: z.string().nullable().optional().describe('Assignee name, email, numeric id, "me", or null to clear.'),
         parent: z.number().int().nullable().optional().describe("Parent work package id, or null to detach."),
       },
     },
-    handler(async ({ id, ...args }: WriteArgs & { id: number }) => {
+    handler(async ({ id, lockVersion, ...args }: WriteArgs & { id: number; lockVersion?: number }) => {
+      if (args.description !== undefined && lockVersion === undefined) {
+        throw new Error("Changing the description needs lockVersion. Call get_work_package first, then pass its lockVersion, so a colleague's edit is not overwritten.");
+      }
       const { fields, links } = await buildPayload(client, args, config.defaultProject);
       if (!Object.keys(fields).length && !Object.keys(links).length) {
         throw new Error("Nothing to update. Supply at least one field.");
@@ -57,8 +61,8 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
 
       // OpenProject uses optimistic locking: a PATCH without the resource's
       // current lockVersion is rejected, and a stale one returns 409.
-      const current = await client.request("GET", `/work_packages/${id}`);
-      const body: Record<string, unknown> = { lockVersion: current.lockVersion, ...fields };
+      const version = lockVersion ?? (await client.request("GET", `/work_packages/${id}`)).lockVersion;
+      const body: Record<string, unknown> = { lockVersion: version, ...fields };
       if (Object.keys(links).length) body._links = links;
 
       const updated = await client.request("PATCH", `/work_packages/${id}`, { body });

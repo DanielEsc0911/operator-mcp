@@ -147,6 +147,35 @@ describe("update_work_package", () => {
     expect(callsTo("/work_packages/1234")).toHaveLength(0);
   });
 
+  it("requires lockVersion when the description changes, without any request", async () => {
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    const client = await connect();
+    const result = await callTool(client, "update_work_package", { id: 1234, description: "New" });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("get_work_package");
+    expect(callsTo("/work_packages/1234")).toHaveLength(0);
+  });
+
+  it("sends a given lockVersion as-is, without re-reading", async () => {
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    const client = await connect();
+    await callTool(client, "update_work_package", { id: 1234, description: "New", lockVersion: 3 });
+
+    const calls = callsTo("/work_packages/1234");
+    expect(calls).toHaveLength(1);
+    expect(bodyOf(calls[0])).toEqual({ lockVersion: 3, description: { raw: "New" } });
+  });
+
+  it("surfaces a 409 for a stale lockVersion", async () => {
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ message: "Version mismatch" }, 409));
+    const client = await connect();
+    const result = await callTool(client, "update_work_package", { id: 1234, description: "x", lockVersion: 1 });
+
+    expect(result.text).toBe("Version mismatch. Read the resource again and retry.");
+  });
+
   it("tells the agent to re-read after a lock conflict", async () => {
     fetchMock.mockImplementation(async (url: URL, init: RequestInit) => {
       if (url.pathname === "/api/v3/users/me") return respond(ME);
