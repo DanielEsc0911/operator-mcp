@@ -161,3 +161,36 @@ describe("me", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
+
+describe("response integrity", () => {
+  const html = () => new Response("<html>Sign in</html>", { status: 200, headers: { "Content-Type": "text/html" } });
+
+  it("warns that a write may have happened when a 2xx answer is not JSON", async () => {
+    fetchMock.mockResolvedValue(html());
+    const client = new OpenProjectClient(config);
+    await expect(client.request("POST", "/work_packages", { body: {} })).rejects.toThrow(/non-JSON page.*write may already have happened/);
+  });
+
+  it("uses plainer text for a GET", async () => {
+    fetchMock.mockResolvedValue(html());
+    const client = new OpenProjectClient(config);
+    const error = await client.request("GET", "/statuses").catch((e) => e);
+    expect(error.message).toContain("non-JSON page");
+    expect(error.message).not.toContain("write may");
+  });
+
+  it("accepts an empty 204 and an empty 200", async () => {
+    const client = new OpenProjectClient(config);
+    fetchMock.mockResolvedValueOnce(respond(null, 204));
+    expect(await client.request("POST", "/notifications/read_ian")).toBeNull();
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 200 }));
+    expect(await client.request("POST", "/notifications/read_ian")).toBeNull();
+  });
+
+  it("warns that a write may have happened when a non-GET times out", async () => {
+    fetchMock.mockRejectedValue(new DOMException("timed out", "TimeoutError"));
+    const client = new OpenProjectClient(config);
+    await expect(client.request("POST", "/work_packages", { body: {} })).rejects.toThrow(/did not answer.*write may already have happened/);
+    await expect(client.request("GET", "/statuses")).rejects.toThrow(/Cannot reach/);
+  });
+});

@@ -58,7 +58,7 @@ describe("whoami", () => {
   });
 
   it("returns a readable error when the key is rejected", async () => {
-    fetchMock.mockResolvedValue(respond({}, 401));
+    fetchMock.mockImplementation(async () => respond({}, 401));
     const client = await connect();
     const result = await callTool(client, "whoami");
 

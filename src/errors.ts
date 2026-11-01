@@ -16,6 +16,14 @@ export class OpenProjectError extends Error {
   }
 }
 
+const WRITE_MAY_HAVE_HAPPENED = "A write may already have happened — check the work package or list before retrying.";
+
+export class UnexpectedResponseError extends Error {
+  constructor(method: string, detail: string) {
+    super(method === "GET" ? detail : `${detail} ${WRITE_MAY_HAVE_HAPPENED}`);
+  }
+}
+
 type ErrorBody = {
   message?: string;
   _embedded?: { errors?: { message?: string }[] };

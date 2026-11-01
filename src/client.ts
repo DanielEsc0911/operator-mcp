@@ -1,5 +1,5 @@
 import type { Config } from "./config.js";
-import { ConfigError, OpenProjectError, ReadOnlyError, describeHttpError } from "./errors.js";
+import { ConfigError, OpenProjectError, ReadOnlyError, UnexpectedResponseError, describeHttpError } from "./errors.js";
 import type { HalResource } from "./hal.js";
 
 export type Filter = Record<string, { operator: string; values: string[] }>;
@@ -10,6 +10,14 @@ const TIMEOUT_MS = 30_000;
 
 export function segment(value: string | number): string {
   return encodeURIComponent(String(value));
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
 }
 
 export class OpenProjectClient {
@@ -48,11 +56,21 @@ export class OpenProjectClient {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (error) {
+      if (method !== "GET" && error instanceof Error && error.name === "TimeoutError") {
+        throw new UnexpectedResponseError(method, `${this.config.url} did not answer within ${TIMEOUT_MS / 1000} s.`);
+      }
       throw new Error(`Cannot reach ${this.config.url}: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    const payload = response.status === 204 ? null : await response.json().catch(() => null);
-    if (!response.ok) throw new OpenProjectError(response.status, describeHttpError(response.status, this.config.url, payload));
+    const text = await response.text();
+    if (!response.ok) {
+      throw new OpenProjectError(response.status, describeHttpError(response.status, this.config.url, parseJson(text)));
+    }
+    if (!text.trim()) return null;
+    const payload = parseJson(text);
+    if (payload === undefined) {
+      throw new UnexpectedResponseError(method, "The server answered with a non-JSON page (proxy or login page?).");
+    }
     return payload;
   }
 
