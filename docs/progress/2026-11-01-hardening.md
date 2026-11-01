@@ -16,7 +16,7 @@ open, with the commit range.
 | Chunk 1 — Safety and the manual (1a–1g) | done | `ca9a34e`..`dbecbbe` |
 | Chunk 1 — review fixes (F1–F16) | done | `e788bcb`..`718e3f7` |
 | Chunk 2 — Agent tools (2a–2i) | done | `b636897`..`26d77aa` (2i skipped) |
-| Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..HEAD |
+| Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..`2d2a636` |
 | Chunk 4 — Release, testing infra, final gate (4a–4f) | todo | |
 
 ## Hand-off notes
@@ -108,7 +108,7 @@ All of F1–F16 done, 397 tests green, no new code comments.
 
 Deviation: `removeRule` also lists only top-level bullets now (consistent with F8).
 
-### Chunk 3 (2026-11-01, `a6b40bf`..HEAD)
+### Chunk 3 (2026-11-01, `a6b40bf`..`2d2a636`)
 
 Done: 3a/3b/3f client side in one commit (`a6b40bf`; the three rewrote the same two files), 3c flags (`bcd8c0b`),
 3d doctor and network causes (`efdfa6f`), 3e prompts and setup. 436 tests green, comment count still ten.
