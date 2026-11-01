@@ -16,6 +16,7 @@ open, with the commit range.
 | Chunk 1 — Safety and the manual (1a–1g) | done | `ca9a34e`..`dbecbbe` |
 | Chunk 1 — review fixes (F1–F16) | done | `e788bcb`..`718e3f7` |
 | Chunk 2 — Agent tools (2a–2i) | done | `b636897`..`26d77aa` (2i skipped) |
+| Chunk 2 — review fixes (G1–G14) | done | `47978c9`..`65457ed` |
 | Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..`2d2a636` |
 | Chunk 4 — Release, testing infra, final gate (4a–4f) | todo | |
 
@@ -88,7 +89,7 @@ Deviations:
 - 2i skipped: agy not run; no instance of the user was touched.
 
 Open for later chunks:
-- Chunk 4 binary smoke: confirm `createRequire(...)("../package.json")` works in the Bun-compiled binary
+- (superseded by G3: literal version) Chunk 4 binary smoke: confirm `createRequire(...)("../package.json")` works in the Bun-compiled binary
   (fall back to a generated constant if not).
 - Live suite (R41) should cover the shapes above (`groupBy`, `read_ian` id filter, activities, `spentOn`).
 - Notifications are not generated for self-made changes in the Docker image; seed them with `rails runner`
@@ -132,3 +133,25 @@ Deviations:
 
 Open for Chunk 4: README mentions of backups (`.bak` is now one rolling file), `--flag=value`, and the pinned
 `npx operator-mcp@<version>` entry; CHANGELOG entries for R4/R6/R13/R14/R15/R30/R32-R39.
+
+### Chunk 2 review fixes (2026-11-01, `47978c9`..`65457ed`)
+
+- G1 `readConventions` returns null only for ENOENT, else throws. `createServer` catches, writes one stderr line,
+  starts without the manual. add/remove error on an unreadable manual (file unchanged, tested). `whoami` now uses
+  `existsSync` for `conventionsLoaded` so it never fails on an unreadable manual.
+- G2 briefing: 15 soonest-due `pending` rows, `pendingCount`, description points to `my_work`; activity rows drop
+  `project` when scoped to one project. G8 `byStatusCountedFirst` fallback. G9 `sortBy id desc` on both
+  notification feeds.
+- G3 `version` is a literal again plus a guard test against package.json. `bun` is NOT installed here, so the
+  compiled-binary check could not run (open item for Chunk 4 binary smoke).
+- G4 standup: rows 20, `total` and `truncated` on both lists. G5 `my_work`: no per-row assignee/url, one `urlTemplate`.
+- G6 `resolveProjectId` tries `GET /projects/{value}` first, scans names only on 404. G7 `mark_notifications_read`
+  ids path returns `{ requested }`, description corrected. G10 `api_request` caps by bytes and returns
+  `{ truncated, bytes, preview }`. G11 `isMe` (trim, case-insensitive) in resolve.ts, used by search and user resolution.
+  G12 search assignee names resolve via `/principals`. G13 `list_users` returns `{ total, users, truncated? }`.
+  G14 the api_request hint moved from the `version` field to create/update tool descriptions.
+- Deviations: none of substance. No new comments, no new files.
+- Measured on realistic fixtures (Spanish 85-char subjects, 65-char project names): briefing 7700 B (46 open items,
+  50 notifications), standup 8012 B (20 entries + 20 changes, 25 total), my_work 7279 B (20 rows). Standup is close
+  to the 8192 B budget.
+- Open: bun binary `--version` check; standup headroom is thin if comments get longer.
