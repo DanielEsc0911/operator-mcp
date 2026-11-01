@@ -310,8 +310,10 @@ an agent holding the key can attempt through `api_request`. OPerator narrows tha
   descriptions tell the agent to set it only after you explicitly agreed, which
   guards against instructions planted in work package or comment text. It is a
   contract with the agent, not a lock.
-- Changing a description needs the `lockVersion` from `get_work_package`, so an agent
-  cannot silently overwrite a colleague's edit.
+- When an agent passes the `lockVersion` it got from `get_work_package`, a colleague's
+  later edit makes the update fail, and for a description the agent is told to compare
+  and ask you before retrying. Without a `lockVersion` the tool uses the current one,
+  so that protection does not apply.
 - [Read-only mode](#read-only-agents) is the hard guard: it refuses every write
   before it leaves the machine. Use a key with limited permissions as well when the
   agent should not reach everything.

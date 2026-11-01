@@ -55,6 +55,7 @@ export class OpenProjectClient {
     const credentials = Buffer.from(`apikey:${this.config.apiKey}`).toString("base64");
 
     let response: Response;
+    let text: string;
     try {
       response = await fetch(url, {
         method,
@@ -62,21 +63,24 @@ export class OpenProjectClient {
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
+      text = await response.text();
     } catch (error) {
-      if (method !== "GET" && error instanceof Error && error.name === "TimeoutError") {
-        throw new UnexpectedResponseError(method, `${this.config.url} did not answer within ${TIMEOUT_MS / 1000} s.`);
-      }
-      throw new Error(`Cannot reach ${this.config.url}: ${error instanceof Error ? error.message : String(error)}`);
+      const reason = error instanceof Error ? error.message : String(error);
+      if (method === "GET") throw new Error(`Cannot reach ${this.config.url}: ${reason}`);
+      throw new UnexpectedResponseError(method, `The request to ${this.config.url} failed before a full answer arrived (${reason}).`);
     }
 
-    const text = await response.text();
     if (!response.ok) {
       throw new OpenProjectError(response.status, describeHttpError(response.status, this.config.url, parseJson(text)));
     }
     if (!text.trim()) return null;
     const payload = parseJson(text);
     if (payload === undefined) {
-      throw new UnexpectedResponseError(method, "The server answered with a non-JSON page (proxy or login page?).");
+      const type = response.headers.get("content-type") ?? "";
+      const detail = /html|^$/i.test(type)
+        ? "The server answered with a non-JSON page (proxy or login page?)."
+        : `${path} is not a JSON resource (content-type ${type}); api_request only handles JSON.`;
+      throw new UnexpectedResponseError(method, detail);
     }
     return payload;
   }

@@ -1,11 +1,26 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { segment } from "../client.js";
+import { segment, type OpenProjectClient } from "../client.js";
+import { OpenProjectError } from "../errors.js";
 import { flattenWorkPackage, linkId } from "../hal.js";
 import { handler, type ToolContext } from "./shared.js";
 import { WRITE_SCHEMA, buildPayload, type WriteArgs } from "./workPackageFields.js";
 
 const RELATION_TYPES = ["relates", "duplicates", "blocks", "precedes", "includes", "requires"] as const;
+
+const DESCRIPTION_CONFLICT =
+  "Someone else changed this work package while you were editing it. Re-read it with get_work_package, compare their description with yours, and ask the user before retrying.";
+
+async function patchWorkPackage(client: OpenProjectClient, id: number, body: Record<string, unknown>) {
+  try {
+    return await client.request("PATCH", `/work_packages/${id}`, { body });
+  } catch (error) {
+    if (error instanceof OpenProjectError && error.status === 409 && "description" in body) {
+      throw new OpenProjectError(409, DESCRIPTION_CONFLICT);
+    }
+    throw error;
+  }
+}
 
 export function registerWorkPackageWriteTools(server: McpServer, { client }: ToolContext): void {
   const { config } = client;
@@ -71,7 +86,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       const body: Record<string, unknown> = { lockVersion: lockVersion ?? current?.lockVersion, ...fields };
       if (Object.keys(links).length) body._links = links;
 
-      const updated = await client.request("PATCH", `/work_packages/${id}`, { body });
+      const updated = await patchWorkPackage(client, id, body);
       return flattenWorkPackage(updated, config.url, { detail: true });
     }),
   );

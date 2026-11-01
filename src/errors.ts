@@ -6,7 +6,7 @@ export class ConfigError extends Error {
 
 export class ReadOnlyError extends Error {
   constructor() {
-    super("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    super("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   }
 }
 

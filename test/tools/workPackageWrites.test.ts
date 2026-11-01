@@ -101,7 +101,7 @@ describe("create_work_package", () => {
     const result = await callTool(client, "create_work_package", { project: "website", type: "7", subject: "x" });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   });
 });
 
@@ -196,9 +196,18 @@ describe("update_work_package", () => {
     fetchMock.mockImplementation(async (url: URL) =>
       url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ message: "Version mismatch" }, 409));
     const client = await connect();
-    const result = await callTool(client, "update_work_package", { id: 1234, description: "x", lockVersion: 1 });
+    const result = await callTool(client, "update_work_package", { id: 1234, subject: "x", lockVersion: 1 });
 
     expect(result.text).toBe("Version mismatch. Read the resource again and retry.");
+  });
+
+  it("tells the agent to compare and ask the user after a description conflict", async () => {
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ message: "Version mismatch" }, 409));
+    const client = await connect();
+    const result = await callTool(client, "update_work_package", { id: 1234, description: "x", lockVersion: 1 });
+
+    expect(result.text).toContain("compare their description with yours, and ask the user before retrying");
   });
 
   it("tells the agent to re-read after a lock conflict", async () => {

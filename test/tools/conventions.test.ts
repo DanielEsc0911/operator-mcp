@@ -96,7 +96,7 @@ describe("add_convention", () => {
     const result = await callTool(client, "add_convention", { section: "Git / GitLab", rule: "Nope.", confirm: true });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
     expect(readFileSync(path, "utf8")).toBe(MANUAL);
   });
 });

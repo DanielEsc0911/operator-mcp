@@ -123,6 +123,6 @@ describe("log_time", () => {
     const result = await callTool(client, "log_time", { workPackageId: 1234, hours: 1 });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   });
 });

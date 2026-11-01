@@ -108,7 +108,7 @@ describe("api_request", () => {
     const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1234", confirm: true });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   });
 
   it("still allows reads in read-only mode", async () => {

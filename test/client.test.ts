@@ -190,8 +190,29 @@ describe("response integrity", () => {
   it("warns that a write may have happened when a non-GET times out", async () => {
     fetchMock.mockRejectedValue(new DOMException("timed out", "TimeoutError"));
     const client = new OpenProjectClient(config);
-    await expect(client.request("POST", "/work_packages", { body: {} })).rejects.toThrow(/did not answer.*write may already have happened/);
+    await expect(client.request("POST", "/work_packages", { body: {} })).rejects.toThrow(/timed out.*write may already have happened/);
     await expect(client.request("GET", "/statuses")).rejects.toThrow(/Cannot reach/);
+  });
+
+  it("warns the same way when the body stream breaks mid-read on a POST", async () => {
+    const body = new ReadableStream({ pull: (controller) => controller.error(new TypeError("terminated")) });
+    fetchMock.mockResolvedValue(new Response(body, { status: 201 }));
+    const error = await new OpenProjectClient(config).request("POST", "/work_packages", { body: {} }).catch((e) => e);
+    expect(error.message).toMatch(/terminated.*write may already have happened/);
+  });
+
+  it("warns the same way for a network error on PATCH", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+    await expect(new OpenProjectClient(config).request("PATCH", "/work_packages/1", { body: {} })).rejects.toThrow(
+      /fetch failed.*write may already have happened/,
+    );
+  });
+
+  it("says a non-HTML, non-JSON 2xx GET is not a JSON resource", async () => {
+    fetchMock.mockResolvedValue(new Response("a,b", { status: 200, headers: { "Content-Type": "text/csv" } }));
+    await expect(new OpenProjectClient(config).request("GET", "/export.csv")).rejects.toThrow(
+      "/export.csv is not a JSON resource (content-type text/csv); api_request only handles JSON.",
+    );
   });
 });
 
