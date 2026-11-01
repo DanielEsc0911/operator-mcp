@@ -74,12 +74,12 @@ describe("tool registration", () => {
     expect(client.getServerVersion()?.version).toBe(version);
   });
 
-  it("registers exactly the twenty planned tools", async () => {
+  it("registers exactly the twenty-one planned tools", async () => {
     const client = await connect();
     const names = (await client.listTools()).tools.map((tool) => tool.name).sort();
 
     expect(names).toEqual([
-      "add_convention", "api_request", "comment_work_package", "conventions", "create_work_package",
+      "add_convention", "api_request", "briefing", "comment_work_package", "conventions", "create_work_package",
       "get_work_package", "link_work_packages", "list_activities", "list_metadata", "list_notifications",
       "list_projects", "list_users", "log_time", "mark_notifications_read", "my_work",
       "remove_convention", "search_work_packages", "update_work_package", "watch_work_package", "whoami",

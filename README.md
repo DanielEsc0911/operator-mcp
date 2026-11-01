@@ -254,12 +254,15 @@ your MCP config stays safe to check into a repo.
 | Area | Tools |
 |---|---|
 | **Identity** | `whoami` |
-| **Discovery** | `list_projects` · `list_users` · `get_work_package` · `search_work_packages` · `my_work` |
+| **Discovery** | `briefing` · `list_projects` · `list_users` · `get_work_package` · `search_work_packages` · `my_work` |
 | **Tasks** | `create_work_package` · `update_work_package` · `comment_work_package` · `list_activities` · `link_work_packages` |
 | **Notifications** | `list_notifications` · `mark_notifications_read` · `watch_work_package` |
 | **Time & metadata** | `log_time` · `list_metadata` |
 | **Conventions** | `conventions` · `add_convention` · `remove_convention` |
 | **Escape hatch** | `api_request` |
+
+"What's pending?", "what's new?", "what's on my plate?" all land on `briefing`: your open work,
+unread notifications and recent changes in one call, so even a small model answers in one step.
 
 The API key is yours, so the server already knows who you are: `my_work` and your
 notification feed need no further configuration.

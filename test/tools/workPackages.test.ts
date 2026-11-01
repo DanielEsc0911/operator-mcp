@@ -125,7 +125,7 @@ describe("search_work_packages", () => {
     const client = await connect();
     await callTool(client, "search_work_packages", { updatedSince: "2026-07-01" });
 
-    expect(filtersOf()).toContainEqual({ updatedAt: { operator: ">d", values: ["2026-07-01"] } });
+    expect(filtersOf()).toContainEqual({ updatedAt: { operator: "<>d", values: ["2026-07-01", ""] } });
   });
 
   it("sends no filters parameter when nothing was asked for", async () => {

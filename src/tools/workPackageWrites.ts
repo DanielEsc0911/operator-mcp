@@ -32,7 +32,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       const created = await client.request("POST", `/projects/${segment(target)}/work_packages`, {
         body: { ...fields, _links: links },
       });
-      return flattenWorkPackage(created, config.url, { includeDescription: true });
+      return flattenWorkPackage(created, config.url, { detail: true });
     }),
   );
 
@@ -62,7 +62,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       if (Object.keys(links).length) body._links = links;
 
       const updated = await client.request("PATCH", `/work_packages/${id}`, { body });
-      return flattenWorkPackage(updated, config.url, { includeDescription: true });
+      return flattenWorkPackage(updated, config.url, { detail: true });
     }),
   );
 

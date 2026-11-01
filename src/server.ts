@@ -8,6 +8,7 @@ import { registerMetaTools } from "./tools/meta.js";
 import { registerNotificationTools } from "./tools/notifications.js";
 import { registerRawTools } from "./tools/raw.js";
 import { registerTimeTools } from "./tools/time.js";
+import { registerBriefingTools } from "./tools/briefing.js";
 import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
@@ -20,6 +21,7 @@ export function buildInstructions(config: Config, identity: Identity | null, man
       ? `You are ${identity.name} (${identity.email}) on ${config.url}, profile "${config.profile}".`
       : `OpenProject server, profile "${config.profile}". Identity is unresolved — call whoami to find out why.`,
   ];
+  lines.push("For \"what's pending / new / on my plate\" questions, call `briefing` once and answer from it.");
   if (config.defaultProject) lines.push(`Default project: ${config.defaultProject}.`);
   if (config.readOnly) lines.push("This server is read-only. No changes can be made.");
   if (manual?.trim()) lines.push("", "Follow these conventions in all OpenProject work:", "", manual.trim());
@@ -43,6 +45,7 @@ export async function createServer(config: Config): Promise<McpServer> {
 
   registerIdentityTools(server, { client });
   registerMetaTools(server, { client });
+  registerBriefingTools(server, { client });
   registerWorkPackageTools(server, { client });
   registerWorkPackageWriteTools(server, { client });
   registerNotificationTools(server, { client });

@@ -35,7 +35,7 @@ as a bad key and sends you off regenerating it forever. This cost a bug once.
 { status: { operator: "c", values: [] } }   // any closed status
 ```
 
-Other operators in use: `**` full-text search, `>d` date-after. See `statusFilter`
+Other operators in use: `**` full-text search, `<>d` date-between — "on or after X" is `values: [X, ""]`; `>d` is rejected with a 400. See `statusFilter`
 and `buildSearchFilters` in `src/tools/workPackages.ts`.
 
 **`offset` is a 1-based page number**, not a record offset. `pageSize` is items per

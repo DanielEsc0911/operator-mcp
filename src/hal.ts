@@ -27,9 +27,9 @@ function raw(value: unknown): string | undefined {
 export function flattenWorkPackage(
   wp: HalResource,
   baseUrl: string,
-  options: { includeDescription?: boolean } = {},
+  options: { detail?: boolean } = {},
 ): Record<string, unknown> {
-  return {
+  const row = {
     id: wp.id,
     subject: wp.subject,
     type: linkTitle(wp, "type"),
@@ -37,16 +37,20 @@ export function flattenWorkPackage(
     priority: linkTitle(wp, "priority"),
     project: linkTitle(wp, "project"),
     assignee: linkTitle(wp, "assignee"),
-    author: linkTitle(wp, "author"),
     parent: linkId(wp, "parent"),
     startDate: wp.startDate ?? undefined,
     dueDate: wp.dueDate ?? undefined,
     percentageDone: wp.percentageDone ?? undefined,
-    lockVersion: wp.lockVersion,
-    createdAt: wp.createdAt,
     updatedAt: wp.updatedAt,
     url: `${baseUrl}/work_packages/${wp.id}`,
-    ...(options.includeDescription ? { description: raw(wp.description) ?? "" } : {}),
+  };
+  if (!options.detail) return row;
+  return {
+    ...row,
+    author: linkTitle(wp, "author"),
+    lockVersion: wp.lockVersion,
+    createdAt: wp.createdAt,
+    description: raw(wp.description) ?? "",
   };
 }
 
@@ -56,7 +60,6 @@ export function flattenProject(project: HalResource, baseUrl: string): Record<st
     name: project.name,
     identifier: project.identifier,
     active: project.active,
-    description: raw(project.description),
     url: `${baseUrl}/projects/${project.identifier}`,
   };
 }
@@ -91,6 +94,7 @@ export function flattenActivity(activity: HalResource): Record<string, unknown> 
   };
 }
 
-export function flattenNamed(resource: HalResource): { id: number; name: string } {
-  return { id: resource.id as number, name: resource.name as string };
+export function flattenNamed(resource: HalResource): { id: number; name: string; isClosed?: boolean } {
+  const named = { id: resource.id as number, name: resource.name as string };
+  return typeof resource.isClosed === "boolean" ? { ...named, isClosed: resource.isClosed } : named;
 }

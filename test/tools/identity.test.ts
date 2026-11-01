@@ -83,8 +83,8 @@ describe("list_projects", () => {
     const client = await connect();
 
     expect((await callTool(client, "list_projects")).json()).toEqual([
-      { id: 3, name: "Website", identifier: "website", active: true, description: undefined, url: "https://op.acme.com/projects/website" },
-      { id: 4, name: "Intranet", identifier: "intranet", active: true, description: undefined, url: "https://op.acme.com/projects/intranet" },
+      { id: 3, name: "Website", identifier: "website", active: true, url: "https://op.acme.com/projects/website" },
+      { id: 4, name: "Intranet", identifier: "intranet", active: true, url: "https://op.acme.com/projects/intranet" },
     ]);
   });
 

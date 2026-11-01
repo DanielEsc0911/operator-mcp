@@ -21,7 +21,8 @@ export type SearchArgs = {
 };
 
 // OpenProject expresses "any open status" and "any closed status" as filter
-// operators with no values, not as status names.
+// operators with no values, not as status names. "On or after a date" is the
+// between operator `<>d` with an empty upper bound; `>d` is rejected.
 async function statusFilter(client: OpenProjectClient, status: string, project?: string): Promise<Filter> {
   if (status === "open") return { status: { operator: "o", values: [] } };
   if (status === "closed") return { status: { operator: "c", values: [] } };
@@ -35,11 +36,11 @@ export async function buildSearchFilters(client: OpenProjectClient, args: Search
   if (args.type) filters.push({ type: { operator: "=", values: [await resolveId(client, "types", args.type, args.project)] } });
   if (args.priority) filters.push({ priority: { operator: "=", values: [await resolveId(client, "priorities", args.priority)] } });
   if (args.query) filters.push({ search: { operator: "**", values: [args.query] } });
-  if (args.updatedSince) filters.push({ updatedAt: { operator: ">d", values: [args.updatedSince] } });
+  if (args.updatedSince) filters.push({ updatedAt: { operator: "<>d", values: [args.updatedSince, ""] } });
   return filters;
 }
 
-function collectionPath(project?: string): string {
+export function collectionPath(project?: string): string {
   return project ? `/projects/${segment(project)}/work_packages` : "/work_packages";
 }
 
@@ -55,7 +56,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
     },
     handler(async ({ id }: { id: number }) => {
       const wp = await client.request("GET", `/work_packages/${id}`);
-      return flattenWorkPackage(wp, config.url, { includeDescription: true });
+      return flattenWorkPackage(wp, config.url, { detail: true });
     }),
   );
 
