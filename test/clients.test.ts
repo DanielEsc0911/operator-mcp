@@ -126,7 +126,7 @@ describe("mimocode", () => {
     expect(detectClients(root)).toContain(client);
     client.register(target(root));
     const config = readJson(join(root, ".config/mimocode/mimocode.jsonc"));
-    expect(config.$schema).toBe("https://mimo.xiaomi.com/mimocode/config.json");
+    expect(config.$schema).toBeUndefined();
     expect(config.mcp.openproject.command).toEqual(["npx", "-y", "operator-mcp"]);
   });
 });

@@ -154,7 +154,8 @@ up any file it changes.
 | **Codex CLI** | `~/.codex/config.toml` | `codex mcp list` shows `openproject` |
 | **Gemini CLI** | `~/.gemini/settings.json` | `/mcp` lists `openproject` |
 | **Qwen Code** | `~/.qwen/settings.json` | `qwen mcp list` shows `openproject` |
-| **Kimi CLI** / **Kimi Code** | `~/.kimi/mcp.json` / `~/.kimi-code/mcp.json` | `kimi mcp list` shows `openproject` |
+| **Kimi CLI** | `~/.kimi/mcp.json` (older releases) | `kimi mcp list` shows `openproject` |
+| **Kimi Code** | `~/.kimi-code/mcp.json` | `kimi mcp list` shows `openproject` |
 | **iFlow CLI** | `~/.iflow/settings.json` | `iflow mcp list` shows `openproject` |
 | **Kiro** | `~/.kiro/settings/mcp.json` | the MCP panel shows `openproject` |
 | **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | *Settings → MCP* shows `openproject` |
