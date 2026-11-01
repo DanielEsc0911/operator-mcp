@@ -141,6 +141,14 @@ describe("mark_notifications_read", () => {
     expect(result.text).toContain("Pass ids, or all: true");
   });
 
+  it("reports read-only before it asks for confirm", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect({ ...testConfig, readOnly: true });
+    const result = await callTool(client, "mark_notifications_read", { all: true });
+
+    expect(result.text).toContain("read-only mode");
+  });
+
   it("is blocked in read-only mode", async () => {
     routes({ "/users/me": ME });
     const client = await connect({ ...testConfig, readOnly: true });

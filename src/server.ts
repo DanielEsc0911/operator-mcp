@@ -18,7 +18,7 @@ import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 export const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 function plain(value: string): string {
-  return value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, " ").trim().slice(0, 80);
+  return value.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g, " ").trim().slice(0, 80);
 }
 
 export function buildInstructions(config: Config, identity: Identity | null, manual: string | null): string {

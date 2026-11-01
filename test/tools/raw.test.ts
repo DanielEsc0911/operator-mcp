@@ -111,6 +111,12 @@ describe("api_request", () => {
     expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   });
 
+  it("reports read-only before it asks for confirm", async () => {
+    const client = await connect({ ...testConfig, readOnly: true });
+    const result = await callTool(client, "api_request", { method: "PATCH", path: "/work_packages/1234" });
+    expect(result.text).toContain("read-only mode");
+  });
+
   it("still allows reads in read-only mode", async () => {
     const client = await connect({ ...testConfig, readOnly: true });
     fetchMock.mockResolvedValue(respond({ id: 7 }));
