@@ -14,7 +14,7 @@ open, with the commit range.
 | Review triage (44 points + 6) | done | Rulings in spec §3, deferrals in §4 |
 | Spec + plan | done | |
 | Chunk 1 — Safety and the manual (1a–1g) | done | `ca9a34e`..`dbecbbe` |
-| Chunk 2 — Agent tools (2a–2i) | todo | |
+| Chunk 2 — Agent tools (2a–2i) | done | `b636897`..`26d77aa` (2i skipped) |
 | Chunk 3 — Install, setup, CLI, doctor (3a–3f) | todo | |
 | Chunk 4 — Release, testing infra, final gate (4a–4f) | todo | |
 
@@ -54,3 +54,41 @@ Open for later chunks:
 - `list-notifications` etc. unchanged; `mark_notifications_read ids` still loops per id (R26, Chunk 2).
 - `doctor` calls `loadConfig`; it must catch the new `ConfigError` for corrupt files (R32, Chunk 3).
 - New usage line `--read-only` added to en/es help; Chunk 3c should keep it when reworking flags.
+
+### Chunk 2 (2026-11-01, `b636897`..`26d77aa`)
+
+Done: 2a annotations + intent map, 2b `localDate`/5 s identity cap/`readConventions` never throws, 2f
+`collectAll` + resolvers, 2c briefing v2, 2d work package context, 2e `standup` + paging, 2g write tools,
+2h small items. 382 tests green. Commit order is 2a, 2b, 2f, 2c, 2d, 2e, 2g, 2h: briefing needs
+`resolveProjectId` and `collectAll` from 2f.
+
+Live checks (disposable `openproject/openproject:16`, since removed):
+- `groupBy=status`: the response has a top-level `groups: [{ value, count, _links }]`; `pageSize=1` is enough.
+- Activities: `pageSize` and `sortBy` are both ignored (all entries, oldest first). Newest-first and `limit` are
+  done locally.
+- `POST /notifications/read_ian` with `filters=[{"id":{"operator":"=","values":["1","2"]}}]` returns 204 and
+  marks exactly those; an unknown filter name gives 400.
+- Time entries: `user = me` and `spentOn <>d [date, ""]` work (the System user itself is rejected, irrelevant
+  in practice). Whole server also exercised end to end through stdio against the container.
+
+Deviations:
+- Comments in `src/` are now ten (new: activities endpoint contract; the `<>d` note is now its own comment).
+  CLAUDE.md and the reviewing skill say ten.
+- `list_activities` moved to new `src/tools/activities.ts` (`registerActivityTools`) to keep the write file small.
+- `client.collection` gained optional `groupBy` and returns `groups`. `hal.ts` gained `linkHref`;
+  `flattenWorkPackage` detail now returns `parent: { id, subject }` and caps the description.
+- Briefing pending rows keep `priority`; the 6 KB test uses 25 open items + 50 notifications (50 pending rows
+  alone are about 6 KB). `list_users` still returns an array (only `list_projects` reports `truncated`).
+- `list_metadata` accepts `versions` (project-scoped) so agents can discover version names.
+- `version` is read with `createRequire(import.meta.url)("../package.json")` (tsc `rootDir` forbids a JSON
+  import). The guard test "reports the package version" was deleted.
+- `codegraph_impact` was not available; changes to `client.ts`, `hal.ts`, `resolve.ts` are additive except
+  `listMetadata`'s cache key (now includes profile) and `resolveUserHref` (self href, ambiguity error).
+- 2i skipped: agy not run; no instance of the user was touched.
+
+Open for later chunks:
+- Chunk 4 binary smoke: confirm `createRequire(...)("../package.json")` works in the Bun-compiled binary
+  (fall back to a generated constant if not).
+- Live suite (R41) should cover the shapes above (`groupBy`, `read_ian` id filter, activities, `spentOn`).
+- Notifications are not generated for self-made changes in the Docker image; seed them with `rails runner`
+  (`Notification.create!`) when the live suite needs them.
