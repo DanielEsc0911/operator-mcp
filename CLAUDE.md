@@ -123,6 +123,7 @@ hands them. `test/importGraph.test.ts` fails if `server.ts` can reach any of the
 | `src/client.ts` | All HTTP. Auth, timeouts, filters, pagination, read-only guard |
 | `src/hal.ts` | HAL+JSON → flat objects. Pure |
 | `src/conventions.ts` | The workplace manual: read, append, remove, back up |
+| `src/manualText.ts` | Markdown parsing of the manual: fences, sections, top-level bullets |
 | `src/resolve.ts` | Name-or-id → APIv3 href |
 | `src/server.ts` | McpServer, `instructions`, registration, `version` |
 | `src/index.ts` | Shebang plus `runCli(process.argv.slice(2), process)` |

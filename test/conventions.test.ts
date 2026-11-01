@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, statSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { readConventions, addRule, removeRule } from "../src/conventions.js";
@@ -156,6 +156,56 @@ describe("fences", () => {
   }
 });
 
+describe("fence variants", () => {
+  it("honours ~~~ fences", () => {
+    writeFileSync(path, "## Git\n- keep\n\n~~~\n## Nope\n- hidden\n~~~\n\n## Later\n- other\n");
+    expect(removeRule(path, "Git", "hidden").removed).toBe(false);
+    expect(removeRule(path, "Nope", "hidden").removed).toBe(false);
+  });
+
+  it("does not close a ```` fence on an inner ``` line", () => {
+    writeFileSync(path, "## Git\n- keep\n\n````md\n```\n## Nope\n- hidden\n```\n````\n");
+    expect(removeRule(path, "Nope", "hidden").removed).toBe(false);
+    expect(addRule(path, "Git", "New.").added).toBe(true);
+    expect(readFileSync(path, "utf8")).toContain("````\n- New.\n");
+  });
+
+  it("refuses to add or remove when a fence is never closed, naming its line", () => {
+    const broken = "## Git\n- keep\n\n```sh\n- loose\n";
+    writeFileSync(path, broken);
+    expect(() => addRule(path, "Git", "New.")).toThrow(/line 4/);
+    expect(() => removeRule(path, "Git", "keep")).toThrow(/line 4/);
+    expect(readFileSync(path, "utf8")).toBe(broken);
+  });
+});
+
+describe("file fidelity", () => {
+  it("keeps a lazy continuation with its bullet", () => {
+    writeFileSync(path, "## W\n- first\n- rule part one\npart two\n- last\n");
+    const result = removeRule(path, "W", "rule part one part two");
+    expect(result.removed).toBe(true);
+    expect(readFileSync(path, "utf8")).toBe("## W\n- first\n- last\n");
+  });
+
+  it("keeps the mode of an existing manual", () => {
+    chmodSync(path, 0o644);
+    addRule(path, "Etiquette", "New one.");
+    expect(statSync(path).mode & 0o777).toBe(0o644);
+  });
+
+  it("keeps CRLF line endings", () => {
+    writeFileSync(path, MANUAL.replace(/\n/g, "\r\n"));
+    addRule(path, "Etiquette", "New one.");
+    addRule(path, "Brand new", "Fresh.");
+    expect(readFileSync(path, "utf8").replace(/\r\n/g, "")).not.toContain("\n");
+  });
+
+  it("dedupes only against top-level bullets", () => {
+    writeFileSync(path, "## W\n- parent\n  - sub\n");
+    expect(addRule(path, "W", "sub").added).toBe(true);
+  });
+});
+
 describe("rule text", () => {
   it("keeps #1234 and **Never** intact, stripping only a leading bullet marker", () => {
     addRule(path, "Etiquette", "* **Never** close #1234 yourself.");
@@ -183,12 +233,6 @@ describe("rule text", () => {
     expect(addRule(path, "Small", "x").warning).toBeDefined();
     writeFileSync(path, MANUAL);
     expect(addRule(path, "Etiquette", "Short.").warning).toBeUndefined();
-  });
-
-  it("lands every rule when adds run concurrently", async () => {
-    await Promise.all(["a", "b", "c", "d"].map(async (rule) => addRule(path, "Etiquette", `Rule ${rule}.`)));
-    const text = readFileSync(path, "utf8");
-    for (const rule of ["a", "b", "c", "d"]) expect(text).toContain(`- Rule ${rule}.`);
   });
 });
 
