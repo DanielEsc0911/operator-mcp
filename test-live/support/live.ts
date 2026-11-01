@@ -5,6 +5,7 @@ export const url = process.env.OPENPROJECT_URL;
 export const apiKey = process.env.OPENPROJECT_API_KEY;
 export const project = process.env.OPENPROJECT_TEST_PROJECT ?? "operator-live";
 export const configured = Boolean(url && apiKey);
+export const disposable = configured && process.env.OPENPROJECT_LIVE_DISPOSABLE === "1";
 
 export const liveConfig = (): Config => ({
   profile: "live",
@@ -41,8 +42,13 @@ export function fixtures(client: OpenProjectClient) {
       return version;
     },
     async cleanup() {
-      for (const { path } of created.reverse()) await client.request("DELETE", path).catch(() => undefined);
+      const dependentsFirst = created.sort((a, b) => Number(b.path.startsWith("/work_packages")) - Number(a.path.startsWith("/work_packages")));
+      const failures: string[] = [];
+      for (const { path } of dependentsFirst) {
+        await client.request("DELETE", path).catch((error: Error) => failures.push(`${path}: ${error.message}`));
+      }
       created.length = 0;
+      if (failures.length) throw new Error(`live cleanup left fixtures behind:\n${failures.join("\n")}`);
     },
   };
 }

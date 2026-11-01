@@ -3,9 +3,9 @@ import { OpenProjectClient } from "../src/client.js";
 import { listMetadata } from "../src/resolve.js";
 import { buildSearchFilters } from "../src/tools/workPackages.js";
 import { toIsoDuration } from "../src/tools/time.js";
-import { configured, fixtures, liveClient, project, stamp } from "./support/live.js";
+import { disposable, fixtures, liveClient, project, stamp } from "./support/live.js";
 
-describe.skipIf(!configured)("live OpenProject endpoints", () => {
+describe.skipIf(!disposable)("live OpenProject endpoints", () => {
   let client: OpenProjectClient;
   let made: ReturnType<typeof fixtures>;
   let wp: { id: number; lockVersion: number };

@@ -2,13 +2,14 @@ import { execFile, spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
-const binary = process.argv[2];
-if (!binary) {
+const argument = process.argv[2];
+if (!argument) {
   console.error("usage: node scripts/binary-smoke.mjs <path-to-binary>");
   process.exit(2);
 }
+const binary = resolve(argument);
 const expectedVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 const stub = createServer((request, response) => {

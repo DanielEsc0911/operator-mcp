@@ -1,11 +1,9 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { callTool, connect } from "../test/support/harness.js";
-import { configured, fixtures, liveClient, liveConfig, project, stamp } from "./support/live.js";
+import { disposable, fixtures, liveClient, liveConfig, project, stamp } from "./support/live.js";
 
-const disposable = process.env.OPENPROJECT_LIVE_DISPOSABLE === "1";
-
-describe.skipIf(!configured)("live tools through the MCP server", () => {
+describe.skipIf(!disposable)("live tools through the MCP server", () => {
   let agent: Client;
   let made: ReturnType<typeof fixtures>;
   let wp: { id: number };
@@ -23,6 +21,13 @@ describe.skipIf(!configured)("live tools through the MCP server", () => {
     expect(result.isError).toBe(false);
     expect(result.text).toContain(subject);
     expect(result.json().assignedToMe.error).toBeUndefined();
+  });
+
+  it("lists activities for a work package and logs time by activity name", async () => {
+    const listed = await callTool(agent, "list_metadata", { kind: "activities", workPackage: wp.id });
+    expect(listed.json().map((activity: { name: string }) => activity.name)).toContain("Development");
+    const logged = await callTool(agent, "log_time", { workPackageId: wp.id, hours: 0.25, activity: "Development" });
+    expect(logged.isError, logged.text).toBe(false);
   });
 
   it("standup finds the work package changed today and the time logged", async () => {
@@ -56,7 +61,7 @@ describe.skipIf(!configured)("live tools through the MCP server", () => {
     expect(result.text).toContain("second");
   });
 
-  it.skipIf(!disposable)("mark_notifications_read by id marks exactly those", async () => {
+  it("mark_notifications_read by id marks exactly those", async () => {
     const unread = await callTool(agent, "list_notifications", { unreadOnly: true });
     const ids: number[] = unread.json().notifications.map((item: { id: number }) => item.id);
     expect(ids.length).toBeGreaterThanOrEqual(2);

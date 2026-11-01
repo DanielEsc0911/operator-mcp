@@ -2,7 +2,7 @@
 # Boots a disposable OpenProject, seeds it, runs test-live against it, removes it.
 set -euo pipefail
 
-IMAGE="openproject/openproject:16.6.10"
+IMAGE="openproject/openproject:16.6.10@sha256:eb08fa636184f737af2cd31b2ef1706cb9b35bf7bc2cfe2c4e065e1dd461a74e"
 NAME="operator-live-$$"
 PORT="${OPENPROJECT_TEST_PORT:-18080}"
 HERE="$(cd "$(dirname "$0")" && pwd)"

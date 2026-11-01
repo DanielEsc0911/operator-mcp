@@ -114,9 +114,9 @@ import workPackage from "../fixtures/workPackage.json" with { type: "json" };
 
 ## Live tests
 
-`test-live/` runs against a real instance and only when `OPENPROJECT_URL` and
-`OPENPROJECT_API_KEY` are set — `npm run test:live`. Keep it read-only smoke
-coverage. Never move a live test into `test/`, and never let a `test/` file read
+`test-live/` write suites run only via `npm run test:docker` (a disposable instance,
+`OPENPROJECT_LIVE_DISPOSABLE=1`); never point them at a real instance. Only the
+read-only picker test runs on plain `npm run test:live`. Never move a live test into `test/`, and never let a `test/` file read
 those env vars.
 
 ## Commands

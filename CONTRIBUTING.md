@@ -19,13 +19,9 @@ Node 22 or newer — `.nvmrc` pins it.
 npx tsc --noEmit && npm test && npm run build && node scripts/pack-check.mjs
 ```
 
-Live smoke tests run against a real instance and are opt-in:
-
-```bash
-OPENPROJECT_URL=... OPENPROJECT_API_KEY=... npm run test:live
-```
-
-Use a scratch project.
+The live suites create and delete work packages, so they run only against a
+disposable OpenProject that `npm run test:docker` boots and removes (needs Docker).
+Only the read-only picker test runs on `OPENPROJECT_URL=... OPENPROJECT_API_KEY=... npm run test:live`.
 
 ## The two golden rules
 
