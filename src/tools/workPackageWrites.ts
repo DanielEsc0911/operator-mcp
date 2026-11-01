@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { segment } from "../client.js";
-import { flattenActivity, flattenWorkPackage } from "../hal.js";
+import { flattenWorkPackage } from "../hal.js";
 import { handler, type ToolContext } from "./shared.js";
 import { WRITE_SCHEMA, buildPayload, type WriteArgs } from "./workPackageFields.js";
 
@@ -88,23 +88,6 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
         body: { comment: { raw: comment } },
       });
       return { id: created.id, createdAt: created.createdAt, url: `${config.url}/work_packages/${id}` };
-    }),
-  );
-
-  server.registerTool(
-    "list_activities",
-    {
-      title: "List work package activity",
-      annotations: { readOnlyHint: true },
-      description: "Comments and field changes for one work package, oldest first.",
-      inputSchema: {
-        id: z.number().int().describe("Work package id."),
-        limit: z.number().int().positive().optional().describe("Maximum entries. Defaults to 50."),
-      },
-    },
-    handler(async ({ id, limit }: { id: number; limit?: number }) => {
-      const { elements } = await client.collection(`/work_packages/${id}/activities`, { pageSize: limit ?? 50 });
-      return elements.map(flattenActivity);
     }),
   );
 

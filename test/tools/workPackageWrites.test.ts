@@ -205,7 +205,7 @@ describe("comment_work_package", () => {
 });
 
 describe("list_activities", () => {
-  it("returns comments and field changes in order", async () => {
+  it("returns comments and field changes, newest first", async () => {
     routes({
       "/users/me": ME,
       "/work_packages/1234/activities": {
@@ -222,8 +222,17 @@ describe("list_activities", () => {
     const result = (await callTool(client, "list_activities", { id: 1234 })).json();
 
     expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
-    expect(result[1]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
+    expect(result[0]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
+    expect(result[1]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
+  });
+
+  it("honours limit locally, since the endpoint ignores pageSize", async () => {
+    const elements = [1, 2, 3].map((id) => ({ id, comment: { raw: `c${id}` }, _links: {} }));
+    routes({ "/users/me": ME, "/work_packages/1234/activities": { total: 3, count: 3, _embedded: { elements } } });
+    const client = await connect();
+    const result = (await callTool(client, "list_activities", { id: 1234, limit: 2 })).json();
+
+    expect(result.map((entry: any) => entry.id)).toEqual([3, 2]);
   });
 });
 

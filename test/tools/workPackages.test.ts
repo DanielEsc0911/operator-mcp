@@ -10,6 +10,7 @@ function respond(body: unknown, status = 200): Response {
 const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const TYPES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "Bug" }] } };
 const STATUSES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "In progress" }] } };
+const NO_ACTIVITY = { total: 0, count: 0, _embedded: { elements: [] } };
 const RESULTS = { total: 1, count: 1, _embedded: { elements: [workPackage] } };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -39,7 +40,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("get_work_package", () => {
   it("returns a flattened work package including its description", async () => {
-    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage, "/work_packages/1234/activities": NO_ACTIVITY });
     const client = await connect();
     const result = (await callTool(client, "get_work_package", { id: 1234 })).json();
 
@@ -48,6 +49,31 @@ describe("get_work_package", () => {
       assignee: "Ada Lovelace", lockVersion: 7, url: "https://op.acme.com/work_packages/1234",
     });
     expect(result.description).toContain("Users land on /dashboard");
+    expect(result.parent).toEqual({ id: 1200, subject: "Auth overhaul" });
+  });
+
+  it("adds the three newest comments, capped at 500 characters", async () => {
+    const comments = [1, 2, 3, 4].map((id) => ({ id, comment: { raw: `c${id}${"x".repeat(600)}` }, createdAt: `2026-07-0${id}`, _links: { user: { title: "Ana" } } }));
+    const withChange = [{ id: 9, details: [{ raw: "Status changed" }], _links: {} }, ...comments];
+    routes({
+      "/users/me": ME, "/work_packages/1234": workPackage,
+      "/work_packages/1234/activities": { total: 5, count: 5, _embedded: { elements: withChange } },
+    });
+    const client = await connect();
+    const result = (await callTool(client, "get_work_package", { id: 1234 })).json();
+
+    expect(result.latestComments.map((entry: any) => entry.createdAt)).toEqual(["2026-07-04", "2026-07-03", "2026-07-02"]);
+    expect(result.latestComments[0].comment).toHaveLength(500);
+  });
+
+  it("caps a huge description and says so", async () => {
+    const huge = { ...workPackage, description: { raw: "d".repeat(25_000) } };
+    routes({ "/users/me": ME, "/work_packages/1234": huge, "/work_packages/1234/activities": NO_ACTIVITY });
+    const client = await connect();
+    const result = (await callTool(client, "get_work_package", { id: 1234 })).json();
+
+    expect(result.description).toHaveLength(20_000);
+    expect(result.descriptionTruncated).toBe(true);
   });
 
   it("explains a missing work package", async () => {

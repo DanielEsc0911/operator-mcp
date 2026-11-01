@@ -28,6 +28,8 @@ function raw(value: unknown): string | undefined {
   return text ? text : undefined;
 }
 
+const DESCRIPTION_CHARS = 20_000;
+
 export function flattenWorkPackage(
   wp: HalResource,
   baseUrl: string,
@@ -49,12 +51,16 @@ export function flattenWorkPackage(
     url: `${baseUrl}/work_packages/${wp.id}`,
   };
   if (!options.detail) return row;
+  const description = raw(wp.description) ?? "";
+  const parentId = linkId(wp, "parent");
   return {
     ...row,
+    parent: parentId === undefined ? undefined : { id: parentId, subject: linkTitle(wp, "parent") },
     author: linkTitle(wp, "author"),
     lockVersion: wp.lockVersion,
     createdAt: wp.createdAt,
-    description: raw(wp.description) ?? "",
+    description: description.slice(0, DESCRIPTION_CHARS),
+    ...(description.length > DESCRIPTION_CHARS ? { descriptionTruncated: true } : {}),
   };
 }
 

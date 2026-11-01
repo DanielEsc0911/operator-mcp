@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { segment, type Filter, type OpenProjectClient } from "../client.js";
 import { flattenWorkPackage } from "../hal.js";
 import { resolveId, resolveUserHref } from "../resolve.js";
+import { latestComments } from "./activities.js";
 import { handler, type ToolContext } from "./shared.js";
 
 const MAX_PAGE_SIZE = 100;
@@ -59,12 +60,15 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
     {
       title: "Get a work package",
       annotations: { readOnlyHint: true },
-      description: "Full detail for one work package, including its description and the lockVersion an update needs.",
+      description: "Full detail for one work package: description, parent, the three newest comments, and the lockVersion an update needs. One call answers \"what is going on with #X\".",
       inputSchema: { id: z.number().int().describe("Work package id.") },
     },
     handler(async ({ id }: { id: number }) => {
-      const wp = await client.request("GET", `/work_packages/${id}`);
-      return flattenWorkPackage(wp, config.url, { detail: true });
+      const [wp, comments] = await Promise.all([
+        client.request("GET", `/work_packages/${id}`),
+        latestComments(client, id, 3),
+      ]);
+      return { ...flattenWorkPackage(wp, config.url, { detail: true }), latestComments: comments };
     }),
   );
 
