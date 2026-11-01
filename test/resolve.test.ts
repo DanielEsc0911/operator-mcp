@@ -106,6 +106,13 @@ describe("resolveId", () => {
   });
 });
 
+describe("resolveUserHref me", () => {
+  it("accepts Me in any case", async () => {
+    fetchMock.mockImplementation(async () => respond({ id: 12, name: "Ada", email: "a@b.c" }));
+    expect(await resolveUserHref(client(), " Me ")).toBe("/api/v3/users/12");
+  });
+});
+
 describe("resolveUserHref", () => {
   it("turns 'me' into the authenticated user", async () => {
     fetchMock.mockResolvedValue(respond({ id: 12, name: "Ada Lovelace", email: "ada@example.com" }));
@@ -166,14 +173,23 @@ describe("resolveProjectId", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("finds a project by identifier or name", async () => {
-    fetchMock.mockImplementation(async () => respond(PROJECTS));
+  const notFound = () => new Response(JSON.stringify({ message: "nope" }), { status: 404, headers: { "Content-Type": "application/json" } });
+  const lookup = (url: URL) => (url.pathname === "/api/v3/projects" ? respond(PROJECTS) : notFound());
+
+  it("resolves an identifier with a single request", async () => {
+    fetchMock.mockImplementation(async () => respond({ id: 3, identifier: "website" }));
     expect(await resolveProjectId(client(), "website")).toBe("3");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((fetchMock.mock.calls[0][0] as URL).pathname).toBe("/api/v3/projects/website");
+  });
+
+  it("falls back to scanning names when the identifier is a 404", async () => {
+    fetchMock.mockImplementation(async (url: URL) => lookup(url));
     expect(await resolveProjectId(client(), "WEBSITE")).toBe("3");
   });
 
   it("lists the projects it knows when nothing matches", async () => {
-    fetchMock.mockImplementation(async () => respond(PROJECTS));
+    fetchMock.mockImplementation(async (url: URL) => lookup(url));
     await expect(resolveProjectId(client(), "nope")).rejects.toThrow('No project "nope". Available: website (Website)');
   });
 });

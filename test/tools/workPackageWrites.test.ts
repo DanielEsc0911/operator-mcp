@@ -288,3 +288,13 @@ describe("link_work_packages", () => {
     expect((await callTool(client, "link_work_packages", { from: 1, to: 2, type: "sortof" })).isError).toBe(true);
   });
 });
+
+describe("write tool descriptions", () => {
+  it("point category, accountable, estimates and custom fields at api_request", async () => {
+    routes({ "/users/me": ME });
+    const tools = (await (await connect()).listTools()).tools;
+    for (const name of ["create_work_package", "update_work_package"]) {
+      expect(tools.find((tool) => tool.name === name)!.description).toContain("api_request");
+    }
+  });
+});

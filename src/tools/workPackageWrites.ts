@@ -30,7 +30,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     {
       title: "Create a work package",
       annotations: { readOnlyHint: false, destructiveHint: false },
-      description: "Create a work package in a project. Type and subject are required; everything else is optional.",
+      description: "Create a work package in a project. Type and subject are required; everything else is optional. Category, accountable, estimates and custom fields are not supported here: use api_request.",
       inputSchema: {
         ...WRITE_SCHEMA,
         project: z.string().optional().describe("Project identifier or id. Defaults to the configured default project."),
@@ -58,7 +58,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
       title: "Update a work package",
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
       description:
-        "Change any subset of a work package's fields. Changing the description requires lockVersion from get_work_package, so you never overwrite someone else's edit; other fields handle the lock for you. Pass null for assignee or parent to clear it.",
+        "Change any subset of a work package's fields. Changing the description requires lockVersion from get_work_package, so you never overwrite someone else's edit; other fields handle the lock for you. Pass null for assignee or parent to clear it. Category, accountable, estimates and custom fields are not supported here: use api_request.",
       inputSchema: {
         ...WRITE_SCHEMA,
         id: z.number().int().describe("Work package id."),

@@ -1,4 +1,5 @@
 import { segment, type OpenProjectClient } from "./client.js";
+import { OpenProjectError } from "./errors.js";
 import { flattenNamed, linkHref } from "./hal.js";
 
 export type MetaKind = "types" | "statuses" | "priorities" | "activities" | "versions";
@@ -48,6 +49,10 @@ export async function listMetadata(
   return named;
 }
 
+export function isMe(value: string | number): boolean {
+  return String(value).trim().toLowerCase() === "me";
+}
+
 function isNumeric(value: string | number): boolean {
   return /^\d+$/.test(String(value));
 }
@@ -92,7 +97,7 @@ export async function resolveUserHref(
   value: string | number,
   project?: string,
 ): Promise<string> {
-  if (value === "me") return `/api/v3/users/${(await client.me()).id}`;
+  if (isMe(value)) return `/api/v3/users/${(await client.me()).id}`;
   if (isNumeric(value)) return `/api/v3/users/${value}`;
 
   const path = project ? `/projects/${segment(project)}/available_assignees` : "/principals";
@@ -112,6 +117,11 @@ export async function resolveUserHref(
 export async function resolveProjectId(client: OpenProjectClient, value: string | number): Promise<string> {
   if (isNumeric(value)) return String(value);
 
+  try {
+    return String((await client.request("GET", `/projects/${segment(String(value).trim())}`)).id);
+  } catch (error) {
+    if (!(error instanceof OpenProjectError && error.status === 404)) throw error;
+  }
   const { elements } = await client.collectAll("/projects");
   const needle = String(value).trim().toLowerCase();
   const match = elements.find(

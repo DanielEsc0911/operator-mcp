@@ -42,6 +42,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       const { total, elements } = await client.collection("/notifications", {
         filters: await feedFilters(client, args),
         pageSize: args.limit ?? 50,
+        sortBy: [["id", "desc"]],
       });
       return { total, notifications: elements.map((item) => flattenNotification(item, config.url)) };
     }),
@@ -53,9 +54,9 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       title: "Mark notifications as read",
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
       description:
-        "Mark specific notifications read by id, or every notification matching a filter with all: true. Use this after triaging so the feed stays meaningful.",
+        "Mark specific notifications read by id (those that exist and are yours), or every notification matching a filter with all: true. Use this after triaging so the feed stays meaningful.",
       inputSchema: {
-        ids: z.array(z.number().int().positive()).max(100).optional().describe("Notification ids to mark read, at most 100. They are marked in one request: all or none."),
+        ids: z.array(z.number().int().positive()).max(100).optional().describe("Notification ids to mark read, at most 100. Unknown or foreign ids are skipped by the server."),
         all: z.boolean().optional().describe("Mark the whole collection read, narrowed by the filters below. Needs confirm: true."),
         confirm: z.boolean().optional().describe("Required with all: true. Only set it after the user explicitly agreed to mark that many notifications read."),
         reason: z.enum(REASONS).optional().describe("With all: only this reason."),
@@ -68,7 +69,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       if (ids?.length) {
         const filters: Filter[] = [{ id: { operator: "=", values: ids.map(String) } }];
         await client.request("POST", "/notifications/read_ian", { query: { filters: JSON.stringify(filters) } });
-        return { marked: ids.length };
+        return { requested: ids.length };
       }
 
       requireConfirm(confirm, config.readOnly, "Marking the whole feed read");

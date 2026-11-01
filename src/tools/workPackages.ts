@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { segment, type Filter, type OpenProjectClient } from "../client.js";
 import { flattenWorkPackage } from "../hal.js";
-import { resolveId, resolveUserHref } from "../resolve.js";
+import { isMe, resolveId, resolveUserHref } from "../resolve.js";
 import { latestComments } from "./activities.js";
 import { handler, type ToolContext } from "./shared.js";
 
@@ -31,15 +31,15 @@ async function statusFilter(client: OpenProjectClient, status: string, project?:
   return { status: { operator: "=", values: [await resolveId(client, "statuses", status, project)] } };
 }
 
-async function assigneeId(client: OpenProjectClient, assignee: string, project?: string): Promise<string> {
-  if (assignee === "me") return assignee;
-  const href = await resolveUserHref(client, assignee, project);
+async function assigneeId(client: OpenProjectClient, assignee: string): Promise<string> {
+  if (isMe(assignee)) return "me";
+  const href = await resolveUserHref(client, assignee);
   return href.slice(href.lastIndexOf("/") + 1);
 }
 
 export async function buildSearchFilters(client: OpenProjectClient, args: SearchArgs): Promise<Filter[]> {
   const filters: Filter[] = [];
-  if (args.assignee) filters.push({ assignee: { operator: "=", values: [await assigneeId(client, args.assignee, args.project)] } });
+  if (args.assignee) filters.push({ assignee: { operator: "=", values: [await assigneeId(client, args.assignee)] } });
   if (args.status) filters.push(await statusFilter(client, args.status, args.project));
   if (args.type) filters.push({ type: { operator: "=", values: [await resolveId(client, "types", args.type, args.project)] } });
   if (args.priority) filters.push({ priority: { operator: "=", values: [await resolveId(client, "priorities", args.priority)] } });
@@ -114,7 +114,8 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
     {
       title: "My work",
       annotations: { readOnlyHint: true },
-      description: "Work packages assigned to you, soonest due first, as { total, results }. Use `page` to read past the first `limit`.",
+      description:
+        "Work packages assigned to you, soonest due first, as { total, urlTemplate, results }. Use `page` to read past the first `limit`. Includes items at 100% that your instance still counts as open; for 'what's pending' call briefing.",
       inputSchema: {
         status: z.enum(["open", "closed"]).optional().describe("Defaults to open."),
         limit: z.number().int().positive().optional().describe("Maximum results, capped at 100. Defaults to 20."),
@@ -129,7 +130,11 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
         offset: page,
         sortBy: [["dueDate", "asc"]],
       });
-      return { total, results: elements.map((wp) => flattenWorkPackage(wp, config.url)) };
+      const results = elements.map((wp) => {
+        const { assignee, url, ...row } = flattenWorkPackage(wp, config.url);
+        return row;
+      });
+      return { total, urlTemplate: `${config.url}/work_packages/{id}`, results };
     }),
   );
 }

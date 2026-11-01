@@ -5,7 +5,7 @@ import { localDate } from "./time.js";
 import { buildSearchFilters, collectionPath } from "./workPackages.js";
 import { handler, type ToolContext } from "./shared.js";
 
-const ROWS = 50;
+const ROWS = 20;
 
 function previousWorkingDayOffset(): number {
   const weekday = new Date().getDay();
@@ -26,7 +26,7 @@ export function registerStandupTools(server: McpServer, { client }: ToolContext)
       title: "Standup",
       annotations: { readOnlyHint: true },
       description:
-        "\"What did I do yesterday\" in one call: your time entries since a date (with total hours) and the work packages assigned to you that changed since, with their current status.",
+        "\"What did I do yesterday\" in one call: your time entries since a date (with total hours, `truncated` when more exist than are listed) and the work packages assigned to you that changed since, with their current status.",
       inputSchema: {
         since: z
           .string()
@@ -53,6 +53,8 @@ export function registerStandupTools(server: McpServer, { client }: ToolContext)
       return {
         since: from,
         timeEntries: {
+          total: entries.total,
+          ...(entries.total > entries.elements.length ? { truncated: true } : {}),
           totalHours: Math.round(entries.elements.reduce((sum, entry) => sum + hoursOf(entry.hours), 0) * 100) / 100,
           rows: entries.elements.map((entry) => ({
             spentOn: entry.spentOn,
@@ -64,6 +66,7 @@ export function registerStandupTools(server: McpServer, { client }: ToolContext)
         },
         changedWorkPackages: {
           total: changed.total,
+          ...(changed.total > changed.elements.length ? { truncated: true } : {}),
           rows: changed.elements.map((wp) => ({
             id: wp.id, subject: wp.subject, status: linkTitle(wp, "status"), updatedAt: wp.updatedAt,
           })),

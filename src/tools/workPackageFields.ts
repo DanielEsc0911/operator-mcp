@@ -24,7 +24,7 @@ export const WRITE_SCHEMA = {
   type: z.string().min(1).optional().describe('Type name or id, for example "Bug".'),
   status: z.string().min(1).optional().describe('Status name or id, for example "In progress".'),
   priority: z.string().min(1).optional().describe('Priority name or id, for example "High".'),
-  version: z.string().min(1).optional().describe("Version name or id, looked up in the work package's project. See list_metadata with kind `versions`. Other fields (category, accountable, estimates, custom fields) go through api_request."),
+  version: z.string().min(1).optional().describe("Version name or id, looked up in the work package's project. See list_metadata with kind `versions`."),
   startDate: z.string().nullable().optional().describe("ISO date, or null to clear."),
   dueDate: z.string().nullable().optional().describe("ISO date, or null to clear."),
   percentageDone: z.number().int().min(0).max(100).optional().describe("Completion percentage."),

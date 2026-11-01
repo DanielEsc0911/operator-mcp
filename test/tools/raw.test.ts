@@ -46,8 +46,18 @@ describe("api_request", () => {
     const result = await callTool(client, "api_request", { method: "GET", path: "/types" });
 
     expect(result.isError).toBe(false);
-    expect(result.text.length).toBeLessThan(52_000);
-    expect(result.text).toContain("[truncated:");
+    const body = result.json();
+    expect(body.truncated).toBe(true);
+    expect(body.bytes).toBeGreaterThan(50 * 1024);
+    expect(Buffer.byteLength(body.preview)).toBeLessThanOrEqual(50 * 1024);
+  });
+
+  it("measures the cap in bytes, not characters", async () => {
+    const client = await connect();
+    fetchMock.mockResolvedValue(respond({ blob: "é".repeat(30_000) }));
+    const body = (await callTool(client, "api_request", { method: "GET", path: "/types" })).json();
+
+    expect(body.truncated).toBe(true);
   });
 
   it("accepts a path without a leading slash", async () => {

@@ -19,7 +19,7 @@ export function registerRawTools(server: McpServer, { client }: ToolContext): vo
       title: "Raw OpenProject APIv3 request",
       annotations: { readOnlyHint: false, destructiveHint: true },
       description:
-        "Escape hatch for anything the other tools do not cover. DELETE is refused unless the user set OPENPROJECT_ALLOW_DELETE=1. Returns the raw HAL+JSON response, unflattened. Prefer a dedicated tool when one exists — this one requires you to know APIv3 request shapes, and its responses are large.",
+        "Escape hatch for anything the other tools do not cover. DELETE is refused unless the user set OPENPROJECT_ALLOW_DELETE=1. Returns the raw HAL+JSON response, unflattened. Prefer a dedicated tool when one exists — this one requires you to know APIv3 request shapes, and its responses are large; one over 50 KB comes back as { truncated, bytes, preview } — narrow it with filters, a smaller pageSize, or a deeper path.",
       inputSchema: {
         method: z.enum(["GET", "POST", "PATCH", "DELETE"]).describe("HTTP method. DELETE works only when the user enabled it with OPENPROJECT_ALLOW_DELETE=1."),
         path: z
@@ -42,8 +42,9 @@ export function registerRawTools(server: McpServer, { client }: ToolContext): vo
       if (method !== "GET") requireConfirm(confirm, client.config.readOnly, `${method} ${path}`);
       const result = await client.request(method, path.startsWith("/") ? path : `/${path}`, { query, body });
       const text = JSON.stringify(result ?? { ok: true });
-      if (text.length <= MAX_BYTES) return text;
-      return `${text.slice(0, MAX_BYTES)}\n[truncated: the response is ${text.length} characters. Narrow it with filters, a smaller pageSize, or a deeper path.]`;
+      const bytes = Buffer.byteLength(text);
+      if (bytes <= MAX_BYTES) return text;
+      return { truncated: true, bytes, preview: Buffer.from(text).subarray(0, MAX_BYTES).toString("utf8") };
     }),
   );
 }

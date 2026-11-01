@@ -97,10 +97,9 @@ describe("briefing", () => {
   });
 
   it("keeps all three sections inside the default project", async () => {
-    const projects = { total: 1, count: 1, _embedded: { elements: [{ id: 3, identifier: "website", name: "Website" }] } };
-    fetchMock.mockImplementation(async (url: URL) => {
+        fetchMock.mockImplementation(async (url: URL) => {
       if (url.pathname === "/api/v3/users/me") return respond(ME);
-      if (url.pathname === "/api/v3/projects") return respond(projects);
+      if (url.pathname === "/api/v3/projects/website") return respond({ id: 3, identifier: "website" });
       if (url.pathname === "/api/v3/notifications") return respond(FEED);
       return respond(isAssignedQuery(url) ? ASSIGNED : CHANGED);
     });
@@ -126,19 +125,67 @@ describe("briefing", () => {
     expect(result.teamActivity.total).toBe(1);
   });
 
-  it("stays under 6 KB for 25 open items and 50 unread notifications", async () => {
-    const many = Array.from({ length: 25 }, (_, i) => ({ ...workPackage, id: 2000 + i, subject: `Work package number ${i}` }));
-    const feed = Array.from({ length: 50 }, (_, i) => ({ ...notification, id: 300 + i, _links: { ...notification._links, resource: { href: `/api/v3/work_packages/${3000 + i}`, title: `Notified ${i}` } } }));
+  const SUBJECT = "Revisar el flujo de aprobación de solicitudes de compra del departamento";
+  const projectName = (i: number) => `Proyecto de modernización de la plataforma institucional ${i % 5}`.padEnd(65, ".");
+  const realistic = (i: number) => ({
+    ...workPackage, id: 2000 + i, subject: `${SUBJECT} ${i}`.slice(0, 85), dueDate: `2026-11-${String(10 + (i % 18)).padStart(2, "0")}`,
+    _links: { ...workPackage._links, project: { href: `/api/v3/projects/${i % 5}`, title: projectName(i) } },
+  });
+
+  it("stays under 8 KB for 46 open items, 50 notifications and a week of activity", async () => {
+    const open = Array.from({ length: 46 }, (_, i) => realistic(i));
+    const feed = Array.from({ length: 50 }, (_, i) => ({
+      ...notification, id: 300 + i,
+      _links: { ...notification._links, resource: { href: `/api/v3/work_packages/${3000 + i}`, title: `${SUBJECT} ${i}`.slice(0, 85) } },
+    }));
     fetchMock.mockImplementation(async (url: URL) => {
       if (url.pathname === "/api/v3/users/me") return respond(ME);
       if (url.pathname === "/api/v3/notifications") return respond({ total: 50, count: 50, _embedded: { elements: feed } });
       const size = Number(url.searchParams.get("pageSize"));
-      const elements = many.slice(0, size);
-      return respond({ total: 25, count: elements.length, _embedded: { elements }, groups: [{ value: "In progress", count: 25 }] });
+      const elements = (isAssignedQuery(url) ? open : open.slice(10, 20)).slice(0, size);
+      return respond({ total: elements.length === size && isAssignedQuery(url) ? 46 : elements.length, count: elements.length, _embedded: { elements }, groups: [{ value: "In progress", count: 46 }] });
     });
     const client = await connect();
     const text = (await callTool(client, "briefing")).text;
+    const result = JSON.parse(text);
 
-    expect(Buffer.byteLength(text)).toBeLessThan(6_144);
+    expect(Buffer.byteLength(text)).toBeLessThan(8_192);
+    expect(result.assignedToMe.pendingCount).toBe(46);
+    const rows = Object.values(result.assignedToMe.pending).flat() as any[];
+    expect(rows).toHaveLength(15);
+    const soonest = open.map((wp) => wp.dueDate).sort().slice(0, 15);
+    expect(rows.map((row) => row.dueDate).sort()).toEqual(soonest);
+  });
+
+  it("leaves the project off activity rows when the scope is one project", async () => {
+    fetchMock.mockImplementation(async (url: URL) => {
+      if (url.pathname === "/api/v3/users/me") return respond(ME);
+      if (url.pathname === "/api/v3/projects/website") return respond({ id: 3 });
+      if (url.pathname === "/api/v3/notifications") return respond(FEED);
+      return respond(isAssignedQuery(url) ? ASSIGNED : CHANGED);
+    });
+    const client = await connect({ ...testConfig, defaultProject: "website" });
+    const result = (await callTool(client, "briefing")).json();
+
+    expect(result.teamActivity.latest[0].project).toBeUndefined();
+  });
+
+  it("counts the fetched items by status when the groups are missing", async () => {
+    fetchMock.mockImplementation(async (url: URL) => {
+      if (url.pathname === "/api/v3/users/me") return respond(ME);
+      if (url.pathname === "/api/v3/notifications") return respond(FEED);
+      return respond(isAssignedQuery(url) ? ASSIGNED : CHANGED);
+    });
+    const client = await connect();
+    const { assignedToMe } = (await callTool(client, "briefing")).json();
+
+    expect(assignedToMe.byStatus).toEqual({ "In progress": 1, Done: 1 });
+    expect(assignedToMe.byStatusCountedFirst).toBe(2);
+  });
+
+  it("asks for notifications newest first", async () => {
+    await callTool(await connect(), "briefing");
+
+    expect(urlsFor("/notifications")[0].searchParams.get("sortBy")).toBe('[["id","desc"]]');
   });
 });

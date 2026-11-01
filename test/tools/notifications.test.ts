@@ -50,6 +50,13 @@ describe("list_notifications", () => {
     });
   });
 
+  it("asks for newest first explicitly", async () => {
+    routes({ "/users/me": ME, "/notifications": FEED });
+    await callTool(await connect(), "list_notifications");
+
+    expect((fetchMock.mock.lastCall![0] as URL).searchParams.get("sortBy")).toBe('[["id","desc"]]');
+  });
+
   it("filters to unread using OpenProject's boolean encoding", async () => {
     routes({ "/users/me": ME, "/notifications": FEED });
     const client = await connect();
@@ -99,7 +106,7 @@ describe("mark_notifications_read", () => {
 
     expect(pathsCalled().filter((path) => path.includes("read_ian"))).toEqual(["/api/v3/notifications/read_ian"]);
     expect(filtersOf()).toEqual([{ id: { operator: "=", values: ["88", "89"] } }]);
-    expect(result).toEqual({ marked: 2 });
+    expect(result).toEqual({ requested: 2 });
   });
 
   it("rejects ids that are not positive or are more than 100, sending nothing", async () => {

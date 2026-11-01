@@ -12,6 +12,7 @@ const DEFAULT_WINDOW_DAYS = 7;
 const PENDING_LIMIT = 100;
 const NOTIFICATION_SAMPLE = 50;
 const LATEST = 10;
+const PENDING_ROWS = 15;
 
 async function section<T>(work: Promise<T>): Promise<T | { error: string }> {
   try {
@@ -30,6 +31,19 @@ function pendingRow(wp: HalResource) {
     dueDate: wp.dueDate ?? undefined,
     percentageDone: wp.percentageDone ?? undefined,
   };
+}
+
+function countByStatus(workPackages: HalResource[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const wp of workPackages) {
+    const status = linkTitle(wp, "status") ?? "Unknown";
+    counts[status] = (counts[status] ?? 0) + 1;
+  }
+  return counts;
+}
+
+function soonestDue(a: HalResource, b: HalResource): number {
+  return String(a.dueDate ?? "9999").localeCompare(String(b.dueDate ?? "9999"));
 }
 
 function groupByProject(workPackages: HalResource[]): Record<string, ReturnType<typeof pendingRow>[]> {
@@ -68,19 +82,23 @@ export function registerBriefingTools(server: McpServer, { client }: ToolContext
       client.collection(path, { filters, pageSize: PENDING_LIMIT, sortBy: [["dueDate", "asc"]] }),
       client.collection(path, { filters, pageSize: 1, groupBy: "status" }),
     ]);
-    const byStatus = Object.fromEntries((counts.groups ?? []).map((group) => [group.value, group.count]));
+    const counted = counts.groups
+      ? { byStatus: Object.fromEntries(counts.groups.map((group) => [group.value, group.count])) }
+      : { byStatus: countByStatus(list.elements), byStatusCountedFirst: list.elements.length };
+    const notDone = list.elements.filter((wp) => wp.percentageDone !== 100).sort(soonestDue);
     return {
       total: list.total,
-      byStatus,
+      ...counted,
       ...(list.total > list.elements.length ? { pendingTruncated: true } : {}),
-      pending: groupByProject(list.elements.filter((wp) => wp.percentageDone !== 100)),
+      pendingCount: notDone.length,
+      pending: groupByProject(notDone.slice(0, PENDING_ROWS)),
     };
   }
 
   async function unread() {
     const filters: Filter[] = [{ readIAN: { operator: "=", values: ["f"] } }];
     if (project) filters.push({ project: { operator: "=", values: [await resolveProjectId(client, project)] } });
-    const { total, elements } = await client.collection("/notifications", { filters, pageSize: NOTIFICATION_SAMPLE });
+    const { total, elements } = await client.collection("/notifications", { filters, pageSize: NOTIFICATION_SAMPLE, sortBy: [["id", "desc"]] });
     return { total, latest: collapseNotifications(elements.map((item) => flattenNotification(item, config.url))) };
   }
 
@@ -91,7 +109,8 @@ export function registerBriefingTools(server: McpServer, { client }: ToolContext
       sortBy: [["updatedAt", "desc"]],
     });
     const latest = elements.map((wp) => ({
-      id: wp.id, subject: wp.subject, status: linkTitle(wp, "status"), project: linkTitle(wp, "project"), updatedAt: wp.updatedAt,
+      id: wp.id, subject: wp.subject, status: linkTitle(wp, "status"), updatedAt: wp.updatedAt,
+      ...(project ? {} : { project: linkTitle(wp, "project") }),
     }));
     return { since, total, latest };
   }
@@ -102,7 +121,9 @@ export function registerBriefingTools(server: McpServer, { client }: ToolContext
       title: "Briefing",
       annotations: { readOnlyHint: true },
       description:
-        "One-call answer to \"what's pending / what's new / what's on my plate\". `assignedToMe`: your open work grouped by project (`pending` leaves out items already at 100%; `byStatus` counts all of them). `unreadNotifications`: unread notifications collapsed per work package. `teamActivity`: work packages changed by anyone in scope. All three share the scope named in `scope`. Build a work package link from `urlTemplate`. A section that failed is `{ error }`; the others are still valid. Call this first and answer from it.",
+        "One-call answer to \"what's pending / what's new / what's on my plate\". `assignedToMe`: your open work grouped by project (`pending` is the " +
+        PENDING_ROWS +
+        " soonest due, leaving out items already at 100%; `pendingCount` is how many there are in total, call `my_work` with `page` for the rest; `byStatus` counts all of them). `unreadNotifications`: unread notifications collapsed per work package. `teamActivity`: work packages changed by anyone in scope. All three share the scope named in `scope`. Build a work package link from `urlTemplate`. A section that failed is `{ error }`; the others are still valid. Call this first and answer from it.",
       inputSchema: {
         since: z
           .string()

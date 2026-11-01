@@ -66,4 +66,25 @@ describe("standup", () => {
     const client = await connect();
     expect((await callTool(client, "standup")).json().since).toBe("2026-11-03");
   });
+
+  it("flags truncation and keeps a week of data under 8 KB", async () => {
+    const entries = Array.from({ length: 20 }, (_, i) => ({
+      ...entry("PT1H", "2026-10-30"), comment: { raw: "Revisión del flujo de aprobación de solicitudes de compra con el equipo" },
+      _links: { workPackage: { href: `/api/v3/work_packages/${1000 + i}`, title: `Revisar el flujo de aprobación de solicitudes de compra del departamento ${i}`.slice(0, 85) } },
+    }));
+    const wps = Array.from({ length: 20 }, (_, i) => ({ ...workPackage, id: 2000 + i, subject: `Revisar el flujo de aprobación de solicitudes de compra del departamento ${i}`.slice(0, 85) }));
+    fetchMock.mockImplementation(async (url: URL) => {
+      if (url.pathname === "/api/v3/users/me") return respond(ME);
+      const isEntries = url.pathname === "/api/v3/time_entries";
+      const elements = (isEntries ? entries : wps).slice(0, Number(url.searchParams.get("pageSize")));
+      return respond({ total: 25, count: elements.length, _embedded: { elements } });
+    });
+    const client = await connect();
+    const result = await callTool(client, "standup", { since: "2026-10-26" });
+
+    expect(Buffer.byteLength(result.text)).toBeLessThan(8_192);
+    expect(result.json().timeEntries).toMatchObject({ total: 25, truncated: true });
+    expect(result.json().changedWorkPackages).toMatchObject({ total: 25, truncated: true });
+    expect(result.json().timeEntries.rows).toHaveLength(20);
+  });
 });

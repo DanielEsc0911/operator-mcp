@@ -58,7 +58,7 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
       title: "List users",
       annotations: { readOnlyHint: true },
       description:
-        "People you can assign work to. Pass a project to get exactly its assignable members; omit it to search everyone visible to you.",
+        "People you can assign work to, as { total, users, truncated? }. Pass a project to get exactly its assignable members; omit it to search everyone visible to you.",
       inputSchema: {
         project: z
           .string()
@@ -69,13 +69,13 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
     },
     handler(async ({ project, query }: { project?: string; query?: string }) => {
       const target = project ?? config.defaultProject;
-      const { elements } = target
+      const { total, elements, truncated } = target
         ? await client.collectAll(`/projects/${segment(target)}/available_assignees`)
         : await client.collectAll("/principals");
       const users = elements.map((user) => ({ id: user.id, name: user.name, email: user.email }));
-      if (!query) return users;
-      const needle = query.toLowerCase();
-      return users.filter((user) => `${user.name} ${user.email ?? ""}`.toLowerCase().includes(needle));
+      const needle = query?.toLowerCase();
+      const matching = users.filter((user) => !needle || `${user.name} ${user.email ?? ""}`.toLowerCase().includes(needle));
+      return { total: needle ? matching.length : total, users: matching, ...(truncated ? { truncated } : {}) };
     }),
   );
 }

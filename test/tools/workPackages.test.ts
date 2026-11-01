@@ -222,6 +222,16 @@ describe("my_work", () => {
     expect(lastQuery("pageSize")).toBe("20");
   });
 
+  it("drops the per-row assignee and url in favour of one urlTemplate", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const result = (await callTool(await connect(), "my_work")).json();
+
+    expect(result.urlTemplate).toBe("https://op.acme.com/work_packages/{id}");
+    expect(result.results[0].assignee).toBeUndefined();
+    expect(result.results[0].url).toBeUndefined();
+    expect(result.results[0].id).toBe(1234);
+  });
+
   it("maps page to OpenProject's page-number offset", async () => {
     routes({ "/users/me": ME, "/work_packages": RESULTS });
     const client = await connect();
@@ -245,5 +255,24 @@ describe("my_work", () => {
     await callTool(client, "my_work");
 
     expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/website/work_packages");
+  });
+});
+
+describe("assignee filters", () => {
+  const PRINCIPALS = { total: 1, count: 1, _embedded: { elements: [{ id: 44, name: "Left Project", email: "l@x.com", _links: { self: { href: "/api/v3/users/44" } } }] } };
+
+  it("accepts Me in any case", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    await callTool(await connect(), "search_work_packages", { assignee: "Me" });
+
+    expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["me"] } });
+  });
+
+  it("looks a name up in /principals even inside a project", async () => {
+    routes({ "/users/me": ME, "/principals": PRINCIPALS, "/projects/website/work_packages": RESULTS });
+    await callTool(await connect(), "search_work_packages", { project: "website", assignee: "Left Project" });
+
+    expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["44"] } });
+    expect(fetchMock.mock.calls.some(([url]) => (url as URL).pathname.includes("available_assignees"))).toBe(false);
   });
 });
