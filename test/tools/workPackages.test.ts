@@ -104,6 +104,23 @@ describe("search_work_packages", () => {
     expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["me"] } });
   });
 
+  it("resolves an assignee name to a user id", async () => {
+    const people = { total: 1, count: 1, _embedded: { elements: [{ id: 5, name: "Ana Ruiz", _links: { self: { href: "/api/v3/users/5" } } }] } };
+    routes({ "/users/me": ME, "/work_packages": RESULTS, "/principals": people });
+    const client = await connect();
+    await callTool(client, "search_work_packages", { assignee: "Ana Ruiz" });
+
+    expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["5"] } });
+  });
+
+  it("treats open and closed case-insensitively", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const client = await connect();
+    await callTool(client, "search_work_packages", { status: " Open " });
+
+    expect(filtersOf()).toContainEqual({ status: { operator: "o", values: [] } });
+  });
+
   it("resolves a type name to its id", async () => {
     routes({ "/users/me": ME, "/work_packages": RESULTS, "/types": TYPES });
     const client = await connect();

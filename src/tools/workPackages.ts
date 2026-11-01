@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { segment, type Filter, type OpenProjectClient } from "../client.js";
 import { flattenWorkPackage } from "../hal.js";
-import { resolveId } from "../resolve.js";
+import { resolveId, resolveUserHref } from "../resolve.js";
 import { handler, type ToolContext } from "./shared.js";
 
 const MAX_PAGE_SIZE = 100;
@@ -24,14 +24,21 @@ export type SearchArgs = {
 // operators with no values, not as status names. "On or after a date" is the
 // between operator `<>d` with an empty upper bound; `>d` is rejected.
 async function statusFilter(client: OpenProjectClient, status: string, project?: string): Promise<Filter> {
-  if (status === "open") return { status: { operator: "o", values: [] } };
-  if (status === "closed") return { status: { operator: "c", values: [] } };
+  const kind = status.trim().toLowerCase();
+  if (kind === "open") return { status: { operator: "o", values: [] } };
+  if (kind === "closed") return { status: { operator: "c", values: [] } };
   return { status: { operator: "=", values: [await resolveId(client, "statuses", status, project)] } };
+}
+
+async function assigneeId(client: OpenProjectClient, assignee: string, project?: string): Promise<string> {
+  if (assignee === "me") return assignee;
+  const href = await resolveUserHref(client, assignee, project);
+  return href.slice(href.lastIndexOf("/") + 1);
 }
 
 export async function buildSearchFilters(client: OpenProjectClient, args: SearchArgs): Promise<Filter[]> {
   const filters: Filter[] = [];
-  if (args.assignee) filters.push({ assignee: { operator: "=", values: [args.assignee] } });
+  if (args.assignee) filters.push({ assignee: { operator: "=", values: [await assigneeId(client, args.assignee, args.project)] } });
   if (args.status) filters.push(await statusFilter(client, args.status, args.project));
   if (args.type) filters.push({ type: { operator: "=", values: [await resolveId(client, "types", args.type, args.project)] } });
   if (args.priority) filters.push({ priority: { operator: "=", values: [await resolveId(client, "priorities", args.priority)] } });
@@ -70,7 +77,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
         "Find work packages by project, assignee, status, type, priority, text, or recency. Descriptions are omitted; use get_work_package for one item's full detail.",
       inputSchema: {
         project: z.string().optional().describe("Project identifier or id. Defaults to the configured default project."),
-        assignee: z.string().optional().describe('Assignee. Use "me" for yourself, otherwise a numeric user id.'),
+        assignee: z.string().optional().describe('Assignee. Use "me" for yourself, otherwise a user name, email or numeric id.'),
         status: z
           .string()
           .optional()

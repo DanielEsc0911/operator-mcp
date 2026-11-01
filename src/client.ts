@@ -7,6 +7,8 @@ export type Collection = { total: number; count: number; elements: HalResource[]
 export type Identity = { id: number; name: string; email: string };
 
 const TIMEOUT_MS = 30_000;
+const PAGE_SIZE = 100;
+const MAX_COLLECTED = 2_000;
 
 export function segment(value: string | number): string {
   return encodeURIComponent(String(value));
@@ -88,6 +90,21 @@ export class OpenProjectClient {
       },
     });
     return { total: body?.total ?? 0, count: body?.count ?? 0, elements: body?._embedded?.elements ?? [] };
+  }
+
+  async collectAll(
+    path: string,
+    params: { filters?: Filter[] } = {},
+  ): Promise<Collection & { truncated: boolean }> {
+    const elements: HalResource[] = [];
+    let total = 0;
+    for (let page = 1; elements.length < MAX_COLLECTED; page++) {
+      const batch = await this.collection(path, { ...params, pageSize: PAGE_SIZE, offset: page });
+      total = batch.total;
+      elements.push(...batch.elements);
+      if (!batch.elements.length || elements.length >= total) break;
+    }
+    return { total, count: elements.length, elements, truncated: elements.length < total };
   }
 
   async me(): Promise<Identity> {

@@ -67,6 +67,15 @@ describe("list_notifications", () => {
     expect(filtersOf()).toContainEqual({ project: { operator: "=", values: ["3"] } });
   });
 
+  it("resolves a project identifier to its id", async () => {
+    const projects = { total: 1, count: 1, _embedded: { elements: [{ id: 3, identifier: "website", name: "Website" }] } };
+    routes({ "/users/me": ME, "/projects": projects, "/notifications": FEED });
+    const client = await connect();
+    await callTool(client, "list_notifications", { project: "website" });
+
+    expect(filtersOf()).toContainEqual({ project: { operator: "=", values: ["3"] } });
+  });
+
   it("rejects a reason OpenProject does not define", async () => {
     routes({ "/users/me": ME });
     const client = await connect();

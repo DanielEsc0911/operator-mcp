@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Filter } from "../client.js";
+import type { Filter, OpenProjectClient } from "../client.js";
 import { flattenNotification } from "../hal.js";
+import { resolveProjectId } from "../resolve.js";
 import { handler, requireConfirm, type ToolContext } from "./shared.js";
 
 const REASONS = [
@@ -11,12 +12,12 @@ const REASONS = [
 
 type FeedArgs = { unreadOnly?: boolean; reason?: string; project?: string; limit?: number };
 
-function feedFilters({ unreadOnly, reason, project }: FeedArgs): Filter[] {
+async function feedFilters(client: OpenProjectClient, { unreadOnly, reason, project }: FeedArgs): Promise<Filter[]> {
   const filters: Filter[] = [];
   // OpenProject encodes boolean filter values as the strings "t" and "f".
   if (unreadOnly) filters.push({ readIAN: { operator: "=", values: ["f"] } });
   if (reason) filters.push({ reason: { operator: "=", values: [reason] } });
-  if (project) filters.push({ project: { operator: "=", values: [project] } });
+  if (project) filters.push({ project: { operator: "=", values: [await resolveProjectId(client, project)] } });
   return filters;
 }
 
@@ -33,13 +34,13 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       inputSchema: {
         unreadOnly: z.boolean().optional().describe("Only notifications you have not read yet."),
         reason: z.enum(REASONS).optional().describe("Why the notification exists."),
-        project: z.string().optional().describe("Numeric project id. Use list_projects to find it."),
+        project: z.string().optional().describe("Project identifier, name or numeric id."),
         limit: z.number().int().positive().optional().describe("Maximum notifications. Defaults to 50."),
       },
     },
     handler(async (args: FeedArgs) => {
       const { total, elements } = await client.collection("/notifications", {
-        filters: feedFilters(args),
+        filters: await feedFilters(client, args),
         pageSize: args.limit ?? 50,
       });
       return { total, notifications: elements.map((item) => flattenNotification(item, config.url)) };
@@ -58,7 +59,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
         all: z.boolean().optional().describe("Mark the whole collection read, narrowed by the filters below. Needs confirm: true."),
         confirm: z.boolean().optional().describe("Required with all: true. Only set it after the user explicitly agreed to mark that many notifications read."),
         reason: z.enum(REASONS).optional().describe("With all: only this reason."),
-        project: z.string().optional().describe("With all: only this numeric project id."),
+        project: z.string().optional().describe("With all: only this project (identifier, name or numeric id)."),
       },
     },
     handler(async ({ ids, all, reason, project, confirm }: { ids?: number[]; all?: boolean; confirm?: boolean } & FeedArgs) => {
@@ -70,7 +71,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       }
 
       requireConfirm(confirm, config.readOnly, "Marking the whole feed read");
-      const filters = feedFilters({ reason, project });
+      const filters = await feedFilters(client, { reason, project });
       await client.request("POST", "/notifications/read_ian", {
         query: { filters: filters.length ? JSON.stringify(filters) : undefined },
       });

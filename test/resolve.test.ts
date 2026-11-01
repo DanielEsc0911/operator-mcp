@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { OpenProjectClient } from "../src/client.js";
-import { listMetadata, resolveHref, resolveId, resolveUserHref, clearMetadataCache } from "../src/resolve.js";
+import { listMetadata, resolveHref, resolveId, resolveUserHref, resolveProjectId, clearMetadataCache } from "../src/resolve.js";
 import type { Config } from "../src/config.js";
 
 const config: Config = {
@@ -74,10 +74,28 @@ describe("resolveHref", () => {
   });
 
   it("lists the valid options when a name does not match", async () => {
-    fetchMock.mockResolvedValue(respond(STATUSES));
+    fetchMock.mockImplementation(async () => respond(STATUSES));
     await expect(resolveHref(client(), "statuses", "Doing")).rejects.toThrow(
       'No status named "Doing". Available: In progress',
     );
+  });
+});
+
+describe("resolveHref staleness", () => {
+  it("refetches once on a miss, so a value created after the cache was filled resolves", async () => {
+    fetchMock
+      .mockResolvedValueOnce(respond(STATUSES))
+      .mockResolvedValueOnce(respond({ total: 2, count: 2, _embedded: { elements: [{ id: 7, name: "In progress" }, { id: 9, name: "Blocked" }] } }));
+    await resolveHref(client(), "statuses", "In progress");
+    expect(await resolveHref(client(), "statuses", "  BLOCKED ")).toBe("/api/v3/statuses/9");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the cache per profile", async () => {
+    fetchMock.mockImplementation(async () => respond(STATUSES));
+    await listMetadata(client(), "statuses");
+    await listMetadata(new OpenProjectClient({ ...config, profile: "other" }), "statuses");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -116,8 +134,46 @@ describe("resolveUserHref", () => {
     expect(await resolveUserHref(client(), "ana@acme.com", "website")).toBe("/api/v3/users/5");
   });
 
+  it("uses the match's own self link, so groups and placeholders resolve", async () => {
+    fetchMock.mockResolvedValue(respond({
+      total: 1, count: 1,
+      _embedded: { elements: [{ id: 8, name: "Dev Team", _links: { self: { href: "/api/v3/groups/8" } } }] },
+    }));
+    expect(await resolveUserHref(client(), "dev team", "website")).toBe("/api/v3/groups/8");
+  });
+
+  it("refuses an ambiguous name and lists the candidates with ids", async () => {
+    fetchMock.mockResolvedValue(respond({
+      total: 2, count: 2,
+      _embedded: { elements: [{ id: 5, name: "Ana Ruiz" }, { id: 6, name: "Ana Ruiz" }] },
+    }));
+    await expect(resolveUserHref(client(), "Ana Ruiz", "website")).rejects.toThrow(
+      'matches several users: Ana Ruiz (id 5), Ana Ruiz (id 6). Use the numeric id.',
+    );
+  });
+
   it("explains when nobody matches", async () => {
     fetchMock.mockResolvedValue(respond({ total: 0, count: 0, _embedded: { elements: [] } }));
     await expect(resolveUserHref(client(), "Nobody", "website")).rejects.toThrow('No user matching "Nobody"');
+  });
+});
+
+describe("resolveProjectId", () => {
+  const PROJECTS = { total: 1, count: 1, _embedded: { elements: [{ id: 3, identifier: "website", name: "Website" }] } };
+
+  it("passes a numeric id through without a request", async () => {
+    expect(await resolveProjectId(client(), "3")).toBe("3");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("finds a project by identifier or name", async () => {
+    fetchMock.mockImplementation(async () => respond(PROJECTS));
+    expect(await resolveProjectId(client(), "website")).toBe("3");
+    expect(await resolveProjectId(client(), "WEBSITE")).toBe("3");
+  });
+
+  it("lists the projects it knows when nothing matches", async () => {
+    fetchMock.mockImplementation(async () => respond(PROJECTS));
+    await expect(resolveProjectId(client(), "nope")).rejects.toThrow('No project "nope". Available: website (Website)');
   });
 });

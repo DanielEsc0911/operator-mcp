@@ -14,6 +14,10 @@ export function linkTitle(hal: HalResource, rel: string): string | undefined {
   return link(hal, rel)?.title ?? undefined;
 }
 
+export function linkHref(hal: HalResource, rel: string): string | undefined {
+  return link(hal, rel)?.href ?? undefined;
+}
+
 export function linkId(hal: HalResource, rel: string): number | undefined {
   const match = /\/(\d+)$/.exec(link(hal, rel)?.href ?? "");
   return match ? Number(match[1]) : undefined;

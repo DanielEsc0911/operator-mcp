@@ -82,10 +82,13 @@ describe("list_projects", () => {
     routes({ "/users/me": ME, "/projects": PROJECTS });
     const client = await connect();
 
-    expect((await callTool(client, "list_projects")).json()).toEqual([
-      { id: 3, name: "Website", identifier: "website", active: true, url: "https://op.acme.com/projects/website" },
-      { id: 4, name: "Intranet", identifier: "intranet", active: true, url: "https://op.acme.com/projects/intranet" },
-    ]);
+    expect((await callTool(client, "list_projects")).json()).toEqual({
+      total: 2,
+      projects: [
+        { id: 3, name: "Website", identifier: "website", active: true, url: "https://op.acme.com/projects/website" },
+        { id: 4, name: "Intranet", identifier: "intranet", active: true, url: "https://op.acme.com/projects/intranet" },
+      ],
+    });
   });
 
   it("filters by name, case-insensitively", async () => {
@@ -93,8 +96,8 @@ describe("list_projects", () => {
     const client = await connect();
     const found = (await callTool(client, "list_projects", { query: "intra" })).json();
 
-    expect(found).toHaveLength(1);
-    expect(found[0].identifier).toBe("intranet");
+    expect(found.total).toBe(1);
+    expect(found.projects[0].identifier).toBe("intranet");
   });
 });
 

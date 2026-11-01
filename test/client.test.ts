@@ -194,3 +194,34 @@ describe("response integrity", () => {
     await expect(client.request("GET", "/statuses")).rejects.toThrow(/Cannot reach/);
   });
 });
+
+describe("collectAll", () => {
+  const page = (ids: number[], total: number) => ({ total, count: ids.length, _embedded: { elements: ids.map((id) => ({ id })) } });
+  const run = (fetchMock: ReturnType<typeof vi.fn>) => {
+    vi.stubGlobal("fetch", fetchMock);
+    return new OpenProjectClient({ profile: "t", url: "https://op.acme.com", apiKey: "k", conventionsPath: "/x", readOnly: false }).collectAll("/projects");
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("pages until it has everything", async () => {
+    const mock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(page([1, 2], 3))))
+      .mockResolvedValueOnce(new Response(JSON.stringify(page([3], 3))));
+    const result = await run(mock);
+
+    expect(result.elements.map((e) => e.id)).toEqual([1, 2, 3]);
+    expect(result.truncated).toBe(false);
+    expect((mock.mock.calls[1][0] as URL).searchParams.get("offset")).toBe("2");
+    expect((mock.mock.calls[1][0] as URL).searchParams.get("pageSize")).toBe("100");
+  });
+
+  it("stops at 2,000 items and says so", async () => {
+    const full = Array.from({ length: 100 }, (_, i) => i);
+    const mock = vi.fn(async () => new Response(JSON.stringify(page(full, 5_000))));
+    const result = await run(mock);
+
+    expect(result.elements).toHaveLength(2_000);
+    expect(result.truncated).toBe(true);
+    expect(result.total).toBe(5_000);
+  });
+});

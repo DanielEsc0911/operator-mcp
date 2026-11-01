@@ -1,5 +1,5 @@
 import { segment, type OpenProjectClient } from "./client.js";
-import { flattenNamed } from "./hal.js";
+import { flattenNamed, linkHref } from "./hal.js";
 
 export type MetaKind = "types" | "statuses" | "priorities" | "activities";
 
@@ -29,13 +29,18 @@ function pathFor(kind: MetaKind, project?: string): string {
   return kind === "types" && project ? `/projects/${segment(project)}/types` : PATHS[kind];
 }
 
-export async function listMetadata(client: OpenProjectClient, kind: MetaKind, project?: string): Promise<Named[]> {
+export async function listMetadata(
+  client: OpenProjectClient,
+  kind: MetaKind,
+  project?: string,
+  options: { fresh?: boolean } = {},
+): Promise<Named[]> {
   const path = pathFor(kind, project);
-  const key = `${client.config.url}${path}`;
-  const cached = cache.get(key);
+  const key = `${client.config.profile}:${client.config.url}${path}`;
+  const cached = options.fresh ? undefined : cache.get(key);
   if (cached) return cached;
 
-  const { elements } = await client.collection(path, { pageSize: 200 });
+  const { elements } = await client.collectAll(path);
   const named = elements.map(flattenNamed);
   cache.set(key, named);
   return named;
@@ -54,9 +59,14 @@ export async function resolveHref(
   const base = `/api/v3${PATHS[kind]}`;
   if (isNumeric(value)) return `${base}/${value}`;
 
-  const entries = await listMetadata(client, kind, project);
   const needle = String(value).trim().toLowerCase();
-  const match = entries.find((entry) => entry.name.toLowerCase() === needle);
+  const find = (list: Named[]) => list.find((entry) => entry.name.toLowerCase() === needle);
+  let entries = await listMetadata(client, kind, project);
+  let match = find(entries);
+  if (!match) {
+    entries = await listMetadata(client, kind, project, { fresh: true });
+    match = find(entries);
+  }
   if (!match) {
     throw new Error(
       `No ${SINGULAR[kind]} named "${value}". Available: ${entries.map((entry) => entry.name).join(", ")}`,
@@ -84,11 +94,30 @@ export async function resolveUserHref(
   if (isNumeric(value)) return `/api/v3/users/${value}`;
 
   const path = project ? `/projects/${segment(project)}/available_assignees` : "/principals";
-  const { elements } = await client.collection(path, { pageSize: 200 });
+  const { elements } = await client.collectAll(path);
   const needle = String(value).trim().toLowerCase();
-  const match = elements.find(
+  const matches = elements.filter(
     (user) => String(user.name ?? "").toLowerCase() === needle || String(user.email ?? "").toLowerCase() === needle,
   );
-  if (!match) throw new Error(`No user matching "${value}". Use list_users to see who is available.`);
-  return `/api/v3/users/${match.id}`;
+  if (matches.length > 1) {
+    const listed = matches.map((user) => `${user.name} (id ${user.id})`).join(", ");
+    throw new Error(`"${value}" matches several users: ${listed}. Use the numeric id.`);
+  }
+  if (!matches.length) throw new Error(`No user matching "${value}". Use list_users to see who is available.`);
+  return linkHref(matches[0], "self") ?? `/api/v3/users/${matches[0].id}`;
+}
+
+export async function resolveProjectId(client: OpenProjectClient, value: string | number): Promise<string> {
+  if (isNumeric(value)) return String(value);
+
+  const { elements } = await client.collectAll("/projects");
+  const needle = String(value).trim().toLowerCase();
+  const match = elements.find(
+    (project) => String(project.identifier).toLowerCase() === needle || String(project.name ?? "").toLowerCase() === needle,
+  );
+  if (!match) {
+    const known = elements.map((project) => `${project.identifier} (${project.name})`).join(", ");
+    throw new Error(`No project "${value}". Available: ${known}`);
+  }
+  return String(match.id);
 }

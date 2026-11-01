@@ -37,17 +37,18 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
     {
       title: "List projects",
       annotations: { readOnlyHint: true },
-      description: "Projects visible to you. Use the `identifier` value wherever a tool asks for a project.",
+      description: "Projects visible to you, as { total, projects }. Use the `identifier` value wherever a tool asks for a project.",
       inputSchema: {
         query: z.string().optional().describe("Case-insensitive substring matched against the project name."),
       },
     },
     handler(async ({ query }: { query?: string }) => {
-      const { elements } = await client.collection("/projects", { pageSize: 200 });
-      const projects = elements.map((project) => flattenProject(project, config.url));
-      if (!query) return projects;
-      const needle = query.toLowerCase();
-      return projects.filter((project) => String(project.name).toLowerCase().includes(needle));
+      const { total, elements, truncated } = await client.collectAll("/projects");
+      const needle = query?.toLowerCase();
+      const projects = elements
+        .map((project) => flattenProject(project, config.url))
+        .filter((project) => !needle || String(project.name).toLowerCase().includes(needle));
+      return { total: needle ? projects.length : total, projects, ...(truncated ? { truncated } : {}) };
     }),
   );
 
@@ -69,8 +70,8 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
     handler(async ({ project, query }: { project?: string; query?: string }) => {
       const target = project ?? config.defaultProject;
       const { elements } = target
-        ? await client.collection(`/projects/${segment(target)}/available_assignees`, { pageSize: 200 })
-        : await client.collection("/principals", { pageSize: 200 });
+        ? await client.collectAll(`/projects/${segment(target)}/available_assignees`)
+        : await client.collectAll("/principals");
       const users = elements.map((user) => ({ id: user.id, name: user.name, email: user.email }));
       if (!query) return users;
       const needle = query.toLowerCase();
