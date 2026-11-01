@@ -8,6 +8,7 @@ export function registerMetaTools(server: McpServer, { client }: ToolContext): v
     "list_metadata",
     {
       title: "List metadata",
+      annotations: { readOnlyHint: true },
       description:
         "Ids and names for work package types, statuses, priorities, or time entry activities. Call this when a write is rejected for an unknown value, or when you need the exact wording this instance uses.",
       inputSchema: {

@@ -23,6 +23,7 @@ export function registerTimeTools(server: McpServer, { client }: ToolContext): v
     "log_time",
     {
       title: "Log time",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description: "Record time spent on a work package. Hours are given as a decimal number; 2.5 means two and a half.",
       inputSchema: {
         workPackageId: z.number().int().describe("Work package the time was spent on."),

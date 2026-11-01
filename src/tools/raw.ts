@@ -15,6 +15,7 @@ export function registerRawTools(server: McpServer, { client }: ToolContext): vo
     "api_request",
     {
       title: "Raw OpenProject APIv3 request",
+      annotations: { readOnlyHint: false, destructiveHint: true },
       description:
         "Escape hatch for anything the other tools do not cover. DELETE is refused unless the user set OPENPROJECT_ALLOW_DELETE=1. Returns the raw HAL+JSON response, unflattened. Prefer a dedicated tool when one exists — this one requires you to know APIv3 request shapes, and its responses are large.",
       inputSchema: {

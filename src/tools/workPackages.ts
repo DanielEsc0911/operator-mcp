@@ -51,6 +51,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
     "get_work_package",
     {
       title: "Get a work package",
+      annotations: { readOnlyHint: true },
       description: "Full detail for one work package, including its description and the lockVersion an update needs.",
       inputSchema: { id: z.number().int().describe("Work package id.") },
     },
@@ -64,6 +65,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
     "search_work_packages",
     {
       title: "Search work packages",
+      annotations: { readOnlyHint: true },
       description:
         "Find work packages by project, assignee, status, type, priority, text, or recency. Descriptions are omitted; use get_work_package for one item's full detail.",
       inputSchema: {
@@ -97,6 +99,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
     "my_work",
     {
       title: "My work",
+      annotations: { readOnlyHint: true },
       description: "Work packages assigned to you, soonest due first. The usual starting point for a working session.",
       inputSchema: {
         status: z.enum(["open", "closed"]).optional().describe("Defaults to open."),

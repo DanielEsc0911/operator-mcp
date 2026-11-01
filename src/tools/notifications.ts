@@ -27,6 +27,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
     "list_notifications",
     {
       title: "List notifications",
+      annotations: { readOnlyHint: true },
       description:
         "Your in-app notification feed, newest first. Each row carries the work package it concerns, so you can triage without a second lookup.",
       inputSchema: {
@@ -49,6 +50,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
     "mark_notifications_read",
     {
       title: "Mark notifications as read",
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
       description:
         "Mark specific notifications read by id, or every notification matching a filter with all: true. Use this after triaging so the feed stays meaningful.",
       inputSchema: {
@@ -80,6 +82,7 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
     "watch_work_package",
     {
       title: "Watch or unwatch a work package",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
       description: "Control whether you get notified about a work package's future activity.",
       inputSchema: {
         id: z.number().int().describe("Work package id."),

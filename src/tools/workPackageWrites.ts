@@ -14,6 +14,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     "create_work_package",
     {
       title: "Create a work package",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description: "Create a work package in a project. Type and subject are required; everything else is optional.",
       inputSchema: {
         ...WRITE_SCHEMA,
@@ -40,6 +41,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     "update_work_package",
     {
       title: "Update a work package",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
       description:
         "Change any subset of a work package's fields. Changing the description requires lockVersion from get_work_package, so you never overwrite someone else's edit; other fields handle the lock for you. Pass null for assignee or parent to clear it.",
       inputSchema: {
@@ -74,6 +76,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     "comment_work_package",
     {
       title: "Comment on a work package",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description: "Add a markdown comment. Everyone watching the work package gets a notification.",
       inputSchema: {
         id: z.number().int().describe("Work package id."),
@@ -92,6 +95,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     "list_activities",
     {
       title: "List work package activity",
+      annotations: { readOnlyHint: true },
       description: "Comments and field changes for one work package, oldest first.",
       inputSchema: {
         id: z.number().int().describe("Work package id."),
@@ -108,6 +112,7 @@ export function registerWorkPackageWriteTools(server: McpServer, { client }: Too
     "link_work_packages",
     {
       title: "Link two work packages",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description: "Create a relation between two work packages, such as one blocking another.",
       inputSchema: {
         from: z.number().int().describe("Work package the relation starts from."),

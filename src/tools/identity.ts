@@ -12,6 +12,7 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
     "whoami",
     {
       title: "Who am I",
+      annotations: { readOnlyHint: true },
       description:
         "Identity and connection state. Call this first: it tells you which user you are acting as, which OpenProject instance you are on, the default project, whether writes are permitted, and whether this workplace has a conventions manual.",
       inputSchema: {},
@@ -35,6 +36,7 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
     "list_projects",
     {
       title: "List projects",
+      annotations: { readOnlyHint: true },
       description: "Projects visible to you. Use the `identifier` value wherever a tool asks for a project.",
       inputSchema: {
         query: z.string().optional().describe("Case-insensitive substring matched against the project name."),
@@ -53,6 +55,7 @@ export function registerIdentityTools(server: McpServer, { client }: ToolContext
     "list_users",
     {
       title: "List users",
+      annotations: { readOnlyHint: true },
       description:
         "People you can assign work to. Pass a project to get exactly its assignable members; omit it to search everyone visible to you.",
       inputSchema: {

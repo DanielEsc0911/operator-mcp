@@ -26,6 +26,7 @@ export function registerBriefingTools(server: McpServer, { client }: ToolContext
     "briefing",
     {
       title: "Briefing",
+      annotations: { readOnlyHint: true },
       description:
         "One-call answer to \"what's pending / what's new / what's on my plate\": your open work (`pending` leaves out items already at 100%, which `byStatus` still counts), unread notifications, and recently changed work packages. Call this first and answer from it; use other tools only for follow-up detail.",
       inputSchema: {
