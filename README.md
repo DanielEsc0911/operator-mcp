@@ -96,6 +96,20 @@ xattr -d com.apple.quarantine operator-mcp-darwin-arm64
 
 </details>
 
+### Verifying a release
+
+Every binary and the npm tarball carry a signed build provenance attestation, made
+by the release workflow from this repository. Check a download before you run it
+(needs the [GitHub CLI](https://cli.github.com)):
+
+```bash
+gh attestation verify operator-mcp-darwin-arm64.gz --repo DanielEsc0911/operator-mcp
+```
+
+The same command verifies the `.tgz` attached to the release. `install.sh` is served
+from `operator.daer.dev`, which you have to trust; it checks `SHA256SUMS` from the
+GitHub release before it installs anything.
+
 ### The wizard
 
 `operator-mcp setup` takes about a minute, and the installer starts it for you. It
