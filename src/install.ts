@@ -19,7 +19,7 @@ const CMD_SPECIAL = /[\s"&|<>^%()!,;=]/;
 // cmd.exe re-parses the joined command line when Node spawns through a shell, and a `%` expands even inside quotes.
 export function cmdQuote(arg: string): string {
   if (arg !== "" && !CMD_SPECIAL.test(arg)) return arg;
-  return `"${arg.replace(/"/g, '\\"').replace(/%/g, '"^%"')}"`;
+  return `"${arg.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/%/g, '"^%"')}"`;
 }
 
 export function spawnRunner(platform: NodeJS.Platform = process.platform, spawn: typeof spawnSync = spawnSync): Runner {
