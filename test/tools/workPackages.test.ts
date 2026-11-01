@@ -10,6 +10,7 @@ function respond(body: unknown, status = 200): Response {
 const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
 const TYPES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "Bug" }] } };
 const STATUSES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "In progress" }] } };
+const NO_ACTIVITY = { total: 0, count: 0, _embedded: { elements: [] } };
 const RESULTS = { total: 1, count: 1, _embedded: { elements: [workPackage] } };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -39,7 +40,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("get_work_package", () => {
   it("returns a flattened work package including its description", async () => {
-    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage, "/work_packages/1234/activities": NO_ACTIVITY });
     const client = await connect();
     const result = (await callTool(client, "get_work_package", { id: 1234 })).json();
 
@@ -48,6 +49,31 @@ describe("get_work_package", () => {
       assignee: "Ada Lovelace", lockVersion: 7, url: "https://op.acme.com/work_packages/1234",
     });
     expect(result.description).toContain("Users land on /dashboard");
+    expect(result.parent).toEqual({ id: 1200, subject: "Auth overhaul" });
+  });
+
+  it("adds the three newest comments, capped at 500 characters", async () => {
+    const comments = [1, 2, 3, 4].map((id) => ({ id, comment: { raw: `c${id}${"x".repeat(600)}` }, createdAt: `2026-07-0${id}`, _links: { user: { title: "Ana" } } }));
+    const withChange = [{ id: 9, details: [{ raw: "Status changed" }], _links: {} }, ...comments];
+    routes({
+      "/users/me": ME, "/work_packages/1234": workPackage,
+      "/work_packages/1234/activities": { total: 5, count: 5, _embedded: { elements: withChange } },
+    });
+    const client = await connect();
+    const result = (await callTool(client, "get_work_package", { id: 1234 })).json();
+
+    expect(result.latestComments.map((entry: any) => entry.createdAt)).toEqual(["2026-07-04", "2026-07-03", "2026-07-02"]);
+    expect(result.latestComments[0].comment).toHaveLength(500);
+  });
+
+  it("caps a huge description and says so", async () => {
+    const huge = { ...workPackage, description: { raw: "d".repeat(25_000) } };
+    routes({ "/users/me": ME, "/work_packages/1234": huge, "/work_packages/1234/activities": NO_ACTIVITY });
+    const client = await connect();
+    const result = (await callTool(client, "get_work_package", { id: 1234 })).json();
+
+    expect(result.description).toHaveLength(20_000);
+    expect(result.descriptionTruncated).toBe(true);
   });
 
   it("explains a missing work package", async () => {
@@ -62,11 +88,11 @@ describe("get_work_package", () => {
 
 describe("search_work_packages", () => {
   it("queries the project path rather than a project filter, so identifiers work", async () => {
-    routes({ "/users/me": ME, "/projects/website/work_packages": RESULTS });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/work_packages": RESULTS });
     const client = await connect();
     await callTool(client, "search_work_packages", { project: "website" });
 
-    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/website/work_packages");
+    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/3/work_packages");
   });
 
   it("encodes the project as a single path segment", async () => {
@@ -74,7 +100,7 @@ describe("search_work_packages", () => {
     const client = await connect();
     await callTool(client, "search_work_packages", { project: "../../users/me" });
 
-    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/..%2F..%2Fusers%2Fme/work_packages");
+    expect((fetchMock.mock.calls.at(-2)![0] as URL).pathname).toBe("/api/v3/projects/..%2F..%2Fusers%2Fme");
   });
 
   it("uses the operator form for open and closed", async () => {
@@ -104,6 +130,23 @@ describe("search_work_packages", () => {
     expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["me"] } });
   });
 
+  it("resolves an assignee name to a user id", async () => {
+    const people = { total: 1, count: 1, _embedded: { elements: [{ id: 5, name: "Ana Ruiz", _links: { self: { href: "/api/v3/users/5" } } }] } };
+    routes({ "/users/me": ME, "/work_packages": RESULTS, "/principals": people });
+    const client = await connect();
+    await callTool(client, "search_work_packages", { assignee: "Ana Ruiz" });
+
+    expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["5"] } });
+  });
+
+  it("treats open and closed case-insensitively", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const client = await connect();
+    await callTool(client, "search_work_packages", { status: " Open " });
+
+    expect(filtersOf()).toContainEqual({ status: { operator: "o", values: [] } });
+  });
+
   it("resolves a type name to its id", async () => {
     routes({ "/users/me": ME, "/work_packages": RESULTS, "/types": TYPES });
     const client = await connect();
@@ -125,7 +168,7 @@ describe("search_work_packages", () => {
     const client = await connect();
     await callTool(client, "search_work_packages", { updatedSince: "2026-07-01" });
 
-    expect(filtersOf()).toContainEqual({ updatedAt: { operator: ">d", values: ["2026-07-01"] } });
+    expect(filtersOf()).toContainEqual({ updatedAt: { operator: "<>d", values: ["2026-07-01", ""] } });
   });
 
   it("sends no filters parameter when nothing was asked for", async () => {
@@ -144,6 +187,23 @@ describe("search_work_packages", () => {
     expect(result.total).toBe(1);
     expect(result.results[0].subject).toBe("Fix login redirect");
     expect(result.results[0].description).toBeUndefined();
+  });
+
+  it("defaults to 20 lean rows with one urlTemplate", async () => {
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/work_packages": RESULTS, "/work_packages": RESULTS });
+    const result = (await callTool(await connect(), "search_work_packages", { assignee: "me" })).json();
+
+    expect(lastQuery("pageSize")).toBe("20");
+    expect(result.urlTemplate).toBe("https://op.acme.com/work_packages/{id}");
+    expect(result.results[0].url).toBeUndefined();
+    expect(result.results[0].assignee).toBeUndefined();
+  });
+
+  it("keeps assignee and project on rows when nothing in the query already says them", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const row = (await callTool(await connect(), "search_work_packages", {})).json().results[0];
+
+    expect(row).toMatchObject({ assignee: "Ada Lovelace", project: "Website" });
   });
 
   it("caps the page size at 100", async () => {
@@ -174,7 +234,28 @@ describe("my_work", () => {
       { status: { operator: "o", values: [] } },
     ]);
     expect(lastQuery("sortBy")).toBe('[["dueDate","asc"]]');
-    expect(result).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.results).toHaveLength(1);
+    expect(lastQuery("pageSize")).toBe("20");
+  });
+
+  it("drops the per-row assignee and url in favour of one urlTemplate", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const result = (await callTool(await connect(), "my_work")).json();
+
+    expect(result.urlTemplate).toBe("https://op.acme.com/work_packages/{id}");
+    expect(result.results[0].assignee).toBeUndefined();
+    expect(result.results[0].url).toBeUndefined();
+    expect(result.results[0].id).toBe(1234);
+  });
+
+  it("maps page to OpenProject's page-number offset", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const client = await connect();
+    await callTool(client, "my_work", { page: 3 });
+    expect(lastQuery("offset")).toBe("3");
+    await callTool(client, "search_work_packages", { page: 2 });
+    expect(lastQuery("offset")).toBe("2");
   });
 
   it("can ask for closed work instead", async () => {
@@ -191,5 +272,24 @@ describe("my_work", () => {
     await callTool(client, "my_work");
 
     expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/website/work_packages");
+  });
+});
+
+describe("assignee filters", () => {
+  const PRINCIPALS = { total: 1, count: 1, _embedded: { elements: [{ id: 44, name: "Left Project", email: "l@x.com", _links: { self: { href: "/api/v3/users/44" } } }] } };
+
+  it("accepts Me in any case", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    await callTool(await connect(), "search_work_packages", { assignee: "Me" });
+
+    expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["me"] } });
+  });
+
+  it("looks a name up in /principals even inside a project", async () => {
+    routes({ "/users/me": ME, "/principals": PRINCIPALS, "/projects/website": { id: 3 }, "/projects/3/work_packages": RESULTS });
+    await callTool(await connect(), "search_work_packages", { project: "website", assignee: "Left Project" });
+
+    expect(filtersOf()).toContainEqual({ assignee: { operator: "=", values: ["44"] } });
+    expect(fetchMock.mock.calls.some(([url]) => (url as URL).pathname.includes("available_assignees"))).toBe(false);
   });
 });

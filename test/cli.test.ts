@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { runCli, type Streams } from "../src/cli.js";
+import { finish, runCli, type Streams } from "../src/cli.js";
 
 const setup = vi.hoisted(() => vi.fn(async () => 0));
 const doctor = vi.hoisted(() => vi.fn(async () => 0));
@@ -71,5 +71,69 @@ describe("runCli", () => {
     expect(await runCli(["doctor"], streams, "20.11.0")).toBe(1);
     expect(err).toContain("Node 22");
     expect(doctor).not.toHaveBeenCalled();
+  });
+
+  it("accepts --flag=value and routes past it", async () => {
+    await runCli(["--profile=work", "doctor"], streams);
+    expect(doctor).toHaveBeenCalledWith(["--profile=work", "doctor"], streams);
+  });
+
+  it("errors, exit 2, when a value flag has no value", async () => {
+    expect(await runCli(["doctor", "--profile"], streams)).toBe(2);
+    expect(await runCli(["doctor", "--profile", "--yes"], streams)).toBe(2);
+    expect(await runCli(["doctor", "--profile="], streams)).toBe(2);
+    expect(err).toContain("--profile needs a value");
+    expect(doctor).not.toHaveBeenCalled();
+  });
+
+  it("exits 2 on an unknown flag and suggests the nearest", async () => {
+    expect(await runCli(["setup", "--read-onyl"], streams)).toBe(2);
+    expect(err).toContain("Did you mean --read-only");
+    expect(setup).not.toHaveBeenCalled();
+  });
+
+  it("prints usage for --help on any subcommand without running it", async () => {
+    for (const command of ["setup", "install", "doctor"]) expect(await runCli([command, "--help"], streams)).toBe(0);
+    expect(out).toContain("Usage:");
+    expect(setup).not.toHaveBeenCalled();
+    expect(install).not.toHaveBeenCalled();
+    expect(doctor).not.toHaveBeenCalled();
+  });
+
+  it("prints the version for --version anywhere in argv", async () => {
+    expect(await runCli(["doctor", "--version"], streams)).toBe(0);
+    expect(out).toBe(`${version}\n`);
+    expect(doctor).not.toHaveBeenCalled();
+  });
+
+  it("rejects a flag the command does not take, but keeps --read-only on setup", async () => {
+    expect(await runCli(["doctor", "--url", "https://x.test"], streams)).toBe(2);
+    expect(await runCli(["install", "--read-only"], streams)).toBe(2);
+    expect(err).toContain("Try: operator-mcp --help");
+    expect(doctor).not.toHaveBeenCalled();
+    expect(install).not.toHaveBeenCalled();
+    expect(await runCli(["setup", "--read-only"], streams)).toBe(0);
+  });
+
+  it("ends options at --", async () => {
+    expect(await runCli(["--", "doctor"], streams)).toBe(0);
+    expect(doctor).toHaveBeenCalled();
+    expect(await runCli(["doctor", "--", "--bogus"], streams)).toBe(0);
+  });
+});
+
+describe("finish", () => {
+  it("exits at once for an interrupt so a pending fetch cannot keep the process alive", () => {
+    const proc = { exit: vi.fn() as any, exitCode: undefined as any };
+    finish(130, proc);
+    expect(proc.exit).toHaveBeenCalledWith(130);
+  });
+
+  it("sets exitCode otherwise and leaves a served process alone", () => {
+    const proc = { exit: vi.fn() as any, exitCode: undefined as any };
+    finish(1, proc);
+    expect(proc.exitCode).toBe(1);
+    finish(null, proc);
+    expect(proc.exit).not.toHaveBeenCalled();
   });
 });

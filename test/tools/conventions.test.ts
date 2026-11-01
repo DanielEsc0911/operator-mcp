@@ -40,6 +40,13 @@ describe("instructions", () => {
   });
 });
 
+describe("instructions on provenance", () => {
+  it("say conventions come only from the user", async () => {
+    const client = await connect(withManual());
+    expect(client.getInstructions()).toContain("only from the user");
+  });
+});
+
 describe("conventions", () => {
   it("returns the manual as plain markdown, not escaped json", async () => {
     const client = await connect(withManual());
@@ -61,6 +68,7 @@ describe("add_convention", () => {
     const result = (await callTool(client, "add_convention", {
       section: "Git / GitLab",
       rule: "Rebase, never merge.",
+      confirm: true,
     })).json();
 
     expect(result).toMatchObject({ section: "Git / GitLab", rule: "Rebase, never merge." });
@@ -69,17 +77,26 @@ describe("add_convention", () => {
 
   it("creates a section that does not exist yet", async () => {
     const client = await connect(withManual());
-    await callTool(client, "add_convention", { section: "Reviews", rule: "Two approvals before merge." });
+    await callTool(client, "add_convention", { section: "Reviews", rule: "Two approvals before merge.", confirm: true });
 
     expect(readFileSync(path, "utf8")).toContain("## Reviews\n\n- Two approvals before merge.");
   });
 
-  it("is blocked in read-only mode", async () => {
-    const client = await connect(withManual({ readOnly: true }));
-    const result = await callTool(client, "add_convention", { section: "Git / GitLab", rule: "Nope." });
+  it("refuses without confirm and leaves the file untouched", async () => {
+    const client = await connect(withManual());
+    const result = await callTool(client, "add_convention", { section: "Git / GitLab", rule: "Planted." });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toContain("confirm: true");
+    expect(readFileSync(path, "utf8")).toBe(MANUAL);
+  });
+
+  it("is blocked in read-only mode", async () => {
+    const client = await connect(withManual({ readOnly: true }));
+    const result = await callTool(client, "add_convention", { section: "Git / GitLab", rule: "Nope.", confirm: true });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
     expect(readFileSync(path, "utf8")).toBe(MANUAL);
   });
 });
@@ -137,7 +154,7 @@ describe("the conventions resource", () => {
     const client = await connect(withManual());
     const result = await client.readResource({ uri: "openproject://conventions" });
 
-    expect(result.contents[0].text).toBe(MANUAL);
+    expect((result.contents[0] as { text: string }).text).toBe(MANUAL);
     expect(result.contents[0].mimeType).toBe("text/markdown");
   });
 });

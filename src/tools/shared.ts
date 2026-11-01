@@ -1,10 +1,11 @@
 import type { OpenProjectClient } from "../client.js";
-import { humanMessage } from "../errors.js";
+import { ReadOnlyError, humanMessage } from "../errors.js";
+import { resolveProjectId } from "../resolve.js";
 
 export type ToolContext = { client: OpenProjectClient };
 
 export function jsonResult(value: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
+  return { content: [{ type: "text" as const, text: JSON.stringify(value) }] };
 }
 
 export function errorResult(message: string) {
@@ -20,4 +21,17 @@ export function handler<Args>(run: (args: Args) => Promise<unknown>) {
       return errorResult(humanMessage(error));
     }
   };
+}
+
+export function requireConfirm(confirm: boolean | undefined, readOnly: boolean, action: string): void {
+  if (readOnly) throw new ReadOnlyError();
+  if (!confirm) {
+    throw new Error(
+      `${action} needs confirm: true. Show the user exactly what will happen and ask first; set confirm only when they explicitly agree.`,
+    );
+  }
+}
+
+export async function projectOrDefault(client: OpenProjectClient, project?: string): Promise<string | undefined> {
+  return project ? resolveProjectId(client, project) : client.config.defaultProject;
 }

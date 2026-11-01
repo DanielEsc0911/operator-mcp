@@ -1,4 +1,6 @@
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { bulletText, cleanRule, cleanSection, findSection, parse, topLevelBullets } from "./manualText.js";
+
 
 export const STARTER_MANUAL = `# <Workplace> — OpenProject conventions
 
@@ -23,85 +25,83 @@ roughly 200 lines and delete anything that no longer applies.
 - Comment on the work package when you push. Don't just push.
 `;
 
-const HEADING = /^(#{1,6})\s+(.+?)\s*$/;
-const BULLET = /^\s*[-*]\s+/;
+export const MANUAL_WARNING_BYTES = 10_000;
 
-const SECTION_MAX = 80;
-const RULE_MAX = 500;
+const NEXT_SESSION = "Takes effect next session; `conventions` shows the current text.";
 
-type Section = { start: number; end: number };
-
-function oneLine(text: string, max: number): string {
-  return text.replace(/\s+/g, " ").trim().replace(/^(?:[#>*-]+\s*)+/, "").slice(0, max).trim();
+function writeAtomically(path: string, text: string): void {
+  const target = existsSync(path) ? realpathSync(path) : path;
+  const temporary = `${target}.${process.pid}.tmp`;
+  writeFileSync(temporary, text, { mode: 0o600 });
+  if (existsSync(target)) chmodSync(temporary, statSync(target).mode & 0o7777);
+  renameSync(temporary, target);
 }
 
-function findSection(lines: string[], name: string): Section | null {
-  const wanted = name.trim().toLowerCase();
-  for (let index = 0; index < lines.length; index++) {
-    const heading = HEADING.exec(lines[index]);
-    if (!heading || heading[2].trim().toLowerCase() !== wanted) continue;
-    const next = lines.findIndex((line, offset) => offset > index && HEADING.test(line));
-    return { start: index, end: next === -1 ? lines.length : next };
-  }
-  return null;
-}
-
-function bulletText(line: string): string {
-  return line.replace(BULLET, "").trim();
+function sizeWarning(text: string): { warning?: string } {
+  const bytes = Buffer.byteLength(text);
+  return bytes > MANUAL_WARNING_BYTES ? { warning: `The manual is ${bytes} bytes and is sent on every session. Consider trimming it.` } : {};
 }
 
 export function readConventions(path: string): string | null {
-  return existsSync(path) ? readFileSync(path, "utf8") : null;
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
 }
 
-export function addRule(
-  path: string,
-  rawSection: string,
-  rawRule: string,
-): { section: string; rule: string; path: string } {
-  const section = oneLine(rawSection, SECTION_MAX);
-  const rule = oneLine(rawRule, RULE_MAX);
+function parseForEdit(text: string) {
+  const doc = parse(text);
+  if (doc.unclosedFence !== null) {
+    throw new Error(`The manual has a code fence opened on line ${doc.unclosedFence} that is never closed. Ask the user to fix it before rules are changed.`);
+  }
+  return doc;
+}
+
+export function addRule(path: string, rawSection: string, rawRule: string) {
+  const section = cleanSection(rawSection);
+  const rule = cleanRule(rawRule);
   if (!section || !rule) throw new Error("Both section and rule need visible text. Pass a short heading and a one-line rule.");
   const text = readConventions(path) ?? "";
-  const bullet = `- ${rule}`;
-  const lines = text.split("\n");
-  const found = findSection(lines, section);
+  const doc = parseForEdit(text);
+  const found = findSection(doc, section);
+  const done = (written: string, added: boolean) =>
+    ({ section, rule, path, added, note: added ? NEXT_SESSION : "Already in the manual; nothing changed.", ...sizeWarning(written) });
 
   if (!found) {
-    const head = text.trimEnd();
-    writeFileSync(path, `${head ? `${head}\n\n` : ""}## ${section}\n\n${bullet}\n`, { mode: 0o600 });
-    return { section, rule, path };
+    const body = text.trimEnd();
+    const written = `${body ? `${body}${doc.eol}${doc.eol}` : ""}## ${section}${doc.eol}${doc.eol}- ${rule}${doc.eol}`;
+    writeAtomically(path, written);
+    return done(written, true);
   }
+  if (topLevelBullets(doc, found).some((entry) => bulletText(doc, entry) === rule)) return done(text, false);
 
   let insertAt = found.end;
-  while (insertAt > found.start + 1 && lines[insertAt - 1].trim() === "") insertAt--;
-  lines.splice(insertAt, 0, bullet);
-  writeFileSync(path, lines.join("\n"), { mode: 0o600 });
-  return { section, rule, path };
+  while (insertAt > found.start + 1 && doc.lines[insertAt - 1].trim() === "") insertAt--;
+  doc.lines.splice(insertAt, 0, `- ${rule}`);
+  const written = doc.lines.join(doc.eol);
+  writeAtomically(path, written);
+  return done(written, true);
 }
 
-export function removeRule(
-  path: string,
-  rawSection: string,
-  rawRule: string,
-): { removed: boolean; backupPath?: string; bullets: string[] } {
+export function removeRule(path: string, rawSection: string, rawRule: string) {
   const text = readConventions(path);
   if (text === null) return { removed: false, bullets: [] };
-
-  const lines = text.split("\n");
-  const found = findSection(lines, oneLine(rawSection, SECTION_MAX));
+  const doc = parseForEdit(text);
+  const found = findSection(doc, cleanSection(rawSection));
   if (!found) return { removed: false, bullets: [] };
 
-  const bullets = lines.slice(found.start + 1, found.end).filter((line) => BULLET.test(line)).map(bulletText);
-  const target = oneLine(rawRule, RULE_MAX);
-  const index = lines.findIndex(
-    (line, offset) => offset > found.start && offset < found.end && BULLET.test(line) && bulletText(line) === target,
-  );
-  if (index === -1) return { removed: false, bullets };
+  const entries = topLevelBullets(doc, found);
+  const bullets = entries.map((entry) => bulletText(doc, entry));
+  const target = cleanRule(rawRule);
+  const match = entries.find((_, position) => bullets[position] === target);
+  if (!match) return { removed: false, bullets };
 
-  const backupPath = `${path}.${new Date().toISOString().replace(/[:.]/g, "-")}.bak`;
+  const backupPath = `${path}.bak`;
   copyFileSync(path, backupPath);
-  lines.splice(index, 1);
-  writeFileSync(path, lines.join("\n"), { mode: 0o600 });
-  return { removed: true, backupPath, bullets };
+  doc.lines.splice(match.index, match.last - match.index + 1);
+  const written = doc.lines.join(doc.eol);
+  writeAtomically(path, written);
+  return { removed: true, backupPath, bullets, note: NEXT_SESSION, ...sizeWarning(written) };
 }

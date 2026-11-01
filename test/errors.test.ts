@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConfigError, ReadOnlyError, OpenProjectError, describeHttpError, humanMessage } from "../src/errors.js";
+import { networkReason, ConfigError, ReadOnlyError, OpenProjectError, describeHttpError, humanMessage } from "../src/errors.js";
 
 const BASE = "https://op.acme.com";
 
@@ -38,7 +38,7 @@ describe("describeHttpError", () => {
 describe("humanMessage", () => {
   it("renders each typed error", () => {
     expect(humanMessage(new ConfigError())).toBe("Not configured. Run: npx operator-mcp setup");
-    expect(humanMessage(new ReadOnlyError())).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(humanMessage(new ReadOnlyError())).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
     expect(humanMessage(new OpenProjectError(404, "Work package 1234 not found"))).toBe("Work package 1234 not found");
   });
 
@@ -50,5 +50,21 @@ describe("humanMessage", () => {
 
   it("renders a non-error throw", () => {
     expect(humanMessage("something odd")).toBe("something odd");
+  });
+});
+
+describe("networkReason", () => {
+  const failure = (cause: object, message = "fetch failed") => new TypeError(message, { cause: Object.assign(new Error((cause as any).message), cause) });
+
+  it("adds the certificate hint only for certificate codes", () => {
+    expect(networkReason(failure({ code: "DEPTH_ZERO_SELF_SIGNED_CERT", message: "self-signed" }))).toContain("NODE_EXTRA_CA_CERTS");
+    expect(networkReason(failure({ code: "UNABLE_TO_GET_ISSUER_CERT_LOCALLY", message: "x" }))).toContain("NODE_EXTRA_CA_CERTS");
+    expect(networkReason(failure({ code: "ECONNREFUSED", message: "refused" }))).not.toContain("NODE_EXTRA_CA_CERTS");
+    expect(networkReason(failure({ code: "ERR_TLS_CERT_ALTNAME_INVALID", message: "altname" }))).not.toContain("NODE_EXTRA_CA_CERTS");
+  });
+
+  it("does not repeat a code the message already contains", () => {
+    const reason = networkReason(failure({ code: "ECONNRESET", message: "boom" }, "fetch failed: ECONNRESET"));
+    expect(reason.match(/ECONNRESET/g)).toHaveLength(1);
   });
 });

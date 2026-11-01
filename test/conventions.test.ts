@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, statSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { readConventions, addRule, removeRule } from "../src/conventions.js";
 
 let path: string;
@@ -28,6 +28,20 @@ beforeEach(() => {
 });
 
 describe("readConventions", () => {
+  it("throws when the manual exists but cannot be read", () => {
+    expect(() => readConventions(dirname(path))).toThrow();
+  });
+
+  it("does not overwrite an unreadable manual when adding a rule", () => {
+    chmodSync(path, 0o000);
+    try {
+      expect(() => addRule(path, "Workflow", "New rule.")).toThrow(/EACCES|EPERM/);
+    } finally {
+      chmodSync(path, 0o600);
+    }
+    expect(readFileSync(path, "utf8")).toBe(MANUAL);
+  });
+
   it("returns the file verbatim", () => {
     expect(readConventions(path)).toBe(MANUAL);
   });
@@ -105,15 +119,15 @@ describe("removeRule", () => {
   it("removes an exact bullet and backs the file up first", () => {
     const result = removeRule(path, "Workflow", "Move to `In progress` only once a branch exists.");
     expect(result.removed).toBe(true);
-    expect(existsSync(result.backupPath!)).toBe(true);
-    expect(readFileSync(result.backupPath!, "utf8")).toBe(MANUAL);
+    expect(existsSync((result as { backupPath: string }).backupPath)).toBe(true);
+    expect(readFileSync((result as { backupPath: string }).backupPath, "utf8")).toBe(MANUAL);
     expect(readFileSync(path, "utf8")).not.toContain("only once a branch exists");
   });
 
   it("changes nothing and reports the real bullets when the rule does not match", () => {
     const result = removeRule(path, "Workflow", "something that is not there");
     expect(result.removed).toBe(false);
-    expect(result.backupPath).toBeUndefined();
+    expect("backupPath" in result).toBe(false);
     expect(result.bullets).toEqual(["Move to `In progress` only once a branch exists."]);
     expect(readFileSync(path, "utf8")).toBe(MANUAL);
   });
@@ -127,5 +141,125 @@ describe("removeRule", () => {
   it("will not remove a bullet from a different section", () => {
     const result = removeRule(path, "Etiquette", "Reproduce before assigning.");
     expect(result.removed).toBe(false);
+  });
+});
+
+describe("fences", () => {
+  const FENCED = "# M\n\n## Git\n- keep\n\n```sh\n# not a heading\n- not a bullet\n## Nor this\n```\n\n## Later\n- other\n";
+
+  it("does not end a section at a fenced # line", () => {
+    writeFileSync(path, FENCED);
+    addRule(path, "Git", "Added.");
+    const lines = readFileSync(path, "utf8").split("\n");
+    expect(lines.indexOf("- Added.")).toBeGreaterThan(lines.indexOf("## Nor this"));
+    expect(lines.indexOf("- Added.")).toBeLessThan(lines.indexOf("## Later"));
+    expect(findFenceIntact(readFileSync(path, "utf8"))).toBe(true);
+  });
+
+  it("does not find a fenced bullet to remove", () => {
+    writeFileSync(path, FENCED);
+    expect(removeRule(path, "Git", "not a bullet").removed).toBe(false);
+  });
+
+  function findFenceIntact(text: string) {
+    return text.includes("```sh\n# not a heading\n- not a bullet\n## Nor this\n```");
+  }
+});
+
+describe("fence variants", () => {
+  it("honours ~~~ fences", () => {
+    writeFileSync(path, "## Git\n- keep\n\n~~~\n## Nope\n- hidden\n~~~\n\n## Later\n- other\n");
+    expect(removeRule(path, "Git", "hidden").removed).toBe(false);
+    expect(removeRule(path, "Nope", "hidden").removed).toBe(false);
+  });
+
+  it("does not close a ```` fence on an inner ``` line", () => {
+    writeFileSync(path, "## Git\n- keep\n\n````md\n```\n## Nope\n- hidden\n```\n````\n");
+    expect(removeRule(path, "Nope", "hidden").removed).toBe(false);
+    expect(addRule(path, "Git", "New.").added).toBe(true);
+    expect(readFileSync(path, "utf8")).toContain("````\n- New.\n");
+  });
+
+  it("refuses to add or remove when a fence is never closed, naming its line", () => {
+    const broken = "## Git\n- keep\n\n```sh\n- loose\n";
+    writeFileSync(path, broken);
+    expect(() => addRule(path, "Git", "New.")).toThrow(/line 4/);
+    expect(() => removeRule(path, "Git", "keep")).toThrow(/line 4/);
+    expect(readFileSync(path, "utf8")).toBe(broken);
+  });
+});
+
+describe("file fidelity", () => {
+  it("keeps a lazy continuation with its bullet", () => {
+    writeFileSync(path, "## W\n- first\n- rule part one\npart two\n- last\n");
+    const result = removeRule(path, "W", "rule part one part two");
+    expect(result.removed).toBe(true);
+    expect(readFileSync(path, "utf8")).toBe("## W\n- first\n- last\n");
+  });
+
+  it.skipIf(process.platform === "win32")("keeps the mode of an existing manual", () => {
+    chmodSync(path, 0o644);
+    addRule(path, "Etiquette", "New one.");
+    expect(statSync(path).mode & 0o777).toBe(0o644);
+  });
+
+  it("keeps CRLF line endings", () => {
+    writeFileSync(path, MANUAL.replace(/\n/g, "\r\n"));
+    addRule(path, "Etiquette", "New one.");
+    addRule(path, "Brand new", "Fresh.");
+    expect(readFileSync(path, "utf8").replace(/\r\n/g, "")).not.toContain("\n");
+  });
+
+  it("dedupes only against top-level bullets", () => {
+    writeFileSync(path, "## W\n- parent\n  - sub\n");
+    expect(addRule(path, "W", "sub").added).toBe(true);
+  });
+});
+
+describe("rule text", () => {
+  it("keeps #1234 and **Never** intact, stripping only a leading bullet marker", () => {
+    addRule(path, "Etiquette", "* **Never** close #1234 yourself.");
+    expect(readFileSync(path, "utf8")).toContain("\n- **Never** close #1234 yourself.\n");
+  });
+
+  it("treats an exact duplicate as a no-op and says so", () => {
+    const first = addRule(path, "Etiquette", "Be kind.");
+    const before = readFileSync(path, "utf8");
+    const second = addRule(path, "Etiquette", "- Be kind.");
+
+    expect(first.added).toBe(true);
+    expect(second.added).toBe(false);
+    expect(second.note).toContain("nothing changed");
+    expect(readFileSync(path, "utf8")).toBe(before);
+  });
+
+  it("says the change takes effect next session", () => {
+    expect(addRule(path, "Etiquette", "New one.").note).toContain("next session");
+  });
+
+  it("returns a warning when the manual outgrows the threshold", () => {
+    writeFileSync(path, `## Big\n${"- filler line of text\n".repeat(600)}`);
+    expect(addRule(path, "Big", "One more.").warning).toContain("sent on every session");
+    expect(addRule(path, "Small", "x").warning).toBeDefined();
+    writeFileSync(path, MANUAL);
+    expect(addRule(path, "Etiquette", "Short.").warning).toBeUndefined();
+  });
+});
+
+describe("removing multi-line bullets", () => {
+  it("removes a bullet with its continuation and nested lines, and nothing else", () => {
+    writeFileSync(path, "## W\n- first\n- long rule that\n  wraps here\n  - nested one\n  - nested two\n\n- last\n");
+    const result = removeRule(path, "W", "long rule that wraps here");
+
+    expect(result.removed).toBe(true);
+    expect(readFileSync(path, "utf8")).toBe("## W\n- first\n\n- last\n");
+  });
+
+  it("keeps exactly one rolling .bak", () => {
+    removeRule(path, "Etiquette", "Comment on the work package when you push.");
+    removeRule(path, "Git / GitLab", "Commit subject: `[#1234] <imperative summary>`");
+    const backups = readdirSync(dirname(path)).filter((name) => name.endsWith(".bak"));
+
+    expect(backups).toEqual(["conventions.md.bak"]);
   });
 });

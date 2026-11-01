@@ -1,40 +1,26 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { commandLine, readJson, tomlEntry, tomlKey, upsertTomlTable, writeMerged } from "./clientFiles.js";
-import { mcpServersClient, opencodeClient, type Client } from "./clientShapes.js";
+import { commandLine, readJson, tomlEntry, upsertTomlServer, writeMerged } from "./clientFiles.js";
+import { desktopConfigPath, serverCommand, serverName } from "./serverCommand.js";
+import { mcpServersClient, opencodeClient, type Client, type Runner } from "./clientShapes.js";
 
 export type { Client, Runner, Target } from "./clientShapes.js";
 
-export type ServerCommand = { command: string; args: string[] };
+const claudeServer = (home: string, name: string) => (home ? readJson(join(home, ".claude.json")).mcpServers?.[name] : undefined);
 
-type Runtime = { versions: Partial<Record<string, string>>; execPath: string };
+const SECRET_KEY = /KEY|TOKEN|SECRET|PASSWORD/i;
 
-
-export function serverName(profile: string): string {
-  return profile === "default" ? "openproject" : `openproject-${profile}`;
+function claudeAdd(name: string, command: string, args: string[], saved: Record<string, string> = {}, hideSecrets = false): string[] {
+  const env = Object.entries(saved).flatMap(([key, value]) => ["-e", `${key}=${hideSecrets && SECRET_KEY.test(key) ? "<your value>" : value}`]);
+  return ["mcp", "add", name, "--scope", "user", ...env, "--", command, ...args];
 }
 
-export function serverCommand(profile: string, runtime: Runtime = process): ServerCommand {
-  const flag = profile === "default" ? [] : ["--profile", profile];
-  if (runtime.versions.bun) return { command: runtime.execPath, args: flag };
-  return { command: "npx", args: ["-y", "operator-mcp", ...flag] };
+function claudeGet(run: Runner, name: string): string[] | null {
+  const text = run("claude", ["mcp", "get", name]);
+  const command = /^\s*Command:\s*(.+)$/m.exec(text)?.[1].trim();
+  const args = /^\s*Args:\s*(.+)$/m.exec(text)?.[1].trim();
+  return command ? [command, ...(args ? args.split(" ") : [])] : null;
 }
-
-export function desktopConfigPath(
-  home: string,
-  platform: NodeJS.Platform = process.platform,
-  env: NodeJS.ProcessEnv = process.env,
-): string | null {
-  if (platform === "darwin") return join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
-  if (platform === "win32") return join(env.APPDATA || join(home, "AppData", "Roaming"), "Claude", "claude_desktop_config.json");
-  return null;
-}
-
-function codexBody(command: string, args: string[]): string {
-  return `command = ${JSON.stringify(command)}\nargs = [${args.map((arg) => JSON.stringify(arg)).join(", ")}]`;
-}
-
-const claudeEntry = (home: string, name: string) => commandLine(readJson(join(home, ".claude.json")).mcpServers?.[name]);
 
 export const CLIENTS: Client[] = [
   {
@@ -43,13 +29,26 @@ export const CLIENTS: Client[] = [
     configPath: (home) => join(home, ".claude.json"),
     detect: (home) => existsSync(join(home, ".claude")) || existsSync(join(home, ".claude.json")),
     // The user-scope config is the claude CLI's own format; let it do the write.
-    // Its `mcp add` refuses a name that exists, so an older entry goes first.
+    // Its `mcp add` refuses a name that exists, so an older entry goes first and its env is passed back.
     register: ({ home, name, command, args, run }) => {
-      if (claudeEntry(home, name)) run("claude", ["mcp", "remove", name, "--scope", "user"]);
-      run("claude", ["mcp", "add", name, "--scope", "user", "--", command, ...args]);
+      const existing = claudeServer(home, name);
+      if (!existing) return void run("claude", claudeAdd(name, command, args));
+      run("claude", ["mcp", "remove", name, "--scope", "user"]);
+      try {
+        run("claude", claudeAdd(name, command, args, existing.env));
+      } catch (error) {
+        if (existing.command) run("claude", claudeAdd(name, existing.command, existing.args ?? [], existing.env));
+        throw error;
+      }
     },
-    entry: (home, name) => claudeEntry(home, name),
-    manual: ({ name, command, args }) => `claude mcp add ${name} --scope user -- ${[command, ...args].join(" ")}`,
+    entry: (home, name, run) => {
+      try {
+        const found = run && claudeGet(run, name);
+        if (found) return found;
+      } catch {}
+      return commandLine(claudeServer(home, name));
+    },
+    manual: ({ home, name, command, args }) => `claude ${claudeAdd(name, command, args, claudeServer(home, name)?.env, true).join(" ")}`,
   },
   {
     id: "codex",
@@ -58,14 +57,13 @@ export const CLIENTS: Client[] = [
     detect: (home) => existsSync(join(home, ".codex")),
     register: ({ home, name, command, args }) => {
       const path = join(home, ".codex", "config.toml");
-      const body = codexBody(command, args);
-      const text = existsSync(path) ? readFileSync(path, "utf8") : "";
-      writeMerged(path, upsertTomlTable(text, `[mcp_servers.${tomlKey(name)}]`, body));
+      writeMerged(path, upsertTomlServer(existsSync(path) ? readFileSync(path, "utf8") : "", name, command, args));
     },
-    entry: (home, name) => tomlEntry(join(home, ".codex", "config.toml"), `[mcp_servers.${tomlKey(name)}]`),
-    manual: ({ name, command, args }) => `# ~/.codex/config.toml\n[mcp_servers.${tomlKey(name)}]\n${codexBody(command, args)}`,
+    entry: (home, name) => tomlEntry(join(home, ".codex", "config.toml"), name),
+    manual: ({ name, command, args }) => `# ~/.codex/config.toml\n${upsertTomlServer("", name, command, args).trimEnd()}`,
   },
   mcpServersClient("gemini", "Gemini CLI", (home) => join(home, ".gemini", "settings.json"), "~/.gemini/settings.json"),
+  mcpServersClient("antigravity", "Antigravity CLI", (home) => join(home, ".gemini", "config", "mcp_config.json"), "~/.gemini/config/mcp_config.json"),
   mcpServersClient("claude-desktop", "Claude Desktop", (home) => desktopConfigPath(home), "Claude Desktop: Settings → Developer → Edit Config"),
   mcpServersClient("qwen", "Qwen Code", (home) => join(home, ".qwen", "settings.json"), "~/.qwen/settings.json"),
   mcpServersClient("kimi", "Kimi CLI", (home) => join(home, ".kimi", "mcp.json"), "~/.kimi/mcp.json"),
@@ -74,13 +72,9 @@ export const CLIENTS: Client[] = [
   mcpServersClient("kiro", "Kiro", (home) => join(home, ".kiro", "settings", "mcp.json"), "~/.kiro/settings/mcp.json"),
   mcpServersClient("windsurf", "Windsurf", (home) => join(home, ".codeium", "windsurf", "mcp_config.json"), "~/.codeium/windsurf/mcp_config.json"),
   mcpServersClient("cursor", "Cursor", (home) => join(home, ".cursor", "mcp.json"), "~/.cursor/mcp.json"),
-  opencodeClient("opencode", "opencode", ".config/opencode/opencode.json", "https://opencode.ai/config.json"),
-  opencodeClient("mimocode", "MiMo Code", ".config/mimocode/mimocode.jsonc"),
+  opencodeClient("opencode", "opencode", ".config/opencode", "opencode", "https://opencode.ai/config.json"),
+  opencodeClient("mimocode", "MiMo Code", ".config/mimocode", "mimocode"),
 ];
-
-export function selfCommand(runtime: Runtime = process): string {
-  return runtime.versions.bun ? "operator-mcp" : "npx operator-mcp";
-}
 
 export function offeredClients(home: string): Client[] {
   return CLIENTS.filter((client) => client.configPath(home) !== "");
@@ -95,5 +89,5 @@ export function detectClients(home: string): Client[] {
 }
 
 export function mcpConfigSnippet(client: Client, profile: string, home = ""): string {
-  return client.manual({ home, name: serverName(profile), ...serverCommand(profile), run: () => {} });
+  return client.manual({ home, name: serverName(profile), ...serverCommand(profile), run: () => "" });
 }

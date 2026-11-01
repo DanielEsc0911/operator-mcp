@@ -35,7 +35,7 @@ as a bad key and sends you off regenerating it forever. This cost a bug once.
 { status: { operator: "c", values: [] } }   // any closed status
 ```
 
-Other operators in use: `**` full-text search, `>d` date-after. See `statusFilter`
+Other operators in use: `**` full-text search, `<>d` date-between — "on or after X" is `values: [X, ""]`; `>d` is rejected with a 400. See `statusFilter`
 and `buildSearchFilters` in `src/tools/workPackages.ts`.
 
 **`offset` is a 1-based page number**, not a record offset. `pageSize` is items per
@@ -75,8 +75,8 @@ pulls the trailing id out of an href. Use the existing `flattenWorkPackage`,
 `flattenProject`, `flattenNotification`, `flattenActivity`, `flattenNamed`, or add a
 new `flatten*` beside them.
 
-Every flattened object carries a `url` built from `config.url` so the agent can link
-a human to the record.
+Detail objects carry a `url` built from `config.url`. Lists do not: they carry one
+`urlTemplate` (`.../work_packages/{id}`) beside the rows, which keeps them lean.
 
 ## Writes: fields vs `_links`
 
@@ -120,3 +120,18 @@ combines with `{ name_and_identifier: { operator: "~", values: [text] } }` for
 search. `/work_packages/available_projects` answers the same question but takes no
 filters, so it cannot search a long list. An older instance may reject
 `user_action` with 400; `writableProjects` callers fall back to a typed identifier.
+
+## Live facts (verified on a 16.x instance)
+
+- Time entry activities are only available from `POST /time_entries/form` with a work
+  package; there is no usable index route. A form POST writes nothing.
+- `GET /work_packages/{id}/activities` ignores `pageSize` and `sortBy` and returns
+  oldest first; fetch all and order locally.
+- `groupBy=status` returns top-level `groups` with a `count` each, which is how
+  `briefing` counts open items by status without fetching them all.
+- `read_ian` takes an `id` filter on `POST /notifications/read_ian`; with no filter it
+  marks everything read.
+- `collectAll` stops at 2,000 records and reports `truncated`.
+- Changing a description needs the caller's own `lockVersion` (from
+  `get_work_package`), so a colleague's edit is never overwritten; other fields
+  re-read it for you.

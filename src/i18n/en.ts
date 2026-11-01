@@ -13,6 +13,7 @@ Options:
   --lang <en|es>                 Language for setup, install and doctor (default: from your locale)
   --non-interactive              setup: no prompts; key from OPENPROJECT_API_KEY
   --url <url>                    setup: the OpenProject instance URL
+  --read-only                    setup: save the profile as read-only (no writes, ever)
   --yes                          install: register every detected agent without asking
 
 Environment:
@@ -26,6 +27,8 @@ Docs: https://github.com/DanielEsc0911/operator-mcp#readme
 export const en = {
   usage,
   unknownCommand: (command: string) => `unknown command "${command}". Try: operator-mcp --help`,
+  unknownOption: (flag: string, near?: string) => `unknown option "${flag}"${near ? `. Did you mean ${near}?` : ""} Try: operator-mcp --help`,
+  missingValue: (flag: string) => `${flag} needs a value, like ${flag}=name`,
   nodeTooOld: (min: number, current: string) => `operator-mcp needs Node ${min} or newer; this is Node ${current}. Upgrade Node and retry.`,
   and: "and",
   done: "done",
@@ -67,6 +70,9 @@ export const en = {
   typedHint: "Enter accepts · type numbers to switch one off or on · all · none",
   typedAll: /^(all|todos)$/,
   typedNone: /^(none|ninguno)$/,
+  outOfRange: (max: number) => `Pick a number from 1 to ${max}.`,
+  keepProject: (project: string) => `Keep your default project ${project}? [Y/n] `,
+  projectRemoved: (project: string) => `Default project ${project} removed.`,
   noneOption: "none",
 
   agentsQuestion: "Which agents should OPerator patch into?",
@@ -104,7 +110,8 @@ export const en = {
   incomplete: (path: string) => `${path} has no URL or API key`,
   configFile: (path: string) => `Config file ${path}`,
   reachable: (url: string) => `${url} is reachable`,
-  unreachable: (url: string) => `Cannot reach ${url}`,
+  unreachable: (url: string, reason: string) => `Cannot reach ${url}: ${reason}`,
+  notOpenProject: (status: number) => `answered, but not as OpenProject (HTTP ${status})`,
   checkNetwork: "Check the URL and your network, then run doctor again",
   keyAccepted: (who: string) => `API key accepted — ${who}`,
   agentRuns: (label: string, command: string) => `${label} runs: ${command}`,

@@ -46,8 +46,22 @@ describe("list_notifications", () => {
     expect(result.notifications[0]).toMatchObject({
       id: 88, reason: "mentioned", read: false, project: "Website", actor: "Ana Ruiz",
       workPackageId: 1234, workPackageSubject: "Fix login redirect",
-      url: "https://op.acme.com/work_packages/1234",
     });
+    expect(result.notifications[0].url).toBeUndefined();
+    expect(result.urlTemplate).toBe("https://op.acme.com/work_packages/{id}");
+  });
+
+  it("asks for 20 rows by default", async () => {
+    routes({ "/users/me": ME, "/notifications": FEED });
+    await callTool(await connect(), "list_notifications");
+    expect((fetchMock.mock.lastCall![0] as URL).searchParams.get("pageSize")).toBe("20");
+  });
+
+  it("asks for newest first explicitly", async () => {
+    routes({ "/users/me": ME, "/notifications": FEED });
+    await callTool(await connect(), "list_notifications");
+
+    expect((fetchMock.mock.lastCall![0] as URL).searchParams.get("sortBy")).toBe('[["id","desc"]]');
   });
 
   it("filters to unread using OpenProject's boolean encoding", async () => {
@@ -67,6 +81,15 @@ describe("list_notifications", () => {
     expect(filtersOf()).toContainEqual({ project: { operator: "=", values: ["3"] } });
   });
 
+  it("resolves a project identifier to its id", async () => {
+    const projects = { total: 1, count: 1, _embedded: { elements: [{ id: 3, identifier: "website", name: "Website" }] } };
+    routes({ "/users/me": ME, "/projects": projects, "/notifications": FEED });
+    const client = await connect();
+    await callTool(client, "list_notifications", { project: "website" });
+
+    expect(filtersOf()).toContainEqual({ project: { operator: "=", values: ["3"] } });
+  });
+
   it("rejects a reason OpenProject does not define", async () => {
     routes({ "/users/me": ME });
     const client = await connect();
@@ -83,23 +106,44 @@ describe("list_notifications", () => {
 });
 
 describe("mark_notifications_read", () => {
-  it("marks each id individually", async () => {
-    routes({ "/users/me": ME, "/notifications/88/read_ian": null, "/notifications/89/read_ian": null });
+  it("marks the ids in one bulk request with an id filter", async () => {
+    routes({ "/users/me": ME, "/notifications/read_ian": null });
     const client = await connect();
     const result = (await callTool(client, "mark_notifications_read", { ids: [88, 89] })).json();
 
-    expect(pathsCalled()).toContain("/api/v3/notifications/88/read_ian");
-    expect(pathsCalled()).toContain("/api/v3/notifications/89/read_ian");
-    expect(result).toEqual({ marked: 2 });
+    expect(pathsCalled().filter((path) => path.includes("read_ian"))).toEqual(["/api/v3/notifications/read_ian"]);
+    expect(filtersOf()).toEqual([{ id: { operator: "=", values: ["88", "89"] } }]);
+    expect(result).toEqual({ requested: 2 });
+  });
+
+  it("rejects ids that are not positive or are more than 100, sending nothing", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect();
+    const before = fetchMock.mock.calls.length;
+
+    expect((await callTool(client, "mark_notifications_read", { ids: [0] })).isError).toBe(true);
+    expect((await callTool(client, "mark_notifications_read", { ids: Array.from({ length: 101 }, (_, i) => i + 1) })).isError).toBe(true);
+    expect(fetchMock.mock.calls.length).toBe(before);
   });
 
   it("marks the whole filtered collection when asked for all", async () => {
     routes({ "/users/me": ME, "/notifications/read_ian": null });
     const client = await connect();
-    await callTool(client, "mark_notifications_read", { all: true, reason: "mentioned" });
+    await callTool(client, "mark_notifications_read", { all: true, reason: "mentioned", confirm: true });
 
     expect(pathsCalled()).toContain("/api/v3/notifications/read_ian");
     expect(filtersOf()).toContainEqual({ reason: { operator: "=", values: ["mentioned"] } });
+  });
+
+  it("refuses all: true without confirm and sends nothing", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect();
+    fetchMock.mockClear();
+    const result = await callTool(client, "mark_notifications_read", { all: true });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("confirm: true");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("refuses when given neither ids nor all", async () => {
@@ -111,13 +155,21 @@ describe("mark_notifications_read", () => {
     expect(result.text).toContain("Pass ids, or all: true");
   });
 
+  it("reports read-only before it asks for confirm", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect({ ...testConfig, readOnly: true });
+    const result = await callTool(client, "mark_notifications_read", { all: true });
+
+    expect(result.text).toContain("read-only mode");
+  });
+
   it("is blocked in read-only mode", async () => {
     routes({ "/users/me": ME });
     const client = await connect({ ...testConfig, readOnly: true });
     const result = await callTool(client, "mark_notifications_read", { ids: [88] });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   });
 });
 

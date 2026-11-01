@@ -58,7 +58,7 @@ describe("whoami", () => {
   });
 
   it("returns a readable error when the key is rejected", async () => {
-    fetchMock.mockResolvedValue(respond({}, 401));
+    fetchMock.mockImplementation(async () => respond({}, 401));
     const client = await connect();
     const result = await callTool(client, "whoami");
 
@@ -82,10 +82,13 @@ describe("list_projects", () => {
     routes({ "/users/me": ME, "/projects": PROJECTS });
     const client = await connect();
 
-    expect((await callTool(client, "list_projects")).json()).toEqual([
-      { id: 3, name: "Website", identifier: "website", active: true, description: undefined, url: "https://op.acme.com/projects/website" },
-      { id: 4, name: "Intranet", identifier: "intranet", active: true, description: undefined, url: "https://op.acme.com/projects/intranet" },
-    ]);
+    expect((await callTool(client, "list_projects")).json()).toEqual({
+      total: 2,
+      projects: [
+        { id: 3, name: "Website", identifier: "website", active: true, url: "https://op.acme.com/projects/website" },
+        { id: 4, name: "Intranet", identifier: "intranet", active: true, url: "https://op.acme.com/projects/intranet" },
+      ],
+    });
   });
 
   it("filters by name, case-insensitively", async () => {
@@ -93,8 +96,8 @@ describe("list_projects", () => {
     const client = await connect();
     const found = (await callTool(client, "list_projects", { query: "intra" })).json();
 
-    expect(found).toHaveLength(1);
-    expect(found[0].identifier).toBe("intranet");
+    expect(found.total).toBe(1);
+    expect(found.projects[0].identifier).toBe("intranet");
   });
 });
 
@@ -105,25 +108,32 @@ describe("list_users", () => {
   };
 
   it("uses available_assignees when a project is given", async () => {
-    routes({ "/users/me": ME, "/projects/website/available_assignees": assignees });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/available_assignees": assignees });
     const client = await connect();
 
-    expect((await callTool(client, "list_users", { project: "website" })).json()).toEqual([
-      { id: 12, name: "Ada Lovelace", email: "ada@example.com" },
-    ]);
+    expect((await callTool(client, "list_users", { project: "website" })).json()).toEqual({
+      total: 1, users: [{ id: 12, name: "Ada Lovelace", email: "ada@example.com" }],
+    });
   });
 
   it("falls back to the default project", async () => {
     routes({ "/users/me": ME, "/projects/website/available_assignees": assignees });
     const client = await connect({ ...testConfig, defaultProject: "website" });
 
-    expect((await callTool(client, "list_users")).json()).toHaveLength(1);
+    expect((await callTool(client, "list_users")).json().users).toHaveLength(1);
   });
 
   it("queries principals when no project is in play", async () => {
     routes({ "/users/me": ME, "/principals": assignees });
     const client = await connect();
 
-    expect((await callTool(client, "list_users")).json()).toHaveLength(1);
+    expect((await callTool(client, "list_users")).json().users).toHaveLength(1);
+  });
+
+  it("reports the matching count when a query narrows the list", async () => {
+    routes({ "/users/me": ME, "/principals": assignees });
+    const client = await connect();
+
+    expect((await callTool(client, "list_users", { query: "zzz" })).json()).toEqual({ total: 0, users: [] });
   });
 });

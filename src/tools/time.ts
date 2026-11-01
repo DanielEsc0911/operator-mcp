@@ -12,8 +12,11 @@ export function toIsoDuration(hours: number): string {
   return `PT${whole ? `${whole}H` : ""}${rest ? `${rest}M` : ""}`;
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+export function localDate(offsetDays = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 type LogArgs = { workPackageId: number; hours: number; date?: string; comment?: string; activity?: string };
@@ -23,10 +26,11 @@ export function registerTimeTools(server: McpServer, { client }: ToolContext): v
     "log_time",
     {
       title: "Log time",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description: "Record time spent on a work package. Hours are given as a decimal number; 2.5 means two and a half.",
       inputSchema: {
         workPackageId: z.number().int().describe("Work package the time was spent on."),
-        hours: z.number().positive().describe("Decimal hours, for example 2.5."),
+        hours: z.number().min(1 / 60, "hours must be at least one minute (0.0167)").describe("Decimal hours, at least one minute (0.0167), for example 2.5."),
         date: z.string().optional().describe("ISO date the work happened. Defaults to today."),
         comment: z.string().optional().describe("What the time was spent doing."),
         activity: z.string().optional().describe('Activity name or id, for example "Development". See list_metadata.'),
@@ -36,12 +40,12 @@ export function registerTimeTools(server: McpServer, { client }: ToolContext): v
       const links: Record<string, { href: string }> = {
         workPackage: { href: `/api/v3/work_packages/${workPackageId}` },
       };
-      if (activity) links.activity = { href: await resolveHref(client, "activities", activity) };
+      if (activity) links.activity = { href: await resolveHref(client, "activities", activity, undefined, workPackageId) };
 
       const entry = await client.request("POST", "/time_entries", {
         body: {
           hours: toIsoDuration(hours),
-          spentOn: date ?? today(),
+          spentOn: date ?? localDate(),
           ...(comment ? { comment: { raw: comment } } : {}),
           _links: links,
         },

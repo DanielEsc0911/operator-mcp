@@ -1,14 +1,14 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { connect, callTool, testConfig } from "../support/harness.js";
 import { clearMetadataCache } from "../../src/resolve.js";
-import { toIsoDuration } from "../../src/tools/time.js";
+import { localDate, toIsoDuration } from "../../src/tools/time.js";
 
 function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
 const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
-const ACTIVITIES = { total: 1, count: 1, _embedded: { elements: [{ id: 3, name: "Development" }] } };
+const ACTIVITY_FORM = { _embedded: { schema: { activity: { _embedded: { allowedValues: [{ id: 3, name: "Development" }] } } } } };
 const ENTRY = { id: 501, hours: "PT2H30M", spentOn: "2026-07-28", _links: {} };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -80,8 +80,29 @@ describe("log_time", () => {
     vi.useRealTimers();
   });
 
+  it("uses the local calendar date, not the UTC one", () => {
+    const zone = process.env.TZ;
+    process.env.TZ = "America/Caracas";
+    vi.setSystemTime(new Date("2026-07-29T01:30:00Z"));
+    expect(localDate()).toBe("2026-07-28");
+    expect(localDate(-1)).toBe("2026-07-27");
+    process.env.TZ = zone;
+    vi.useRealTimers();
+  });
+
+  it("refuses less than one minute, sending nothing", async () => {
+    routes({ "/users/me": ME });
+    const client = await connect();
+    const before = fetchMock.mock.calls.length;
+    const result = await callTool(client, "log_time", { workPackageId: 1234, hours: 0.004 });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("at least one minute");
+    expect(fetchMock.mock.calls.length).toBe(before);
+  });
+
   it("resolves a named activity", async () => {
-    routes({ "/users/me": ME, "/time_entries": ENTRY, "/time_entries/activities": ACTIVITIES });
+    routes({ "/users/me": ME, "/time_entries": ENTRY, "/time_entries/form": ACTIVITY_FORM });
     const client = await connect();
     await callTool(client, "log_time", { workPackageId: 1234, hours: 1, activity: "Development" });
 
@@ -102,6 +123,6 @@ describe("log_time", () => {
     const result = await callTool(client, "log_time", { workPackageId: 1234, hours: 1 });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   });
 });

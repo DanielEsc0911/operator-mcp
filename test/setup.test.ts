@@ -166,6 +166,44 @@ describe("runSetup --non-interactive", () => {
     expect(describeExisting("ci")).toContain("https://op.example.com");
   });
 
+  it("writes readOnly with --read-only, and keeps it on a later run without the flag", async () => {
+    vi.stubEnv("OPENPROJECT_API_KEY", env.OPENPROJECT_API_KEY);
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 2, count: 1, _embedded: { elements: [] } }),
+    );
+    const base = ["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"];
+    await runSetup([...base, "--read-only"], capture().streams);
+    const file = join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "ci", "config.json");
+    expect(JSON.parse(readFileSync(file, "utf8")).readOnly).toBe(true);
+
+    await runSetup(base, capture().streams);
+    expect(JSON.parse(readFileSync(file, "utf8")).readOnly).toBe(true);
+  });
+
+  it("keeps a stored readOnly that loadConfig treats as read-only, whatever its type", async () => {
+    vi.stubEnv("OPENPROJECT_API_KEY", env.OPENPROJECT_API_KEY);
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 2, count: 1, _embedded: { elements: [] } }),
+    );
+    saveConfig("ci", { url: "https://op.example.com", apiKey: "k", readOnly: "yes" as any });
+    await runSetup(["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"], capture().streams);
+    const file = join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "ci", "config.json");
+    expect(JSON.parse(readFileSync(file, "utf8")).readOnly).toBeTruthy();
+  });
+
+  it("refuses to overwrite a corrupt config.json", async () => {
+    vi.stubEnv("OPENPROJECT_API_KEY", env.OPENPROJECT_API_KEY);
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 2, count: 1, _embedded: { elements: [] } }),
+    );
+    const file = saveConfig("ci", { url: "https://op.example.com", apiKey: "k" });
+    writeFileSync(file, "{ nope");
+    await expect(
+      runSetup(["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"], capture().streams),
+    ).rejects.toThrow(/Cannot read/);
+    expect(readFileSync(file, "utf8")).toBe("{ nope");
+  });
+
   it("exits non-zero on a rejected key and saves nothing", async () => {
     vi.stubEnv("OPENPROJECT_API_KEY", "wrong");
     fetchMock.mockResolvedValue(respond({}, 401));
@@ -208,6 +246,20 @@ describe("runSetup over a profile 1.2.0 left behind", () => {
     expect(text()).toMatch(/Cursor\s+updated/);
   });
 
+  it("writes readOnly for an interactive setup --read-only", async () => {
+    const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home);
+    saveConfig("default", { url: "https://op.example.com", apiKey: "supersecretkey" });
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 0, count: 0, _embedded: { elements: [] } }),
+    );
+    const { streams } = typed("", "");
+
+    expect(await runSetup(["setup", "--read-only"], streams as any)).toBe(0);
+    expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).readOnly).toBe(true);
+  });
+
   it("asks for a new connection when told not to keep it, and takes a bare host", async () => {
     const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
     vi.stubEnv("HOME", home);
@@ -236,7 +288,7 @@ describe("runSetup over a profile 1.2.0 left behind", () => {
 
     expect(await runSetup(["setup"], streams as any)).toBe(0);
     expect(text()).toContain("No projects where you can add work packages");
-    expect(text()).not.toContain("Default project");
+    expect(text()).toContain("Default project old removed");
     expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject).toBeUndefined();
   });
 
@@ -254,5 +306,40 @@ describe("runSetup over a profile 1.2.0 left behind", () => {
     expect(await runSetup(["setup"], streams as any)).toBe(0);
     expect(text()).toContain("Default project, for when you don't name one (Project identifier)");
     expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject).toBe("billing");
+  });
+
+  describe("a stored default project", () => {
+    const stored = () => JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject;
+
+    function rerun(...answers: string[]) {
+      const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+      vi.stubEnv("HOME", home);
+      vi.stubEnv("USERPROFILE", home);
+      saveConfig("default", { url: "https://op.example.com", apiKey: "supersecretkey", defaultProject: "old" });
+      fetchMock.mockImplementation(async (url: URL) => {
+        if (url.pathname === "/api/v3/users/me") return respond(ME);
+        return url.searchParams.has("filters") ? respond({ message: "unknown filter" }, 400) : respond({ total: 3, count: 0, _embedded: { elements: [] } });
+      });
+      const run = typed(...answers);
+      return runSetup(["setup"], run.streams as any).then(() => run.text());
+    }
+
+    it("is kept by default", async () => {
+      await rerun("", "");
+      expect(stored()).toBe("old");
+    });
+
+    it("is erased only when declined, and the removal names it", async () => {
+      expect(await rerun("", "n", "")).toContain("Default project old removed");
+      expect(stored()).toBeUndefined();
+    });
+
+    it("survives a non-interactive re-run", async () => {
+      saveConfig("ci", { url: "https://op.example.com", apiKey: "k", defaultProject: "keep" });
+      fetchMock.mockImplementation(async () => respond(ME));
+      vi.stubEnv("OPENPROJECT_API_KEY", "k");
+      await runSetup(["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"], capture().streams);
+      expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "ci", "config.json"), "utf8")).defaultProject).toBe("keep");
+    });
   });
 });

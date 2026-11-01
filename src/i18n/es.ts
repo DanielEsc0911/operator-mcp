@@ -15,6 +15,7 @@ Opciones:
   --lang <en|es>                 Idioma de setup, install y doctor (por defecto: el de tu sistema)
   --non-interactive              setup: sin preguntas; la clave sale de OPENPROJECT_API_KEY
   --url <url>                    setup: la dirección de tu instancia de OpenProject
+  --read-only                    setup: guarda el perfil como solo lectura (nunca escribe)
   --yes                          install: registra todos los agentes encontrados sin preguntar
 
 Entorno:
@@ -28,6 +29,8 @@ Documentación: https://github.com/DanielEsc0911/operator-mcp#readme
 export const es: Catalog = {
   usage,
   unknownCommand: (command: string) => `no existe el comando "${command}". Prueba: operator-mcp --help`,
+  unknownOption: (flag: string, near?: string) => `opción desconocida "${flag}"${near ? `. ¿Quisiste decir ${near}?` : ""} Prueba: operator-mcp --help`,
+  missingValue: (flag: string) => `${flag} necesita un valor, por ejemplo ${flag}=nombre`,
   nodeTooOld: (min: number, current: string) =>
     `operator-mcp necesita Node ${min} o posterior; este es Node ${current}. Actualiza Node y vuelve a intentarlo.`,
   and: "y",
@@ -71,6 +74,9 @@ export const es: Catalog = {
   typedHint: "Enter acepta · escribe números para marcar o desmarcar · todos · ninguno",
   typedAll: /^(all|todos)$/,
   typedNone: /^(none|ninguno)$/,
+  outOfRange: (max: number) => `Elige un número del 1 al ${max}.`,
+  keepProject: (project: string) => `¿Mantienes tu proyecto por defecto ${project}? [S/n] `,
+  projectRemoved: (project: string) => `Proyecto por defecto ${project} eliminado.`,
   noneOption: "ninguno",
 
   agentsQuestion: "¿En qué agentes conecto OPerator?",
@@ -108,7 +114,8 @@ export const es: Catalog = {
   incomplete: (path: string) => `${path} no tiene URL o clave de API`,
   configFile: (path: string) => `Configuración en ${path}`,
   reachable: (url: string) => `${url} responde`,
-  unreachable: (url: string) => `No se puede conectar con ${url}`,
+  unreachable: (url: string, reason: string) => `No se puede conectar con ${url}: ${reason}`,
+  notOpenProject: (status: number) => `respondió, pero no como OpenProject (HTTP ${status})`,
   checkNetwork: "Revisa la dirección y tu red, y vuelve a ejecutar doctor",
   keyAccepted: (who: string) => `Clave de API aceptada — ${who}`,
   agentRuns: (label: string, command: string) => `${label} ejecuta: ${command}`,

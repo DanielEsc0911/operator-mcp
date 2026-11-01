@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CLIENTS, desktopConfigPath, detectClients, findClient, serverCommand, serverName, mcpConfigSnippet } from "../src/clients.js";
+import { CLIENTS, detectClients, findClient, mcpConfigSnippet } from "../src/clients.js";
+import { desktopConfigPath, serverCommand, serverName } from "../src/serverCommand.js";
+import { version } from "../src/server.js";
+
+const PINNED = `operator-mcp@${version}`;
 
 function home(...dirs: string[]): string {
   const root = mkdtempSync(join(tmpdir(), "operator-home-"));
@@ -24,12 +28,12 @@ const binary = { versions: { bun: "1.4.4" }, execPath: "/home/ada/.local/bin/ope
 describe("serverName / serverCommand", () => {
   it("uses a bare name and no profile flag for the default profile", () => {
     expect(serverName("default")).toBe("openproject");
-    expect(serverCommand("default", node)).toEqual({ command: "npx", args: ["-y", "operator-mcp"] });
+    expect(serverCommand("default", node)).toEqual({ command: "npx", args: ["-y", PINNED] });
   });
 
   it("suffixes the name and passes --profile for any other profile", () => {
     expect(serverName("acme")).toBe("openproject-acme");
-    expect(serverCommand("acme", node)).toEqual({ command: "npx", args: ["-y", "operator-mcp", "--profile", "acme"] });
+    expect(serverCommand("acme", node)).toEqual({ command: "npx", args: ["-y", PINNED, "--profile", "acme"] });
   });
 
   it("registers the standalone binary by its absolute path when running under Bun", () => {
@@ -70,7 +74,7 @@ describe("claude-code", () => {
     const context = target(root);
     findClient("claude-code")!.register(context);
     expect(context.run).toHaveBeenCalledWith("claude", [
-      "mcp", "add", "openproject", "--scope", "user", "--", "npx", "-y", "operator-mcp",
+      "mcp", "add", "openproject", "--scope", "user", "--", "npx", "-y", PINNED,
     ]);
   });
 
@@ -79,8 +83,20 @@ describe("claude-code", () => {
     findClient("claude-code")!.register(context);
     expect(context.run).toHaveBeenCalledWith("claude", [
       "mcp", "add", "openproject-acme", "--scope", "user", "--",
-      "npx", "-y", "operator-mcp", "--profile", "acme",
+      "npx", "-y", PINNED, "--profile", "acme",
     ]);
+  });
+});
+
+describe("antigravity", () => {
+  it("writes the agy config, filling a blank file", () => {
+    const root = home(".gemini/config");
+    const path = join(root, ".gemini/config/mcp_config.json");
+    writeFileSync(path, "");
+    const client = findClient("antigravity")!;
+    expect(detectClients(root)).toContain(client);
+    client.register(target(root));
+    expect(readJson(path).mcpServers.openproject).toEqual({ command: "npx", args: ["-y", PINNED] });
   });
 });
 
@@ -90,7 +106,7 @@ describe("gemini", () => {
     findClient("gemini")!.register(target(root));
     expect(readJson(join(root, ".gemini/settings.json")).mcpServers.openproject).toEqual({
       command: "npx",
-      args: ["-y", "operator-mcp"],
+      args: ["-y", PINNED],
     });
   });
 
@@ -113,21 +129,21 @@ describe("opencode", () => {
     findClient("opencode")!.register(target(root));
     expect(readJson(join(root, ".config/opencode/opencode.json")).mcp.openproject).toEqual({
       type: "local",
-      command: ["npx", "-y", "operator-mcp"],
+      command: ["npx", "-y", PINNED],
       enabled: true,
     });
   });
 });
 
 describe("mimocode", () => {
-  it("writes opencode's shape into mimocode.jsonc", () => {
+  it("writes opencode's shape into mimocode.json", () => {
     const root = home(".config/mimocode");
     const client = findClient("mimocode")!;
     expect(detectClients(root)).toContain(client);
     client.register(target(root));
-    const config = readJson(join(root, ".config/mimocode/mimocode.jsonc"));
+    const config = readJson(join(root, ".config/mimocode/mimocode.json"));
     expect(config.$schema).toBeUndefined();
-    expect(config.mcp.openproject.command).toEqual(["npx", "-y", "operator-mcp"]);
+    expect(config.mcp.openproject.command).toEqual(["npx", "-y", PINNED]);
   });
 });
 
@@ -138,7 +154,7 @@ describe("codex", () => {
     const text = readFileSync(join(root, ".codex/config.toml"), "utf8");
     expect(text).toContain("[mcp_servers.openproject]");
     expect(text).toContain('command = "npx"');
-    expect(text).toContain('args = ["-y", "operator-mcp"]');
+    expect(text).toContain(`args = ["-y", "${PINNED}"]`);
   });
 
   it("replaces its own block instead of duplicating it, leaving other blocks alone", () => {
@@ -186,16 +202,16 @@ describe("entry", () => {
     expect(client.detect(root)).toBe(true);
     expect(client.entry(root, "openproject-acme")).toBeNull();
     client.register(target(root, "acme"));
-    expect(client.entry(root, "openproject-acme")).toEqual(["npx", "-y", "operator-mcp", "--profile", "acme"]);
+    expect(client.entry(root, "openproject-acme")).toEqual(["npx", "-y", PINNED, "--profile", "acme"]);
   });
 
   it("claude-code reads the user-scope entry from ~/.claude.json", () => {
     const root = home();
     writeFileSync(
       join(root, ".claude.json"),
-      JSON.stringify({ mcpServers: { openproject: { type: "stdio", command: "npx", args: ["-y", "operator-mcp"] } } }),
+      JSON.stringify({ mcpServers: { openproject: { type: "stdio", command: "npx", args: ["-y", PINNED] } } }),
     );
-    expect(findClient("claude-code")!.entry(root, "openproject")).toEqual(["npx", "-y", "operator-mcp"]);
+    expect(findClient("claude-code")!.entry(root, "openproject")).toEqual(["npx", "-y", PINNED]);
   });
 
   it("treats an unreadable config as no entry", () => {
@@ -231,7 +247,15 @@ describe("claude-desktop and cursor", () => {
     const root = home(".cursor");
     expect(detectClients(root).map((client) => client.id)).toEqual(["cursor"]);
     findClient("cursor")!.register(target(root));
-    expect(readJson(join(root, ".cursor/mcp.json")).mcpServers.openproject).toEqual({ command: "npx", args: ["-y", "operator-mcp"] });
-    expect(findClient("cursor")!.entry(root, "openproject")).toEqual(["npx", "-y", "operator-mcp"]);
+    expect(readJson(join(root, ".cursor/mcp.json")).mcpServers.openproject).toEqual({ command: "npx", args: ["-y", PINNED] });
+    expect(findClient("cursor")!.entry(root, "openproject")).toEqual(["npx", "-y", PINNED]);
+  });
+});
+
+describe("backups are one rolling .bak", () => {
+  it("overwrites the same .bak on every rewrite", () => {
+    const root = home(".gemini");
+    for (let run = 0; run < 3; run++) findClient("gemini")!.register(target(root));
+    expect(readdirSync(join(root, ".gemini")).sort()).toEqual(["settings.json", "settings.json.bak"]);
   });
 });

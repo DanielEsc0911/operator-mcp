@@ -42,9 +42,9 @@ afterEach(() => vi.unstubAllGlobals());
 describe("create_work_package", () => {
   it("posts to the project path with resolved links", async () => {
     routes({
-      "/users/me": ME, "/projects/website/types": TYPES, "/statuses": STATUSES,
-      "/projects/website/work_packages": workPackage,
-      "/projects/website/available_assignees": { total: 1, count: 1, _embedded: { elements: [{ id: 5, name: "Ana Ruiz" }] } },
+      "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/types": TYPES, "/statuses": STATUSES,
+      "/projects/3/work_packages": workPackage,
+      "/projects/3/available_assignees": { total: 1, count: 1, _embedded: { elements: [{ id: 5, name: "Ana Ruiz" }] } },
     });
     const client = await connect();
 
@@ -54,7 +54,7 @@ describe("create_work_package", () => {
       status: "In progress", dueDate: "2026-08-03",
     })).json();
 
-    const [call] = callsTo("/projects/website/work_packages");
+    const [call] = callsTo("/projects/3/work_packages");
     expect(call[1].method).toBe("POST");
     expect(bodyOf(call)).toEqual({
       subject: "Fix login redirect",
@@ -87,7 +87,7 @@ describe("create_work_package", () => {
   });
 
   it("names the valid types when the type is unknown", async () => {
-    routes({ "/users/me": ME, "/projects/website/types": TYPES });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/types": TYPES });
     const client = await connect();
     const result = await callTool(client, "create_work_package", { project: "website", type: "Epicc", subject: "x" });
 
@@ -96,12 +96,12 @@ describe("create_work_package", () => {
   });
 
   it("is blocked in read-only mode", async () => {
-    routes({ "/users/me": ME, "/types": TYPES });
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/types": TYPES });
     const client = await connect({ ...testConfig, readOnly: true });
     const result = await callTool(client, "create_work_package", { project: "website", type: "7", subject: "x" });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Server is in read-only mode (OPENPROJECT_READ_ONLY)");
+    expect(result.text).toBe("Server is in read-only mode (profile readOnly or OPENPROJECT_READ_ONLY)");
   });
 });
 
@@ -119,6 +119,31 @@ describe("update_work_package", () => {
       percentageDone: 60,
       _links: { status: { href: "/api/v3/statuses/9" } },
     });
+  });
+
+  it("resolves the type and version in the work package's own project", async () => {
+    routes({
+      "/users/me": ME, "/work_packages/1234": workPackage,
+      "/projects/3/types": TYPES,
+      "/projects/3/versions": { total: 1, count: 1, _embedded: { elements: [{ id: 21, name: "v2.0" }] } },
+    });
+    const client = await connect({ ...testConfig, defaultProject: "other" });
+    await callTool(client, "update_work_package", { id: 1234, type: "Bug", version: "v2.0" });
+
+    expect(bodyOf(callsTo("/work_packages/1234")[1])._links).toEqual({
+      type: { href: "/api/v3/types/7" },
+      version: { href: "/api/v3/versions/21" },
+    });
+  });
+
+  it("clears dates with null and rejects empty names", async () => {
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    const client = await connect();
+    await callTool(client, "update_work_package", { id: 1234, dueDate: null, startDate: null });
+    const empty = await callTool(client, "update_work_package", { id: 1234, status: "" });
+
+    expect(bodyOf(callsTo("/work_packages/1234")[1])).toEqual({ lockVersion: 7, dueDate: null, startDate: null });
+    expect(empty.isError).toBe(true);
   });
 
   it("sends only the fields that were supplied", async () => {
@@ -145,6 +170,44 @@ describe("update_work_package", () => {
     expect(result.isError).toBe(true);
     expect(result.text).toContain("Nothing to update");
     expect(callsTo("/work_packages/1234")).toHaveLength(0);
+  });
+
+  it("requires lockVersion when the description changes, without any request", async () => {
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    const client = await connect();
+    const result = await callTool(client, "update_work_package", { id: 1234, description: "New" });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("get_work_package");
+    expect(callsTo("/work_packages/1234")).toHaveLength(0);
+  });
+
+  it("sends a given lockVersion as-is, without re-reading", async () => {
+    routes({ "/users/me": ME, "/work_packages/1234": workPackage });
+    const client = await connect();
+    await callTool(client, "update_work_package", { id: 1234, description: "New", lockVersion: 3 });
+
+    const calls = callsTo("/work_packages/1234");
+    expect(calls).toHaveLength(1);
+    expect(bodyOf(calls[0])).toEqual({ lockVersion: 3, description: { raw: "New" } });
+  });
+
+  it("surfaces a 409 for a stale lockVersion", async () => {
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ message: "Version mismatch" }, 409));
+    const client = await connect();
+    const result = await callTool(client, "update_work_package", { id: 1234, subject: "x", lockVersion: 1 });
+
+    expect(result.text).toBe("Version mismatch. Read the resource again and retry.");
+  });
+
+  it("tells the agent to compare and ask the user after a description conflict", async () => {
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ message: "Version mismatch" }, 409));
+    const client = await connect();
+    const result = await callTool(client, "update_work_package", { id: 1234, description: "x", lockVersion: 1 });
+
+    expect(result.text).toContain("compare their description with yours, and ask the user before retrying");
   });
 
   it("tells the agent to re-read after a lock conflict", async () => {
@@ -176,7 +239,7 @@ describe("comment_work_package", () => {
 });
 
 describe("list_activities", () => {
-  it("returns comments and field changes in order", async () => {
+  it("returns comments and field changes, newest first", async () => {
     routes({
       "/users/me": ME,
       "/work_packages/1234/activities": {
@@ -192,9 +255,28 @@ describe("list_activities", () => {
     const client = await connect();
     const result = (await callTool(client, "list_activities", { id: 1234 })).json();
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
-    expect(result[1]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
+    expect(result.total).toBe(2);
+    expect(result.activities[0]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
+    expect(result.activities[1]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
+  });
+
+  it("honours limit locally, since the endpoint ignores pageSize", async () => {
+    const elements = [1, 2, 3].map((id) => ({ id, comment: { raw: `c${id}` }, _links: {} }));
+    routes({ "/users/me": ME, "/work_packages/1234/activities": { total: 3, count: 3, _embedded: { elements } } });
+    const client = await connect();
+    const result = (await callTool(client, "list_activities", { id: 1234, limit: 2 })).json();
+
+    expect(result.total).toBe(3);
+    expect(result.activities.map((entry: any) => entry.id)).toEqual([3, 2]);
+  });
+});
+
+describe("list_activities caps", () => {
+  it("cuts long comments at the same length get_work_package uses", async () => {
+    const elements = [{ id: 1, comment: { raw: "x".repeat(900) }, _links: {} }];
+    routes({ "/users/me": ME, "/work_packages/1234/activities": { total: 1, count: 1, _embedded: { elements } } });
+    const result = (await callTool(await connect(), "list_activities", { id: 1234 })).json();
+    expect(result.activities[0].comment).toHaveLength(500);
   });
 });
 
@@ -214,5 +296,29 @@ describe("link_work_packages", () => {
     routes({ "/users/me": ME });
     const client = await connect();
     expect((await callTool(client, "link_work_packages", { from: 1, to: 2, type: "sortof" })).isError).toBe(true);
+  });
+});
+
+describe("write tool descriptions", () => {
+  it("point category, accountable, estimates and custom fields at api_request", async () => {
+    routes({ "/users/me": ME });
+    const tools = (await (await connect()).listTools()).tools;
+    for (const name of ["create_work_package", "update_work_package"]) {
+      expect(tools.find((tool) => tool.name === name)!.description).toContain("api_request");
+    }
+  });
+});
+
+describe("update_work_package project scoping", () => {
+  it("resolves the assignee in the work package's own project even with a lockVersion", async () => {
+    const other = { ...workPackage, id: 5, lockVersion: 4, _links: { ...workPackage._links, project: { href: "/api/v3/projects/9", title: "Other" } } };
+    routes({
+      "/users/me": ME, "/work_packages/5": other,
+      "/projects/9/available_assignees": { total: 1, count: 1, _embedded: { elements: [{ id: 31, name: "Ana Ruiz" }] } },
+    });
+    const result = await callTool(await connect({ ...testConfig, defaultProject: "website" }), "update_work_package", { id: 5, lockVersion: 4, assignee: "Ana Ruiz" });
+
+    expect(result.isError).toBe(false);
+    expect(bodyOf(callsTo("/work_packages/5").find(([, init]) => init.method === "PATCH")!)._links.assignee).toEqual({ href: "/api/v3/users/31" });
   });
 });
