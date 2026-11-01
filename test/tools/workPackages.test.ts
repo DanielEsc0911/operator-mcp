@@ -217,7 +217,18 @@ describe("my_work", () => {
       { status: { operator: "o", values: [] } },
     ]);
     expect(lastQuery("sortBy")).toBe('[["dueDate","asc"]]');
-    expect(result).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.results).toHaveLength(1);
+    expect(lastQuery("pageSize")).toBe("20");
+  });
+
+  it("maps page to OpenProject's page-number offset", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const client = await connect();
+    await callTool(client, "my_work", { page: 3 });
+    expect(lastQuery("offset")).toBe("3");
+    await callTool(client, "search_work_packages", { page: 2 });
+    expect(lastQuery("offset")).toBe("2");
   });
 
   it("can ask for closed work instead", async () => {

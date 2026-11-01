@@ -19,6 +19,7 @@ export type SearchArgs = {
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   limit?: number;
+  page?: number;
 };
 
 // OpenProject expresses "any open status" and "any closed status" as filter
@@ -93,6 +94,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
         sortBy: z.string().optional().describe('Field to sort on, for example "dueDate" or "updatedAt".'),
         sortDirection: z.enum(["asc", "desc"]).optional().describe("Sort direction. Defaults to asc."),
         limit: z.number().int().positive().optional().describe("Maximum results, capped at 100. Defaults to 25."),
+        page: z.number().int().positive().optional().describe("1-based page of `limit` results. Defaults to 1."),
       },
     },
     handler(async (args: SearchArgs) => {
@@ -100,6 +102,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
       const { total, elements } = await client.collection(collectionPath(project), {
         filters: await buildSearchFilters(client, { ...args, project }),
         pageSize: Math.min(args.limit ?? 25, MAX_PAGE_SIZE),
+        offset: args.page,
         sortBy: args.sortBy ? [[args.sortBy, args.sortDirection ?? "asc"]] : undefined,
       });
       return { total, results: elements.map((wp) => flattenWorkPackage(wp, config.url)) };
@@ -111,20 +114,22 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
     {
       title: "My work",
       annotations: { readOnlyHint: true },
-      description: "Work packages assigned to you, soonest due first. The usual starting point for a working session.",
+      description: "Work packages assigned to you, soonest due first, as { total, results }. Use `page` to read past the first `limit`.",
       inputSchema: {
         status: z.enum(["open", "closed"]).optional().describe("Defaults to open."),
-        limit: z.number().int().positive().optional().describe("Maximum results, capped at 100. Defaults to 50."),
+        limit: z.number().int().positive().optional().describe("Maximum results, capped at 100. Defaults to 20."),
+        page: z.number().int().positive().optional().describe("1-based page of `limit` results. Defaults to 1."),
       },
     },
-    handler(async ({ status, limit }: { status?: "open" | "closed"; limit?: number }) => {
+    handler(async ({ status, limit, page }: { status?: "open" | "closed"; limit?: number; page?: number }) => {
       const project = config.defaultProject;
-      const { elements } = await client.collection(collectionPath(project), {
+      const { total, elements } = await client.collection(collectionPath(project), {
         filters: await buildSearchFilters(client, { assignee: "me", status: status ?? "open", project }),
-        pageSize: Math.min(limit ?? 50, MAX_PAGE_SIZE),
+        pageSize: Math.min(limit ?? 20, MAX_PAGE_SIZE),
+        offset: page,
         sortBy: [["dueDate", "asc"]],
       });
-      return elements.map((wp) => flattenWorkPackage(wp, config.url));
+      return { total, results: elements.map((wp) => flattenWorkPackage(wp, config.url)) };
     }),
   );
 }
