@@ -47,11 +47,8 @@ jobs:
           for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
             npx -y bun@1.4.4 build --compile --target="bun-$target" dist/index.js --outfile "release/operator-mcp-$target"
           done
-      - name: Linux binary answers --version and an MCP handshake
-        run: |
-          release/operator-mcp-linux-x64 --version
-          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' |
-            OPENPROJECT_URL=https://op.invalid OPENPROJECT_API_KEY=ci timeout 20 release/operator-mcp-linux-x64 | grep -q '"serverInfo"'
+      - name: Linux binary passes the smoke script
+        run: node scripts/binary-smoke.mjs ./release/operator-mcp-linux-x64
       - uses: actions/upload-artifact@v7
         with:
           name: binaries
