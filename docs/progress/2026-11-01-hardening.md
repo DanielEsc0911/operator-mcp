@@ -18,6 +18,7 @@ open, with the commit range.
 | Chunk 2 — Agent tools (2a–2i) | done | `b636897`..`26d77aa` (2i skipped) |
 | Chunk 2 — review fixes (G1–G14) | done | `47978c9`..`65457ed` |
 | Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..`2d2a636` |
+| Chunk 3 — review fixes (H1–H14) | done | `ee7f443`..`e29cdba` |
 | Chunk 4 — Release, testing infra, final gate (4a–4f) | 4a–4e done, 4f pending | `6c295e0`..`3a2e130` |
 
 ## Hand-off notes
@@ -195,3 +196,18 @@ Open items:
 - `list_notifications` etc. are not live-tested beyond the id filter.
 - 4f final gate still pending (README tool table, CHANGELOG items listed in the Chunk 3 note, comment count check).
 - Workflows are not run on GitHub (no push); first real run may need adjustments (e.g. `setup-bun` and `bun` on PATH).
+
+### Chunk 3 review fixes (H1-H14, `ee7f443`..`e29cdba`)
+
+- H1: dropped `stdin.pause()` in `readHidden`; fake-TTY readline tests (ask after askHidden, Ctrl-C in interruptible) failed before the fix.
+- H2: Claude Code `register` re-adds the old entry (command/args/env) if the new `add` fails, then rethrows; `manual()` carries the old `-e` pairs.
+- H3: `cmdQuote` in install.ts, applied to args on win32 only (`%` becomes `"^%"`).
+- H4/H12/H13: clientFiles.ts accepts `'openproject'` headers, refuses (throws, so install shows the manual snippet) when the key exists as a dotted key or inline table; trailing commas tolerated on read; `tomlEntry` accepts `command="x"` and multi-line args; multi-line args end at a line starting with `]`.
+- H5/H9: doctor treats JSON `_type` Root or Error as reachable; the title no longer calls `resolveProfile`, so a bad profile is a failed check suggesting `setup --profile <name>`.
+- H6: `finish(code, proc)` in cli.ts, used by index.ts, calls `process.exit(130)` on interrupt.
+- H7/H11: escape sequences buffered across chunks; `choose` re-prompts on numeric non-integers.
+- H8: certificate hint limited to the listed codes; no repeated code.
+- H10: `--version`/`-h` anywhere before `--`; `--` ends options; per-command flag table in flags.ts.
+- H14: re-export removed; call sites import from `serverCommand.js`.
+- Deviations: a lone ESC followed by a character is now treated as Alt+key and dropped (ESC before Enter is still ignored). Two comments added (cmd.exe, TOML value end): count in CLAUDE.md and the review skill is now twelve. Only H1 was confirmed red-before-fix by running; the others were written alongside the fix.
+- Open: manual Claude Code snippet prints env values from the old entry (as approved), which may include secrets.
