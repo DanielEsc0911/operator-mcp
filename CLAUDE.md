@@ -146,10 +146,11 @@ hands them. `test/importGraph.test.ts` fails if `server.ts` can reach any of the
 | `src/searchSelect.ts` | Type-to-filter picker built on `select.ts`, used for the project list |
 | `src/i18n/` | Wizard strings in English and Spanish; `t()` picks by locale |
 | `src/doctor.ts` | `doctor` command: config file, reachability, key, agent entries |
-| `src/clients.ts` | Agent-client registry (Claude Code, Claude Desktop, Codex, Gemini, Cursor, opencode): detect, register, read back, manual snippet |
+| `src/clients.ts` | Agent-client registry (Claude Code, Claude Desktop, Codex, Gemini, Antigravity, Qwen, Kimi, iFlow, Kiro, Windsurf, Cursor, opencode, MiMo Code): detect, register, read back, manual snippet |
 | `src/clientFiles.ts` | JSON(C)/TOML read and merge for agent config files, one rolling `.bak` |
 | `src/serverCommand.ts` | What agents run: server name, pinned `npx`/`cmd /c` or binary command |
 | `src/flags.ts` | `--flag=value` parsing, first positional, flag validation |
+| `src/clientShapes.ts` | `Client` type and the shared `mcpServers` and opencode-style adapters |
 | `src/install.ts` | `install` command and `patchAgents`: checklist, register, report |
 | `src/tools/` | One module per domain |
 | `src/tools/myWork.ts` | `my_work`: the lean assigned-to-me list |

@@ -1,44 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { commandLine, editJson, readJson, tomlEntry, upsertTomlServer, writeMerged } from "./clientFiles.js";
+import { join } from "node:path";
+import { commandLine, readJson, tomlEntry, upsertTomlServer, writeMerged } from "./clientFiles.js";
 import { desktopConfigPath, serverCommand, serverName } from "./serverCommand.js";
+import { mcpServersClient, opencodeClient, type Client, type Runner } from "./clientShapes.js";
 
-export type Runner = (command: string, args: string[]) => string;
-
-export type Target = {
-  home: string;
-  name: string;
-  command: string;
-  args: string[];
-  run: Runner;
-};
-
-export type Client = {
-  id: string;
-  label: string;
-  configPath: (home: string) => string;
-  detect: (home: string) => boolean;
-  register: (target: Target) => void;
-  entry: (home: string, name: string, run?: Runner) => string[] | null;
-  manual: (target: Target) => string;
-};
-
-function mcpServersClient(id: string, label: string, path: (home: string) => string | null, shown: string): Client {
-  const file = (home: string) => path(home) ?? "";
-  return {
-    id,
-    label,
-    configPath: file,
-    detect: (home) => path(home) !== null && existsSync(dirname(file(home))),
-    register: ({ home, name, command, args }) =>
-      editJson(file(home), (settings) => {
-        const servers = settings.mcpServers ?? {};
-        settings.mcpServers = { ...servers, [name]: { ...servers[name], command, args } };
-      }),
-    entry: (home, name) => commandLine(readJson(file(home)).mcpServers?.[name]),
-    manual: ({ name, command, args }) => `// ${shown}\n${JSON.stringify({ mcpServers: { [name]: { command, args } } }, null, 2)}`,
-  };
-}
+export type { Client, Runner, Target } from "./clientShapes.js";
 
 const claudeServer = (home: string, name: string) => (home ? readJson(join(home, ".claude.json")).mcpServers?.[name] : undefined);
 
@@ -54,11 +20,6 @@ function claudeGet(run: Runner, name: string): string[] | null {
   const command = /^\s*Command:\s*(.+)$/m.exec(text)?.[1].trim();
   const args = /^\s*Args:\s*(.+)$/m.exec(text)?.[1].trim();
   return command ? [command, ...(args ? args.split(" ") : [])] : null;
-}
-
-function opencodePath(home: string): string {
-  const dir = join(home, ".config", "opencode");
-  return existsSync(join(dir, "opencode.jsonc")) ? join(dir, "opencode.jsonc") : join(dir, "opencode.json");
 }
 
 export const CLIENTS: Client[] = [
@@ -104,26 +65,15 @@ export const CLIENTS: Client[] = [
   mcpServersClient("gemini", "Gemini CLI", (home) => join(home, ".gemini", "settings.json"), "~/.gemini/settings.json"),
   mcpServersClient("antigravity", "Antigravity CLI", (home) => join(home, ".gemini", "config", "mcp_config.json"), "~/.gemini/config/mcp_config.json"),
   mcpServersClient("claude-desktop", "Claude Desktop", (home) => desktopConfigPath(home), "Claude Desktop: Settings → Developer → Edit Config"),
+  mcpServersClient("qwen", "Qwen Code", (home) => join(home, ".qwen", "settings.json"), "~/.qwen/settings.json"),
+  mcpServersClient("kimi", "Kimi CLI", (home) => join(home, ".kimi", "mcp.json"), "~/.kimi/mcp.json"),
+  mcpServersClient("kimi-code", "Kimi Code", (home) => join(home, ".kimi-code", "mcp.json"), "~/.kimi-code/mcp.json"),
+  mcpServersClient("iflow", "iFlow CLI", (home) => join(home, ".iflow", "settings.json"), "~/.iflow/settings.json"),
+  mcpServersClient("kiro", "Kiro", (home) => join(home, ".kiro", "settings", "mcp.json"), "~/.kiro/settings/mcp.json"),
+  mcpServersClient("windsurf", "Windsurf", (home) => join(home, ".codeium", "windsurf", "mcp_config.json"), "~/.codeium/windsurf/mcp_config.json"),
   mcpServersClient("cursor", "Cursor", (home) => join(home, ".cursor", "mcp.json"), "~/.cursor/mcp.json"),
-  {
-    id: "opencode",
-    label: "opencode",
-    configPath: opencodePath,
-    detect: (home) => existsSync(join(home, ".config", "opencode")),
-    register: ({ home, name, command, args }) =>
-      editJson(opencodePath(home), (config) => {
-        config.$schema ??= "https://opencode.ai/config.json";
-        const mcp = config.mcp ?? {};
-        config.mcp = { ...mcp, [name]: { enabled: true, ...mcp[name], type: "local", command: [command, ...args] } };
-      }),
-    entry: (home, name) => commandLine(readJson(opencodePath(home)).mcp?.[name]),
-    manual: ({ name, command, args }) =>
-      `// ~/.config/opencode/opencode.json\n${JSON.stringify(
-        { mcp: { [name]: { type: "local", command: [command, ...args], enabled: true } } },
-        null,
-        2,
-      )}`,
-  },
+  opencodeClient("opencode", "opencode", ".config/opencode", "opencode", "https://opencode.ai/config.json"),
+  opencodeClient("mimocode", "MiMo Code", ".config/mimocode", "mimocode"),
 ];
 
 export function offeredClients(home: string): Client[] {
