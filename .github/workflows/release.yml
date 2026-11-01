@@ -30,7 +30,7 @@ jobs:
       - run: npm run build
       - run: node scripts/pack-check.mjs
       - name: Pack the tarball that will be published
-        run: npm pack --pack-destination tarball
+        run: mkdir -p tarball && npm pack --pack-destination tarball
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: tarball
