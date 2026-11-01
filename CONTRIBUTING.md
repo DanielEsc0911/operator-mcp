@@ -35,7 +35,7 @@ constraint, a workaround.
 ## Invariants
 
 These are not preferences. A pull request that breaks one will be asked to change.
-`CLAUDE.md` holds the full list.
+`AGENTS.md` holds the full list.
 
 - **Two runtime dependencies**: `@modelcontextprotocol/sdk` and `zod`.
 - **Relative imports end in `.js`** — ESM under `moduleResolution: Node16`.

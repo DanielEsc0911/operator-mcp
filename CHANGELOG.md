@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-01
+
 ### Changed (agents read this)
 
 - List tools return `{ total, ... }` objects instead of bare arrays: `list_activities`
@@ -36,6 +38,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `install` and `doctor` know more agent clients: Antigravity CLI, Qwen Code, Kimi CLI,
+  Kimi Code, iFlow CLI, Kiro, Windsurf and MiMo Code.
 - `briefing`: pending, unread and recent in one call, grouped by project, with true
   status counts, scoped to the default project, and tolerant of a failing section.
 - `standup`: your time entries (total hours over every fetched entry) and the work
@@ -76,6 +80,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Internal
 
+- `CLAUDE.md` is now `AGENTS.md` (CLAUDE.md points to it); project skills moved to
+  `.agents/skills/`, with `.claude/skills` as a symlink, so any agent can use them.
 - Shared realistic fixture (`test/support/realistic.ts`) and one under-8 KB size test per
   list tool.
 - `my_work` moved to `src/tools/myWork.ts`; the briefing reuses the notification filter.

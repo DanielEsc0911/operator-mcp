@@ -499,7 +499,7 @@ npm run test:docker  # live suite on a throwaway OpenProject container
 npm run build
 ```
 
-Two runtime dependencies. See `CLAUDE.md` for the working rules.
+Two runtime dependencies. See `AGENTS.md` for the working rules.
 
 ## License
 

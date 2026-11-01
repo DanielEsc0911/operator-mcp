@@ -15,7 +15,7 @@ import { registerTimeTools } from "./tools/time.js";
 import { registerWorkPackageTools } from "./tools/workPackages.js";
 import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 
-export const version = "1.3.1";
+export const version = "1.4.0";
 
 function plain(value: string): string {
   return value.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g, " ").trim().slice(0, 80);
