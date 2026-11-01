@@ -125,4 +125,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes release/* tarball/*.tgz
       - name: Publish the tarball verify produced, to npm over OIDC
-        run: npm publish tarball/*.tgz --provenance --access public
+        run: npm publish ./tarball/*.tgz --provenance --access public
