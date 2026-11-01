@@ -62,7 +62,7 @@ export function profileDir(profile: string): string {
 
 export function resolveProfile(argv: string[], env: NodeJS.ProcessEnv): string {
   const flag = argv.indexOf("--profile");
-  const profile = flag !== -1 && argv[flag + 1] ? argv[flag + 1] : env.OPENPROJECT_PROFILE || "default";
+  const profile = flag !== -1 && argv[flag + 1] ? argv[flag + 1] : envValue(env, "OPENPROJECT_PROFILE") ?? "default";
   if (!PROFILE_NAME.test(profile)) {
     throw new Error(
       `Invalid profile name "${profile}". Use letters, digits, ".", "_" or "-", starting with a letter or digit, at most 64 characters.`,
@@ -97,6 +97,10 @@ function envValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
   return env[key]?.trim() || undefined;
 }
 
+export function storedReadOnly(value: unknown): boolean {
+  return value !== undefined && value !== false;
+}
+
 export function parseReadOnly(raw: string | undefined): boolean {
   return !["", "0", "false", "no", "off"].includes((raw ?? "").trim().toLowerCase());
 }
@@ -113,7 +117,7 @@ export function loadConfig(argv: string[] = process.argv, env: NodeJS.ProcessEnv
     apiKey: envValue(env, "OPENPROJECT_API_KEY") ?? stored.apiKey ?? "",
     defaultProject: envValue(env, "OPENPROJECT_DEFAULT_PROJECT") ?? stored.defaultProject,
     conventionsPath: envValue(env, "OPENPROJECT_CONVENTIONS_PATH") ?? join(profileDir(profile), "conventions.md"),
-    readOnly: readOnlyEnv !== undefined ? parseReadOnly(readOnlyEnv) : stored.readOnly !== undefined && stored.readOnly !== false,
+    readOnly: readOnlyEnv !== undefined ? parseReadOnly(readOnlyEnv) : storedReadOnly(stored.readOnly),
     allowDelete: env.OPENPROJECT_ALLOW_DELETE === "1",
   };
 }

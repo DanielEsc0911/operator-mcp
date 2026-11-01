@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { createInterface, type Interface } from "node:readline/promises";
 import type { Streams } from "./cli.js";
 import type { Client } from "./clients.js";
-import { assertSecureUrl, normalizeUrl, profileDir, resolveProfile, saveConfig } from "./config.js";
+import { assertSecureUrl, normalizeUrl, profileDir, resolveProfile, saveConfig, storedReadOnly } from "./config.js";
 import { describeExisting, keyHint, nonInteractiveInput, scaffoldConventions, storedCredentials, verifyCredentials, writableProjects } from "./credentials.js";
 import type { Credentials, ProjectPage, Verified } from "./credentials.js";
 import { doctorChecks, printChecks } from "./doctor.js";
@@ -65,7 +65,7 @@ async function keptConnection(profile: string, rl: Interface, line: Line): Promi
 
 function save(profile: string, argv: string[], credentials: Credentials, defaultProject: string | undefined, { out, s }: Line): void {
   const home = homedir();
-  const readOnly = argv.includes("--read-only") || storedCredentials(profile)?.readOnly === true;
+  const readOnly = argv.includes("--read-only") || storedReadOnly(storedCredentials(profile)?.readOnly);
   const data = { ...credentials, defaultProject, ...(readOnly && { readOnly }) };
   step(out, s, t().saved, t().done, tilde(saveConfig(profile, data), home));
   const manual = scaffoldConventions(join(profileDir(profile), "conventions.md"));

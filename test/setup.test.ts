@@ -180,6 +180,17 @@ describe("runSetup --non-interactive", () => {
     expect(JSON.parse(readFileSync(file, "utf8")).readOnly).toBe(true);
   });
 
+  it("keeps a stored readOnly that loadConfig treats as read-only, whatever its type", async () => {
+    vi.stubEnv("OPENPROJECT_API_KEY", env.OPENPROJECT_API_KEY);
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 2, count: 1, _embedded: { elements: [] } }),
+    );
+    saveConfig("ci", { url: "https://op.example.com", apiKey: "k", readOnly: "yes" as any });
+    await runSetup(["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"], capture().streams);
+    const file = join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "ci", "config.json");
+    expect(JSON.parse(readFileSync(file, "utf8")).readOnly).toBeTruthy();
+  });
+
   it("refuses to overwrite a corrupt config.json", async () => {
     vi.stubEnv("OPENPROJECT_API_KEY", env.OPENPROJECT_API_KEY);
     fetchMock.mockImplementation(async (url: URL) =>
@@ -233,6 +244,20 @@ describe("runSetup over a profile 1.2.0 left behind", () => {
     expect(text()).not.toContain("Where does your OpenProject live?");
     expect(text()).toContain("Line's open");
     expect(text()).toMatch(/Cursor\s+updated/);
+  });
+
+  it("writes readOnly for an interactive setup --read-only", async () => {
+    const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home);
+    saveConfig("default", { url: "https://op.example.com", apiKey: "supersecretkey" });
+    fetchMock.mockImplementation(async (url: URL) =>
+      url.pathname === "/api/v3/users/me" ? respond(ME) : respond({ total: 0, count: 0, _embedded: { elements: [] } }),
+    );
+    const { streams } = typed("", "");
+
+    expect(await runSetup(["setup", "--read-only"], streams as any)).toBe(0);
+    expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).readOnly).toBe(true);
   });
 
   it("asks for a new connection when told not to keep it, and takes a bare host", async () => {

@@ -87,6 +87,7 @@ describe("resolveProfile", () => {
 
   it("falls back to the environment", () => {
     expect(resolveProfile([], { OPENPROJECT_PROFILE: "acme" })).toBe("acme");
+    expect(resolveProfile([], { OPENPROJECT_PROFILE: "  " })).toBe("default");
   });
 
   it("defaults to 'default'", () => {
