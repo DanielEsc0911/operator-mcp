@@ -38,14 +38,13 @@ export class OpenProjectClient {
     options: { query?: Record<string, string | number | undefined>; body?: unknown } = {},
   ): Promise<any> {
     if (!this.config.url || !this.config.apiKey) throw new ConfigError();
-    // OpenProject validates through POST .../form and writes nothing, so read-only mode lets it pass.
-    if (this.config.readOnly && method !== "GET" && !path.endsWith("/form")) throw new ReadOnlyError();
-
     const root = `${this.config.url}/api/v3`;
     const url = new URL(`${root}${path}`);
     if (!url.href.startsWith(`${root}/`)) {
       throw new Error(`Refusing a request outside ${root}. Pass a path relative to /api/v3, like /work_packages/12.`);
     }
+    // OpenProject validates through POST .../form and writes nothing, so read-only mode lets it pass.
+    if (this.config.readOnly && method !== "GET" && !(method === "POST" && url.pathname.endsWith("/form"))) throw new ReadOnlyError();
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }

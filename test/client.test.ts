@@ -99,6 +99,18 @@ describe("request", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("lets only a POST to a form endpoint through in read-only mode", async () => {
+    const client = new OpenProjectClient({ ...config, readOnly: true });
+    for (const [method, path] of [["PATCH", "/projects/1?x=/form"], ["PATCH", "/projects/1#/form"], ["DELETE", "/work_packages/1/form"]]) {
+      await expect(client.request(method, path)).rejects.toBeInstanceOf(ReadOnlyError);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValue(respond({ id: 1 }));
+    await client.request("POST", "/time_entries/form", { body: {} });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("allows GET in read-only mode", async () => {
     fetchMock.mockResolvedValue(respond({ id: 1 }));
     await new OpenProjectClient({ ...config, readOnly: true }).request("GET", "/users/me");
