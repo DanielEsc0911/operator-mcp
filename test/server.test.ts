@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { buildInstructions } from "../src/server.js";
 import { connect } from "./support/harness.js";
 import type { Config } from "../src/config.js";
@@ -84,6 +85,28 @@ describe("tool registration", () => {
       "list_projects", "list_users", "log_time", "mark_notifications_read", "my_work",
       "remove_convention", "search_work_packages", "update_work_package", "watch_work_package", "whoami",
     ]);
+  });
+});
+
+describe("startup", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("connects without identity when /users/me is slower than five seconds", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    const pending = connect();
+    await vi.advanceTimersByTimeAsync(5_000);
+    const client = await pending;
+    expect(client.getInstructions()).toContain("Identity is unresolved");
+  });
+
+  it("starts when the conventions path is a directory", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(identity), { status: 200 })));
+    const client = await connect({ ...config, conventionsPath: tmpdir() });
+    expect(client.getInstructions()).toContain("You are Ada");
   });
 });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { connect, callTool, testConfig } from "../support/harness.js";
 import { clearMetadataCache } from "../../src/resolve.js";
-import { toIsoDuration } from "../../src/tools/time.js";
+import { localDate, toIsoDuration } from "../../src/tools/time.js";
 
 function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -77,6 +77,16 @@ describe("log_time", () => {
     await callTool(client, "log_time", { workPackageId: 1234, hours: 1 });
 
     expect(timeEntryBody().spentOn).toBe("2026-07-28");
+    vi.useRealTimers();
+  });
+
+  it("uses the local calendar date, not the UTC one", () => {
+    const zone = process.env.TZ;
+    process.env.TZ = "America/Caracas";
+    vi.setSystemTime(new Date("2026-07-29T01:30:00Z"));
+    expect(localDate()).toBe("2026-07-28");
+    expect(localDate(-1)).toBe("2026-07-27");
+    process.env.TZ = zone;
     vi.useRealTimers();
   });
 

@@ -12,8 +12,11 @@ export function toIsoDuration(hours: number): string {
   return `PT${whole ? `${whole}H` : ""}${rest ? `${rest}M` : ""}`;
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+export function localDate(offsetDays = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 type LogArgs = { workPackageId: number; hours: number; date?: string; comment?: string; activity?: string };
@@ -42,7 +45,7 @@ export function registerTimeTools(server: McpServer, { client }: ToolContext): v
       const entry = await client.request("POST", "/time_entries", {
         body: {
           hours: toIsoDuration(hours),
-          spentOn: date ?? today(),
+          spentOn: date ?? localDate(),
           ...(comment ? { comment: { raw: comment } } : {}),
           _links: links,
         },

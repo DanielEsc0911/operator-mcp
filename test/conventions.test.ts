@@ -28,6 +28,10 @@ beforeEach(() => {
 });
 
 describe("readConventions", () => {
+  it("returns null when the path cannot be read as a file", () => {
+    expect(readConventions(dirname(path))).toBeNull();
+  });
+
   it("returns the file verbatim", () => {
     expect(readConventions(path)).toBe(MANUAL);
   });

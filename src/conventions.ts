@@ -98,7 +98,12 @@ function sizeWarning(text: string): { warning?: string } {
 }
 
 export function readConventions(path: string): string | null {
-  return existsSync(path) ? readFileSync(path, "utf8") : null;
+  try {
+    return existsSync(path) ? readFileSync(path, "utf8") : null;
+  } catch (error) {
+    process.stderr.write(`operator-mcp: cannot read ${path}: ${error instanceof Error ? error.message : String(error)}\n`);
+    return null;
+  }
 }
 
 export function addRule(path: string, rawSection: string, rawRule: string) {

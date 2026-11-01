@@ -2,13 +2,10 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { flattenNotification, flattenWorkPackage, linkTitle, type HalResource } from "../hal.js";
 import { buildSearchFilters, collectionPath } from "./workPackages.js";
+import { localDate } from "./time.js";
 import { handler, type ToolContext } from "./shared.js";
 
 const DEFAULT_WINDOW_DAYS = 7;
-
-function daysAgo(days: number): string {
-  return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
-}
 
 function countByStatus(workPackages: HalResource[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -38,7 +35,7 @@ export function registerBriefingTools(server: McpServer, { client }: ToolContext
     },
     handler(async ({ since }: { since?: string }) => {
       const project = config.defaultProject;
-      const changedSince = since ?? daysAgo(DEFAULT_WINDOW_DAYS);
+      const changedSince = since ?? localDate(-DEFAULT_WINDOW_DAYS);
       const [assigned, unread, changed] = await Promise.all([
         client.collection(collectionPath(project), {
           filters: await buildSearchFilters(client, { assignee: "me", status: "open" }),

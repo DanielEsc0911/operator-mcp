@@ -34,9 +34,23 @@ export function buildInstructions(config: Config, identity: Identity | null, man
   return lines.join("\n");
 }
 
+const IDENTITY_TIMEOUT_MS = 5_000;
+
+async function lookUpIdentity(client: OpenProjectClient): Promise<Identity | null> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(resolve, IDENTITY_TIMEOUT_MS, null);
+  });
+  try {
+    return await Promise.race([client.me().catch(() => null), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function createServer(config: Config): Promise<McpServer> {
   const client = new OpenProjectClient(config);
-  const identity = await client.me().catch(() => null);
+  const identity = await lookUpIdentity(client);
   const manual = readConventions(config.conventionsPath);
 
   const bytes = manual ? Buffer.byteLength(manual) : 0;
