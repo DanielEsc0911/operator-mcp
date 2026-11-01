@@ -112,6 +112,13 @@ attribute:
 import workPackage from "../fixtures/workPackage.json" with { type: "json" };
 ```
 
+## Realistic sizes
+
+`test/support/realistic.ts` is the shared fixture (46 assigned, 39 of them at 100 %,
+~85-char Spanish subjects, 65-char project names, 50 notifications, 25 time entries,
+60 activities). `test/tools/sizes.test.ts` holds one under-8 KB assertion per tool whose
+default response an agent reads in full; add the tool there when you add a list.
+
 ## Live tests
 
 `test-live/` write suites run only via `npm run test:docker` (a disposable instance,
@@ -122,7 +129,8 @@ those env vars.
 ## Commands
 
 ```bash
-npm test                                   # all 16 files, ~2s
+npm test                                   # all 33 files, 504 tests, ~4s
 npx vitest run test/tools/time.test.ts     # one file
-npx tsc --noEmit                           # types only
+npm run typecheck                          # src and tests, silent when clean
+npm run test:docker                        # live suite on a throwaway OpenProject container
 ```

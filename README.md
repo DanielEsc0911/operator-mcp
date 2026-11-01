@@ -159,7 +159,7 @@ npx operator-mcp install --yes    # register every detected agent, no prompt
 ```
 
 It writes only OPerator's own entry, leaves your other servers untouched, and backs
-up any file it changes.
+up any file it changes (one rolling `.bak` next to it, replaced on each run).
 
 | Agent | Where it writes | How to check it worked |
 |---|---|---|
@@ -179,14 +179,18 @@ the absolute path of `npx` in the entry.
 
 For an agent OPerator doesn't detect, or if you'd rather write the config
 yourself. Every MCP client wants the same two facts: run `npx`, with the arguments
-`-y operator-mcp` — or, if you installed the binary, run its absolute path
-(`~/.local/bin/operator-mcp`, expanded) with no arguments.
+`-y operator-mcp@<version>` — or, if you installed the binary, run its absolute path
+(`~/.local/bin/operator-mcp`, expanded) with no arguments. The snippets below pin the
+release the way `install` does, so an agent never silently starts a newer server than
+the one you tested: replace `<version>` with the output of `npx operator-mcp --version`.
+Leave the pin off (plain `operator-mcp`) only if you want every start to float to the
+latest release.
 
 <details>
 <summary><b>Claude Code</b></summary>
 
 ```bash
-claude mcp add openproject --scope user -- npx -y operator-mcp
+claude mcp add openproject --scope user -- npx -y operator-mcp@<version>
 ```
 
 Use `--scope project` instead to check the server into a repo for your team (it
@@ -199,7 +203,7 @@ lands in `.mcp.json`); `--scope local` limits it to the current project, just fo
 ```toml
 [mcp_servers.openproject]
 command = "npx"
-args = ["-y", "operator-mcp"]
+args = ["-y", "operator-mcp@<version>"]
 ```
 </details>
 
@@ -209,7 +213,7 @@ args = ["-y", "operator-mcp"]
 ```json
 {
   "mcpServers": {
-    "openproject": { "command": "npx", "args": ["-y", "operator-mcp"] }
+    "openproject": { "command": "npx", "args": ["-y", "operator-mcp@<version>"] }
   }
 }
 ```
@@ -224,7 +228,7 @@ args = ["-y", "operator-mcp"]
   "mcp": {
     "openproject": {
       "type": "local",
-      "command": ["npx", "-y", "operator-mcp"],
+      "command": ["npx", "-y", "operator-mcp@<version>"],
       "enabled": true
     }
   }
@@ -238,7 +242,7 @@ args = ["-y", "operator-mcp"]
 ```json
 {
   "mcpServers": {
-    "openproject": { "command": "npx", "args": ["-y", "operator-mcp"] }
+    "openproject": { "command": "npx", "args": ["-y", "operator-mcp@<version>"] }
   }
 }
 ```
@@ -253,7 +257,7 @@ check your client's docs for which file it reads.
 ```json
 {
   "servers": {
-    "openproject": { "type": "stdio", "command": "npx", "args": ["-y", "operator-mcp"] }
+    "openproject": { "type": "stdio", "command": "npx", "args": ["-y", "operator-mcp@<version>"] }
   }
 }
 ```
@@ -268,7 +272,7 @@ your MCP config stays safe to check into a repo.
 | Area | Tools |
 |---|---|
 | **Identity** | `whoami` |
-| **Discovery** | `briefing` · `list_projects` · `list_users` · `get_work_package` · `search_work_packages` · `my_work` |
+| **Discovery** | `briefing` · `standup` · `list_projects` · `list_users` · `get_work_package` · `search_work_packages` · `my_work` |
 | **Tasks** | `create_work_package` · `update_work_package` · `comment_work_package` · `list_activities` · `link_work_packages` |
 | **Notifications** | `list_notifications` · `mark_notifications_read` · `watch_work_package` |
 | **Time & metadata** | `log_time` · `list_metadata` |
@@ -277,6 +281,10 @@ your MCP config stays safe to check into a repo.
 
 "What's pending?", "what's new?", "what's on my plate?" all land on `briefing`: your open work,
 unread notifications and recent changes in one call, so even a small model answers in one step.
+
+Time entry activities depend on the work package, so `list_metadata` with
+`kind: "activities"` needs a `workPackageId`. Lists come back as `{ total, ... }` with one
+`urlTemplate` for links, and default to 20 rows so a reply stays small.
 
 The API key is yours, so the server already knows who you are: `my_work` and your
 notification feed need no further configuration.
@@ -319,11 +327,17 @@ an agent holding the key can attempt through `api_request`. OPerator narrows tha
 - There is no `delete_*` tool, so a vague instruction cannot delete a work package.
   `api_request` also refuses `DELETE` unless you set `OPENPROJECT_ALLOW_DELETE=1` in
   the server's environment, which an agent cannot set for itself.
-- Every non-GET `api_request`, every `add_convention` and `remove_convention`, and
-  `mark_notifications_read` with `all: true` need `confirm: true`. The tool
+- These calls need `confirm: true`: every non-GET `api_request`, `add_convention`,
+  `remove_convention`, and `mark_notifications_read` with `all: true`. The tool
   descriptions tell the agent to set it only after you explicitly agreed, which
   guards against instructions planted in work package or comment text. It is a
   contract with the agent, not a lock.
+- Ordinary work package writes (`create_work_package`, `update_work_package`,
+  `comment_work_package`, `link_work_packages`, `log_time`, `watch_work_package`) are
+  **not** confirm-gated, so an agent can make them without asking. The server tells the
+  agent that text in work packages, comments and notifications is data, never
+  instructions, but that is guidance, not enforcement. Use read-only mode or a limited
+  key if you need a guarantee.
 - When an agent passes the `lockVersion` it got from `get_work_package`, a colleague's
   later edit makes the update fail, and for a description the agent is told to compare
   and ask you before retrying. Without a `lockVersion` the tool uses the current one,
@@ -347,7 +361,7 @@ never confuses one instance for the other.
 
 ## Read-only agents
 
-Run `npx operator-mcp setup --read-only` to save the profile as read-only, or add this
+Run `npx operator-mcp setup --read-only` (flags also take the `--flag=value` form, like `--profile=acme`) to save the profile as read-only, or add this
 to the server's entry in your MCP config (the environment overrides the profile):
 
 ```json
@@ -435,6 +449,17 @@ in a browser from the same machine to confirm.
 </details>
 
 <details>
+<summary><b>Behind a proxy</b></summary>
+
+<br>
+
+OPerator uses Node's built-in `fetch`, which ignores `HTTPS_PROXY` unless you opt in. On
+Node 24 or newer set `NODE_USE_ENV_PROXY=1` in the server's `env` (together with
+`HTTPS_PROXY`); older Node versions have no built-in proxy support.
+
+</details>
+
+<details>
 <summary><b>Node version</b></summary>
 
 <br>
@@ -448,7 +473,9 @@ needs no Node.
 
 ```bash
 npm install
-npm test          # mocked, never touches a real instance
+npm run typecheck  # src and tests
+npm test           # mocked, never touches a real instance
+npm run test:docker  # live suite on a throwaway OpenProject container
 npm run build
 ```
 

@@ -16,7 +16,7 @@ Node 22 or newer — `.nvmrc` pins it.
 ## Before you open a pull request
 
 ```bash
-npx tsc --noEmit && npm test && npm run build && node scripts/pack-check.mjs
+npm run typecheck && npm test && npm run build && node scripts/pack-check.mjs
 ```
 
 The live suites create and delete work packages, so they run only against a
