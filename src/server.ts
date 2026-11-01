@@ -15,10 +15,14 @@ import { registerWorkPackageWriteTools } from "./tools/workPackageWrites.js";
 const MANUAL_WARNING_BYTES = 10_000;
 export const version = "1.3.1";
 
+function plain(value: string): string {
+  return value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, " ").trim().slice(0, 80);
+}
+
 export function buildInstructions(config: Config, identity: Identity | null, manual: string | null): string {
   const lines = [
     identity
-      ? `You are ${identity.name} (${identity.email}) on ${config.url}, profile "${config.profile}".`
+      ? `You are ${plain(identity.name)} (${plain(identity.email)}) on ${config.url}, profile "${config.profile}".`
       : `OpenProject server, profile "${config.profile}". Identity is unresolved — call whoami to find out why.`,
   ];
   lines.push("For \"what's pending / new / on my plate\" questions, call `briefing` once and answer from it.");
