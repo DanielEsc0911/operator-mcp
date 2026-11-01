@@ -25,8 +25,8 @@ When two designs both work, ship the one with fewer moving parts.
 functions, one responsibility each, obvious data flow. Comments are rare and earn
 their place: a comment explains something the code *cannot* — an external API's
 counterintuitive contract, a workaround, a constraint from outside the file. Never
-write a comment that restates the line below it. There are exactly twelve comments in
-`src/`; each records an OpenProject, Node or agent-client constraint. Do not add a thirteenth without
+write a comment that restates the line below it. There are exactly thirteen comments in
+`src/`; each records an OpenProject, Node or agent-client constraint. Do not add a fourteenth without
 a reason of the same kind.
 
 ## Navigating this project — use CodeGraph
@@ -99,7 +99,8 @@ disconnects. Diagnostics use `process.stderr.write`. Terminal commands (`cli.ts`
 hands them. `test/importGraph.test.ts` fails if `server.ts` can reach any of them.
 
 **Tests mock `fetch`.** `test/` never reaches the network. Live smoke tests live in
-`test-live/` and run only when `OPENPROJECT_URL` and `OPENPROJECT_API_KEY` are set.
+`test-live/`. The write suites run only through `npm run test:docker`, which sets
+`OPENPROJECT_LIVE_DISPOSABLE=1` on a throwaway instance; they never run against a real one.
 
 ## Framework practice
 

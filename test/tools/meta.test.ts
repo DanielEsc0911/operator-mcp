@@ -32,6 +32,23 @@ describe("list_metadata", () => {
     expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/projects/website/types");
   });
 
+  it("lists activities from the form of the given work package", async () => {
+    const client = await connect();
+    fetchMock.mockResolvedValue(respond({ _embedded: { schema: { activity: { _embedded: { allowedValues: [{ id: 3, name: "Development" }] } } } } }));
+    const result = await callTool(client, "list_metadata", { kind: "activities", workPackage: 12 });
+
+    expect(result.json()).toEqual([{ id: 3, name: "Development" }]);
+    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/time_entries/form");
+  });
+
+  it("asks for a work package when listing activities without one", async () => {
+    const client = await connect();
+    const result = await callTool(client, "list_metadata", { kind: "activities" });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("workPackage");
+  });
+
   it("rejects an unknown kind before making a request", async () => {
     const client = await connect();
     expect((await callTool(client, "list_metadata", { kind: "wombats" })).isError).toBe(true);

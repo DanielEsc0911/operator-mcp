@@ -19,10 +19,15 @@ export function registerMetaTools(server: McpServer, { client }: ToolContext): v
           .string()
           .optional()
           .describe("Restrict types or versions to one project. Ignored for the other kinds."),
+        workPackage: z
+          .number()
+          .int()
+          .optional()
+          .describe("Work package id. Required for `activities`, whose allowed values depend on the work package; ignored for the other kinds."),
       },
     },
-    handler(({ kind, project }: { kind: MetaKind; project?: string }) =>
-      listMetadata(client, kind, project ?? client.config.defaultProject),
+    handler(({ kind, project, workPackage }: { kind: MetaKind; project?: string; workPackage?: number }) =>
+      listMetadata(client, kind, project ?? client.config.defaultProject, { workPackage }),
     ),
   );
 }

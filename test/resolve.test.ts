@@ -9,6 +9,7 @@ const config: Config = {
 };
 
 const TYPES = { total: 2, count: 2, _embedded: { elements: [{ id: 1, name: "Task" }, { id: 7, name: "Bug" }] } };
+const ACTIVITY_FORM = { _embedded: { schema: { activity: { _embedded: { allowedValues: [{ id: 3, name: "Development" }, { id: 4, name: "Testing" }] } } } } };
 const STATUSES = { total: 1, count: 1, _embedded: { elements: [{ id: 7, name: "In progress" }] } };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -35,10 +36,27 @@ describe("listMetadata", () => {
     expect(await listMetadata(client(), "types")).toEqual([{ id: 1, name: "Task" }, { id: 7, name: "Bug" }]);
   });
 
-  it("maps activities to the time entry endpoint", async () => {
-    fetchMock.mockResolvedValue(respond({ total: 0, count: 0, _embedded: { elements: [] } }));
-    await listMetadata(client(), "activities");
-    expect((fetchMock.mock.lastCall![0] as URL).pathname).toBe("/api/v3/time_entries/activities");
+  it("reads activities from the time entry form of a work package", async () => {
+    fetchMock.mockResolvedValue(respond(ACTIVITY_FORM));
+    expect(await listMetadata(client(), "activities", undefined, { workPackage: 12 })).toEqual([
+      { id: 3, name: "Development" },
+      { id: 4, name: "Testing" },
+    ]);
+    const [url, init] = fetchMock.mock.lastCall!;
+    expect((url as URL).pathname).toBe("/api/v3/time_entries/form");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ _links: { workPackage: { href: "/api/v3/work_packages/12" } } });
+  });
+
+  it("asks for a work package when listing activities without one", async () => {
+    await expect(listMetadata(client(), "activities")).rejects.toThrow("work package");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("allows the activities form in read-only mode", async () => {
+    fetchMock.mockResolvedValue(respond(ACTIVITY_FORM));
+    const readOnly = new OpenProjectClient({ ...config, readOnly: true });
+    expect(await listMetadata(readOnly, "activities", undefined, { workPackage: 12 })).toHaveLength(2);
   });
 
   it("scopes types to a project when one is given", async () => {
@@ -69,8 +87,8 @@ describe("resolveHref", () => {
   });
 
   it("uses the time entry path for activities", async () => {
-    fetchMock.mockResolvedValue(respond({ total: 1, count: 1, _embedded: { elements: [{ id: 3, name: "Development" }] } }));
-    expect(await resolveHref(client(), "activities", "Development")).toBe("/api/v3/time_entries/activities/3");
+    fetchMock.mockResolvedValue(respond(ACTIVITY_FORM));
+    expect(await resolveHref(client(), "activities", "Development", undefined, 12)).toBe("/api/v3/time_entries/activities/3");
   });
 
   it("lists the valid options when a name does not match", async () => {

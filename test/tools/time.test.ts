@@ -8,7 +8,7 @@ function respond(body: unknown, status = 200): Response {
 }
 
 const ME = { id: 12, name: "Ada Lovelace", email: "ada@example.com" };
-const ACTIVITIES = { total: 1, count: 1, _embedded: { elements: [{ id: 3, name: "Development" }] } };
+const ACTIVITY_FORM = { _embedded: { schema: { activity: { _embedded: { allowedValues: [{ id: 3, name: "Development" }] } } } } };
 const ENTRY = { id: 501, hours: "PT2H30M", spentOn: "2026-07-28", _links: {} };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -102,7 +102,7 @@ describe("log_time", () => {
   });
 
   it("resolves a named activity", async () => {
-    routes({ "/users/me": ME, "/time_entries": ENTRY, "/time_entries/activities": ACTIVITIES });
+    routes({ "/users/me": ME, "/time_entries": ENTRY, "/time_entries/form": ACTIVITY_FORM });
     const client = await connect();
     await callTool(client, "log_time", { workPackageId: 1234, hours: 1, activity: "Development" });
 

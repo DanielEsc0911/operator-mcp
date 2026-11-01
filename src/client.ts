@@ -38,7 +38,8 @@ export class OpenProjectClient {
     options: { query?: Record<string, string | number | undefined>; body?: unknown } = {},
   ): Promise<any> {
     if (!this.config.url || !this.config.apiKey) throw new ConfigError();
-    if (this.config.readOnly && method !== "GET") throw new ReadOnlyError();
+    // OpenProject validates through POST .../form and writes nothing, so read-only mode lets it pass.
+    if (this.config.readOnly && method !== "GET" && !path.endsWith("/form")) throw new ReadOnlyError();
 
     const root = `${this.config.url}/api/v3`;
     const url = new URL(`${root}${path}`);

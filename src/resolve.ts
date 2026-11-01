@@ -32,19 +32,29 @@ function pathFor(kind: MetaKind, project?: string): string {
   return (kind === "types" || kind === "versions") && project ? `/projects/${segment(project)}${PATHS[kind]}` : PATHS[kind];
 }
 
+async function activitiesOf(client: OpenProjectClient, workPackage?: number): Promise<Named[]> {
+  if (!workPackage) {
+    throw new Error("Time entry activities depend on the work package. Pass its id as `workPackage`.");
+  }
+  const form = await client.request("POST", "/time_entries/form", {
+    body: { _links: { workPackage: { href: `/api/v3/work_packages/${workPackage}` } } },
+  });
+  return form._embedded.schema.activity._embedded.allowedValues.map(flattenNamed);
+}
+
 export async function listMetadata(
   client: OpenProjectClient,
   kind: MetaKind,
   project?: string,
-  options: { fresh?: boolean } = {},
+  options: { fresh?: boolean; workPackage?: number } = {},
 ): Promise<Named[]> {
-  const path = pathFor(kind, project);
+  const path = kind === "activities" ? `/time_entries/form#${options.workPackage}` : pathFor(kind, project);
   const key = `${client.config.profile}:${client.config.url}${path}`;
   const cached = options.fresh ? undefined : cache.get(key);
   if (cached) return cached;
 
-  const { elements } = await client.collectAll(path);
-  const named = elements.map(flattenNamed);
+  const named =
+    kind === "activities" ? await activitiesOf(client, options.workPackage) : (await client.collectAll(path)).elements.map(flattenNamed);
   cache.set(key, named);
   return named;
 }
@@ -62,16 +72,17 @@ export async function resolveHref(
   kind: MetaKind,
   value: string | number,
   project?: string,
+  workPackage?: number,
 ): Promise<string> {
   const base = `/api/v3${PATHS[kind]}`;
   if (isNumeric(value)) return `${base}/${value}`;
 
   const needle = String(value).trim().toLowerCase();
   const find = (list: Named[]) => list.find((entry) => entry.name.toLowerCase() === needle);
-  let entries = await listMetadata(client, kind, project);
+  let entries = await listMetadata(client, kind, project, { workPackage });
   let match = find(entries);
   if (!match) {
-    entries = await listMetadata(client, kind, project, { fresh: true });
+    entries = await listMetadata(client, kind, project, { fresh: true, workPackage });
     match = find(entries);
   }
   if (!match) {

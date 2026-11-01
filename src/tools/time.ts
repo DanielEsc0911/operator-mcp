@@ -40,7 +40,7 @@ export function registerTimeTools(server: McpServer, { client }: ToolContext): v
       const links: Record<string, { href: string }> = {
         workPackage: { href: `/api/v3/work_packages/${workPackageId}` },
       };
-      if (activity) links.activity = { href: await resolveHref(client, "activities", activity) };
+      if (activity) links.activity = { href: await resolveHref(client, "activities", activity, undefined, workPackageId) };
 
       const entry = await client.request("POST", "/time_entries", {
         body: {
