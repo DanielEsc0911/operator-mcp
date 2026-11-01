@@ -13,11 +13,14 @@ import { pad, step, style, tilde, type Output, type Style } from "./ui.js";
 
 export type Outcome = { client: Client; updated: boolean; error?: string };
 
-const spawnRunner: Runner = (command, args) => {
-  const result = spawnSync(command, args, { stdio: ["ignore", "ignore", "pipe"], encoding: "utf8" });
-  if (result.error) throw new Error(`\`${command}\` is not on your PATH`);
-  if (result.status !== 0) throw new Error(result.stderr?.trim() || `\`${command}\` exited with ${result.status}`);
-};
+export function spawnRunner(platform: NodeJS.Platform = process.platform, spawn: typeof spawnSync = spawnSync): Runner {
+  return (command, args) => {
+    const result = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", shell: platform === "win32" });
+    if (result.error) throw new Error(`\`${command}\` is not on your PATH`);
+    if (result.status !== 0) throw new Error(result.stderr?.trim() || `\`${command}\` exited with ${result.status}`);
+    return result.stdout ?? "";
+  };
+}
 
 export function registerAll(clients: Client[], target: Target): Outcome[] {
   return clients.map((client) => {
@@ -61,7 +64,7 @@ export async function patchAgents(argv: string[], streams: Streams, rl: Interfac
   const s = style(out);
   const text = t();
   const profile = resolveProfile(argv, process.env);
-  const target: Target = { home, name: serverName(profile), ...serverCommand(profile), run: spawnRunner };
+  const target: Target = { home, name: serverName(profile), ...serverCommand(profile), run: spawnRunner() };
 
   const detected = detectClients(home);
   if (detected.length === 0) {

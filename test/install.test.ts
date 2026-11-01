@@ -3,6 +3,9 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findClient, offeredClients } from "../src/clients.js";
+import { version } from "../src/server.js";
+
+const PINNED = `operator-mcp@${version}`;
 import { registerAll } from "../src/install.js";
 
 const claude = findClient("claude-code")!;
@@ -13,7 +16,7 @@ function target() {
     home: mkdtempSync(join(tmpdir(), "operator-install-")),
     name: "openproject",
     command: "npx",
-    args: ["-y", "operator-mcp"],
+    args: ["-y", PINNED],
     run: vi.fn(),
   };
 }
@@ -72,7 +75,7 @@ describe("patchAgents", () => {
 });
 
 describe("upgrading from 1.2.0", () => {
-  const npxEntry = { command: "npx", args: ["-y", "operator-mcp"] };
+  const npxEntry = { command: "npx", args: ["-y", PINNED] };
   const binary = { command: "/home/ada/.local/bin/operator-mcp", args: [] as string[] };
 
   it("replaces an npx entry with the binary and reports it as updated", async () => {
