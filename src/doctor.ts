@@ -39,8 +39,7 @@ async function reachableCheck(url: string): Promise<Check> {
   try {
     // The doctor pings the operator-configured OpenProject URL, so the request destination is
     // the operator's own server rather than an authenticated or attacker-controlled sink.
-    // codeql[js/request-forgery]
-    const response = await fetch(new URL(`${url}/api/v3`), { signal: AbortSignal.timeout(10_000) });
+    const response = await fetch(new URL(`${url}/api/v3`), { signal: AbortSignal.timeout(10_000) }); // lgtm[js/request-forgery]
     const root = await response.json().catch(() => null);
     if (root?._type !== "Root" && root?._type !== "Error") return fail(t().unreachable(url, t().notOpenProject(response.status)), t().checkNetwork);
     return pass(t().reachable(url));
