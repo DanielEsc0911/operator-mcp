@@ -70,6 +70,9 @@ export const en = {
   typedHint: "Enter accepts · type numbers to switch one off or on · all · none",
   typedAll: /^(all|todos)$/,
   typedNone: /^(none|ninguno)$/,
+  outOfRange: (max: number) => `Pick a number from 1 to ${max}.`,
+  keepProject: (project: string) => `Keep your default project ${project}? [Y/n] `,
+  projectRemoved: (project: string) => `Default project ${project} removed.`,
   noneOption: "none",
 
   agentsQuestion: "Which agents should OPerator patch into?",

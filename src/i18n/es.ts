@@ -74,6 +74,9 @@ export const es: Catalog = {
   typedHint: "Enter acepta · escribe números para marcar o desmarcar · todos · ninguno",
   typedAll: /^(all|todos)$/,
   typedNone: /^(none|ninguno)$/,
+  outOfRange: (max: number) => `Elige un número del 1 al ${max}.`,
+  keepProject: (project: string) => `¿Mantienes tu proyecto por defecto ${project}? [S/n] `,
+  projectRemoved: (project: string) => `Proyecto por defecto ${project} eliminado.`,
   noneOption: "ninguno",
 
   agentsQuestion: "¿En qué agentes conecto OPerator?",

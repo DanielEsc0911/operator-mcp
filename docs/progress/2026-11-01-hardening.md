@@ -16,7 +16,7 @@ open, with the commit range.
 | Chunk 1 — Safety and the manual (1a–1g) | done | `ca9a34e`..`dbecbbe` |
 | Chunk 1 — review fixes (F1–F16) | done | `e788bcb`..`718e3f7` |
 | Chunk 2 — Agent tools (2a–2i) | done | `b636897`..`26d77aa` (2i skipped) |
-| Chunk 3 — Install, setup, CLI, doctor (3a–3f) | todo | |
+| Chunk 3 — Install, setup, CLI, doctor (3a–3f) | done | `a6b40bf`..HEAD |
 | Chunk 4 — Release, testing infra, final gate (4a–4f) | todo | |
 
 ## Hand-off notes
@@ -107,3 +107,28 @@ All of F1–F16 done, 397 tests green, no new code comments.
 - F15: interactive `setup --read-only`, `~~~` and nested-backtick fences, read-only before confirm on `api_request` and `mark_notifications_read`. The read-only-precedence tests passed already (regression guards).
 
 Deviation: `removeRule` also lists only top-level bullets now (consistent with F8).
+
+### Chunk 3 (2026-11-01, `a6b40bf`..HEAD)
+
+Done: 3a/3b/3f client side in one commit (`a6b40bf`; the three rewrote the same two files), 3c flags (`bcd8c0b`),
+3d doctor and network causes (`efdfa6f`), 3e prompts and setup. 436 tests green, comment count still ten.
+
+Deviations:
+- Claude Code re-install reads the old env from `~/.claude.json` (the user-scope entry it is about to replace)
+  rather than `claude mcp get`; `claude mcp get` is used by `doctor` only (any scope). `Runner` now returns stdout.
+- Windows `cmd /c npx` wrapping applies to every client (Codex and Claude Code too), not only JSON ones; simpler
+  and equally correct. `spawnRunner(platform, spawn)` is a factory so tests inject the platform.
+- bunx is detected by `basename(execPath)` being `bun`/`bunx`; the compiled binary is any other Bun runtime.
+  Chunk 4 binary smoke should confirm the compiled binary's `execPath` is its own path.
+- Codex merge rewrites only `command`/`args` in the table (multi-line `args` handled); other keys, inline `env`
+  and sub-tables stay. JSONC: comments stripped for reads; a file with comments is refused for writes (trailing
+  commas are not tolerated). New modules `serverCommand.ts` and `flags.ts` (listed in CLAUDE.md).
+- `--help` on any subcommand prints the full usage. Unknown flags exit 2 for the server command too.
+- R38 SIGINT: not a signal handler. `interruptible(rl, work)` turns readline's SIGINT during the verify and doctor
+  steps into `SetupAborted` (readline owns raw mode; `runSetup` closes it and returns 130).
+- R39: keep-current prompt is asked only when projects exist; when none are writable the stale default is dropped
+  with a "removed" line. `setup --non-interactive` now keeps the stored default project when none is given.
+- doctor catches any `loadConfig` error (including the http:// refusal), not only `ConfigError`.
+
+Open for Chunk 4: README mentions of backups (`.bak` is now one rolling file), `--flag=value`, and the pinned
+`npx operator-mcp@<version>` entry; CHANGELOG entries for R4/R6/R13/R14/R15/R30/R32-R39.

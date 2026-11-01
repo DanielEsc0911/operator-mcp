@@ -10,7 +10,7 @@ export class SetupAborted extends Error {
 
 const ETX = 3;
 const CTRL_U = 21;
-const ESC = 27;
+const ESCAPE_SEQUENCE = /\x1b\[(?:20[01]~|[0-9;]*[A-Za-z~])/g;
 const BACKSPACE = [8, 127];
 
 type RawInput = NodeJS.ReadStream & { isRaw?: boolean };
@@ -45,15 +45,15 @@ export function readHidden(question: string, stdin: RawInput, stdout: NodeJS.Wri
       stdin.off("data", onData);
       stdin.setRawMode(wasRaw);
       for (const listener of borrowed) stdin.on("data", listener);
+      stdin.pause();
       stdout.write("\n");
     };
 
     const onData = (chunk: Buffer) => {
-      for (const char of chunk.toString("utf8")) {
+      for (const char of chunk.toString("utf8").replace(ESCAPE_SEQUENCE, "")) {
         const code = char.codePointAt(0) ?? 0;
         if (code === ETX) return (restore(), reject(new SetupAborted()));
         if (char === "\n" || char === "\r") return (restore(), resolve(value));
-        if (code === ESC) return;
         if (BACKSPACE.includes(code)) {
           if (value) stdout.write("\b \b");
           value = [...value].slice(0, -1).join("");
@@ -94,9 +94,23 @@ export async function choose(
   const width = Math.max(...options.map(([label]) => [...label].length));
   options.forEach(([label, value], index) => out.write(`    ${s.accent(String(index + 1))}  ${pad(label, width)}  ${s.muted(value)}\n`));
   out.write(`    ${s.accent("0")}  ${s.muted(t().noneOption)}\n`);
-  const answer = await ask(rl, PROMPT);
-  if (answer === "" || answer === "0") return "";
-  return options[Number(answer) - 1]?.[1] ?? answer;
+  for (;;) {
+    const answer = await ask(rl, PROMPT);
+    if (answer === "" || answer === "0") return "";
+    if (!/^\d+$/.test(answer)) return answer;
+    const picked = options[Number(answer) - 1];
+    if (picked) return picked[1];
+    out.write(`  ${s.muted(t().outOfRange(options.length))}\n`);
+  }
+}
+
+export function interruptible<T>(rl: Interface, work: Promise<T>): Promise<T> {
+  let interrupt: () => void;
+  const interrupted = new Promise<never>((_, reject) => {
+    interrupt = () => reject(new SetupAborted());
+    rl.once("SIGINT", interrupt);
+  });
+  return Promise.race([work, interrupted]).finally(() => rl.off("SIGINT", interrupt));
 }
 
 export async function confirmList(rl: Interface, out: Output, s: Style, question: string, items: string[]): Promise<number[]> {
@@ -107,7 +121,7 @@ export async function confirmList(rl: Interface, out: Output, s: Style, question
       out.write(`    ${chosen.has(index) ? s.patch("[x]") : s.muted("[ ]")} ${index + 1}  ${item}\n`),
     );
     const answer = (await ask(rl, PROMPT)).toLowerCase();
-    if (answer === "") return [...chosen].sort();
+    if (answer === "") return [...chosen].sort((a, b) => a - b);
     if (t().typedNone.test(answer)) chosen.clear();
     if (t().typedAll.test(answer)) items.forEach((_, index) => chosen.add(index));
     for (const token of answer.split(/[\s,]+/)) {

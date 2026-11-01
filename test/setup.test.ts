@@ -288,7 +288,7 @@ describe("runSetup over a profile 1.2.0 left behind", () => {
 
     expect(await runSetup(["setup"], streams as any)).toBe(0);
     expect(text()).toContain("No projects where you can add work packages");
-    expect(text()).not.toContain("Default project");
+    expect(text()).toContain("Default project old removed");
     expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject).toBeUndefined();
   });
 
@@ -306,5 +306,40 @@ describe("runSetup over a profile 1.2.0 left behind", () => {
     expect(await runSetup(["setup"], streams as any)).toBe(0);
     expect(text()).toContain("Default project, for when you don't name one (Project identifier)");
     expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject).toBe("billing");
+  });
+
+  describe("a stored default project", () => {
+    const stored = () => JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "default", "config.json"), "utf8")).defaultProject;
+
+    function rerun(...answers: string[]) {
+      const home = mkdtempSync(join(tmpdir(), "operator-upgrade-"));
+      vi.stubEnv("HOME", home);
+      vi.stubEnv("USERPROFILE", home);
+      saveConfig("default", { url: "https://op.example.com", apiKey: "supersecretkey", defaultProject: "old" });
+      fetchMock.mockImplementation(async (url: URL) => {
+        if (url.pathname === "/api/v3/users/me") return respond(ME);
+        return url.searchParams.has("filters") ? respond({ message: "unknown filter" }, 400) : respond({ total: 3, count: 0, _embedded: { elements: [] } });
+      });
+      const run = typed(...answers);
+      return runSetup(["setup"], run.streams as any).then(() => run.text());
+    }
+
+    it("is kept by default", async () => {
+      await rerun("", "");
+      expect(stored()).toBe("old");
+    });
+
+    it("is erased only when declined, and the removal names it", async () => {
+      expect(await rerun("", "n", "")).toContain("Default project old removed");
+      expect(stored()).toBeUndefined();
+    });
+
+    it("survives a non-interactive re-run", async () => {
+      saveConfig("ci", { url: "https://op.example.com", apiKey: "k", defaultProject: "keep" });
+      fetchMock.mockImplementation(async () => respond(ME));
+      vi.stubEnv("OPENPROJECT_API_KEY", "k");
+      await runSetup(["setup", "--profile", "ci", "--non-interactive", "--url", "https://op.example.com"], capture().streams);
+      expect(JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, "operator-mcp", "ci", "config.json"), "utf8")).defaultProject).toBe("keep");
+    });
   });
 });

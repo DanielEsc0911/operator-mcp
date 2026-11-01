@@ -11,7 +11,7 @@ import { humanMessage } from "./errors.js";
 import { t } from "./i18n/index.js";
 import { patchAgents } from "./install.js";
 import { outro } from "./outro.js";
-import { SetupAborted, ask, askHidden, choose } from "./prompts.js";
+import { SetupAborted, ask, askHidden, choose, interruptible } from "./prompts.js";
 import { searchSelect } from "./searchSelect.js";
 import { canSelect } from "./select.js";
 import { version } from "./server.js";
@@ -20,9 +20,10 @@ import { greet, lamp, step, style, tilde, type Output, type Style } from "./ui.j
 type Line = { out: Output; s: Style };
 type Connection = Credentials & Verified;
 
-async function verified({ url, apiKey }: Credentials, { out, s }: Line): Promise<Connection> {
+async function verified({ url, apiKey }: Credentials, { out, s }: Line, rl?: Interface): Promise<Connection> {
   assertSecureUrl(url, process.env);
-  const result = await lamp(out, s, t().lineCheck, new URL(url).host, verifyCredentials(url, apiKey));
+  const check = verifyCredentials(url, apiKey);
+  const result = await lamp(out, s, t().lineCheck, new URL(url).host, rl ? interruptible(rl, check) : check);
   const { identity, projectCount } = result;
   step(out, s, t().lineOpen, t().done, t().lineOpenDetail(`${identity.name} (${identity.email})`, projectCount));
   return { url, apiKey, ...result };
@@ -38,7 +39,7 @@ async function promptCredentials(rl: Interface, streams: Streams, line: Line): P
       out.write(`\n  ${s.bold(t().keyQuestion)} ${keyHint(url)}\n`);
       const apiKey = await askHidden(rl, "  › ", streams.stdin, out);
       out.write("\n");
-      return await verified({ url, apiKey }, line);
+      return await verified({ url, apiKey }, line, rl);
     } catch (error) {
       if (error instanceof SetupAborted) throw error;
       step(out, s, t().lineCheck, t().fail, humanMessage(error));
@@ -55,7 +56,7 @@ async function keptConnection(profile: string, rl: Interface, line: Line): Promi
   if (/^n/i.test(await ask(rl, `  ${t().keepIt}`))) return (line.out.write("\n"), null);
   line.out.write("\n");
   try {
-    return await verified({ url: normalizeUrl(stored.url ?? ""), apiKey: stored.apiKey ?? "" }, line);
+    return await verified({ url: normalizeUrl(stored.url ?? ""), apiKey: stored.apiKey ?? "" }, line, rl);
   } catch (error) {
     step(line.out, line.s, t().lineCheck, t().fail, humanMessage(error));
     line.out.write("\n");
@@ -72,12 +73,17 @@ function save(profile: string, argv: string[], credentials: Credentials, default
   step(out, s, t().manual, t().done, manual ? `${tilde(manual, home)} ${s.muted(`· ${t().manualNew}`)}` : t().manualKept);
 }
 
-async function pickProject(credentials: Credentials, rl: Interface, streams: Streams, { out, s }: Line): Promise<string | undefined> {
+async function pickProject(credentials: Credentials, current: string | undefined, rl: Interface, streams: Streams, { out, s }: Line): Promise<string | undefined> {
   const text = t();
   const search = writableProjects(credentials);
   const first = await search("").catch(() => null);
   out.write("\n");
-  if (first?.total === 0) return void out.write(`  ${s.muted(text.noWritableProjects)}\n\n`);
+  if (first?.total === 0) {
+    out.write(`  ${s.muted(text.noWritableProjects)}\n`);
+    if (current) out.write(`  ${s.muted(text.projectRemoved(current))}\n`);
+    return void out.write("\n");
+  }
+  if (current && !/^n/i.test(await ask(rl, `  ${text.keepProject(current)}`))) return (out.write("\n"), current);
   let picked: string;
   if (!first) {
     picked = await ask(rl, `  ${text.projectQuestion} ${s.muted(`(${text.projectIdentifier})`)} › `);
@@ -89,6 +95,7 @@ async function pickProject(credentials: Credentials, rl: Interface, streams: Str
     picked = await choose(rl, out, s, text.projectQuestion, first.projects.map(({ name, identifier }) => [name, identifier]));
   }
   out.write("\n");
+  if (!picked && current) out.write(`  ${s.muted(text.projectRemoved(current))}\n\n`);
   return picked || undefined;
 }
 
@@ -102,12 +109,12 @@ async function interactive(argv: string[], streams: Streams, rl: Interface, prof
     [facts.version, version],
   ]);
   const { url, apiKey } = (await keptConnection(profile, rl, line)) ?? (await promptCredentials(rl, streams, line));
-  const defaultProject = await pickProject({ url, apiKey }, rl, streams, line);
+  const defaultProject = await pickProject({ url, apiKey }, storedCredentials(profile)?.defaultProject, rl, streams, line);
   save(profile, argv, { url, apiKey }, defaultProject, line);
   line.out.write("\n");
   const agents: Client[] = await patchAgents(argv, streams, rl, home);
   line.out.write("\n");
-  const healthy = await printChecks(line.out, doctorChecks(argv, process.env, home));
+  const healthy = await printChecks(line.out, interruptible(rl, doctorChecks(argv, process.env, home)));
   outro(line.out, line.s, agents, healthy);
   return 0;
 }
@@ -119,7 +126,7 @@ export async function runSetup(argv: string[], streams: Streams): Promise<number
   if (argv.includes("--non-interactive")) {
     const credentials = nonInteractiveInput(argv, process.env);
     await verified(credentials, line);
-    save(profile, argv, credentials, process.env.OPENPROJECT_DEFAULT_PROJECT?.trim() || undefined, line);
+    save(profile, argv, credentials, process.env.OPENPROJECT_DEFAULT_PROJECT?.trim() || storedCredentials(profile)?.defaultProject, line);
     line.out.write(`  ${t().nextNonInteractive}\n`);
     return 0;
   }

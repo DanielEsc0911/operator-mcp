@@ -9,8 +9,6 @@ export function serverName(profile: string): string {
   return profile === "default" ? "openproject" : `openproject-${profile}`;
 }
 
-// Under `bunx` execPath is bun itself, which would be registered with no script.
-// Only the compiled binary is its own server.
 function isCompiledBinary({ versions, execPath }: Runtime): boolean {
   return Boolean(versions.bun) && !/^bunx?(\.exe)?$/i.test(basename(execPath));
 }
