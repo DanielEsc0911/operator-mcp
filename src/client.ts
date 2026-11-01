@@ -3,7 +3,12 @@ import { ConfigError, OpenProjectError, ReadOnlyError, UnexpectedResponseError, 
 import type { HalResource } from "./hal.js";
 
 export type Filter = Record<string, { operator: string; values: string[] }>;
-export type Collection = { total: number; count: number; elements: HalResource[] };
+export type Collection = {
+  total: number;
+  count: number;
+  elements: HalResource[];
+  groups?: { value: string; count: number }[];
+};
 export type Identity = { id: number; name: string; email: string };
 
 const TIMEOUT_MS = 30_000;
@@ -78,18 +83,19 @@ export class OpenProjectClient {
 
   async collection(
     path: string,
-    params: { filters?: Filter[]; pageSize?: number; offset?: number; sortBy?: [string, string][] } = {},
+    params: { filters?: Filter[]; pageSize?: number; offset?: number; sortBy?: [string, string][]; groupBy?: string } = {},
   ): Promise<Collection> {
     const body = await this.request("GET", path, {
       query: {
         filters: params.filters?.length ? JSON.stringify(params.filters) : undefined,
         sortBy: params.sortBy?.length ? JSON.stringify(params.sortBy) : undefined,
+        groupBy: params.groupBy,
         pageSize: params.pageSize,
         // OpenProject's `offset` is a 1-based page number, not a record offset.
         offset: params.offset,
       },
     });
-    return { total: body?.total ?? 0, count: body?.count ?? 0, elements: body?._embedded?.elements ?? [] };
+    return { total: body?.total ?? 0, count: body?.count ?? 0, elements: body?._embedded?.elements ?? [], groups: body?.groups };
   }
 
   async collectAll(
