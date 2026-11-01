@@ -67,7 +67,7 @@ describe("flattenWorkPackage", () => {
 });
 
 describe("flattenNotification", () => {
-  const flat = flattenNotification(notification, BASE);
+  const flat = flattenNotification(notification);
 
   it("flattens to the fields an agent triages on", () => {
     expect(flat).toMatchObject({
@@ -78,15 +78,15 @@ describe("flattenNotification", () => {
       actor: "Ana Ruiz",
       workPackageId: 1234,
       workPackageSubject: "Fix login redirect",
-      url: "https://op.acme.com/work_packages/1234",
     });
+    expect(flat.url).toBeUndefined();
   });
 
-  it("falls back to the notification centre when the resource is not a work package", () => {
+  it("names a resource that is not a work package", () => {
     const wiki = { ...notification, _links: { ...notification._links, resource: { href: "/api/v3/wiki_pages/4", title: "Onboarding" } } };
-    const flatWiki = flattenNotification(wiki, BASE);
+    const flatWiki = flattenNotification(wiki);
     expect(flatWiki.workPackageId).toBeUndefined();
-    expect(flatWiki.url).toBe("https://op.acme.com/notifications");
+    expect(flatWiki.resource).toBe("Onboarding");
   });
 });
 

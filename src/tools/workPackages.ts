@@ -6,7 +6,7 @@ import { isMe, resolveId, resolveUserHref } from "../resolve.js";
 import { latestComments } from "./activities.js";
 import { handler, projectOrDefault, type ToolContext } from "./shared.js";
 
-const MAX_PAGE_SIZE = 100;
+export const MAX_PAGE_SIZE = 100;
 
 export type SearchArgs = {
   project?: string;
@@ -79,7 +79,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
       title: "Search work packages",
       annotations: { readOnlyHint: true },
       description:
-        "Find work packages by project, assignee, status, type, priority, text, or recency. Descriptions are omitted; use get_work_package for one item's full detail.",
+        "Find work packages by project, assignee, status, type, priority, text, or recency. Rows leave out what the query already states (the assignee you filtered on, the project in scope), and descriptions; build a link from `urlTemplate`, and use get_work_package for one item's full detail.",
       inputSchema: {
         project: z.string().optional().describe("Project identifier, name or id. Defaults to the configured default project."),
         assignee: z.string().optional().describe('Assignee. Use "me" for yourself, otherwise a user name, email or numeric id.'),
@@ -93,7 +93,7 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
         updatedSince: z.string().optional().describe("ISO date. Returns work packages changed on or after it."),
         sortBy: z.string().optional().describe('Field to sort on, for example "dueDate" or "updatedAt".'),
         sortDirection: z.enum(["asc", "desc"]).optional().describe("Sort direction. Defaults to asc."),
-        limit: z.number().int().positive().optional().describe("Maximum results, capped at 100. Defaults to 25."),
+        limit: z.number().int().positive().optional().describe("Maximum results, capped at 100. Defaults to 20."),
         page: z.number().int().positive().optional().describe("1-based page of `limit` results. Defaults to 1."),
       },
     },
@@ -101,40 +101,16 @@ export function registerWorkPackageTools(server: McpServer, { client }: ToolCont
       const project = await projectOrDefault(client, args.project);
       const { total, elements } = await client.collection(collectionPath(project), {
         filters: await buildSearchFilters(client, { ...args, project }),
-        pageSize: Math.min(args.limit ?? 25, MAX_PAGE_SIZE),
+        pageSize: Math.min(args.limit ?? 20, MAX_PAGE_SIZE),
         offset: args.page,
         sortBy: args.sortBy ? [[args.sortBy, args.sortDirection ?? "asc"]] : undefined,
       });
-      return { total, results: elements.map((wp) => flattenWorkPackage(wp, config.url)) };
-    }),
-  );
-
-  server.registerTool(
-    "my_work",
-    {
-      title: "My work",
-      annotations: { readOnlyHint: true },
-      description:
-        "Work packages assigned to you, soonest due first, as { total, urlTemplate, results }. Use `page` to read past the first `limit`. Includes items at 100% that your instance still counts as open; for 'what's pending' call briefing.",
-      inputSchema: {
-        status: z.enum(["open", "closed"]).optional().describe("Defaults to open."),
-        limit: z.number().int().positive().optional().describe("Maximum results, capped at 100. Defaults to 20."),
-        page: z.number().int().positive().optional().describe("1-based page of `limit` results. Defaults to 1."),
-      },
-    },
-    handler(async ({ status, limit, page }: { status?: "open" | "closed"; limit?: number; page?: number }) => {
-      const project = config.defaultProject;
-      const { total, elements } = await client.collection(collectionPath(project), {
-        filters: await buildSearchFilters(client, { assignee: "me", status: status ?? "open", project }),
-        pageSize: Math.min(limit ?? 20, MAX_PAGE_SIZE),
-        offset: page,
-        sortBy: [["dueDate", "asc"]],
-      });
-      const results = elements.map((wp) => {
-        const { assignee, url, ...row } = flattenWorkPackage(wp, config.url);
-        return row;
-      });
-      return { total, urlTemplate: `${config.url}/work_packages/{id}`, results };
+      const omit = ["url", ...(args.assignee ? ["assignee"] : []), ...(project ? ["project"] : [])];
+      return {
+        total,
+        urlTemplate: `${config.url}/work_packages/{id}`,
+        results: elements.map((wp) => flattenWorkPackage(wp, config.url, { omit })),
+      };
     }),
   );
 }

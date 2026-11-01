@@ -33,9 +33,9 @@ const DESCRIPTION_CHARS = 20_000;
 export function flattenWorkPackage(
   wp: HalResource,
   baseUrl: string,
-  options: { detail?: boolean } = {},
+  options: { detail?: boolean; omit?: string[] } = {},
 ): Record<string, unknown> {
-  const row = {
+  const row: Record<string, unknown> = {
     id: wp.id,
     subject: wp.subject,
     type: linkTitle(wp, "type"),
@@ -50,6 +50,7 @@ export function flattenWorkPackage(
     updatedAt: wp.updatedAt,
     url: `${baseUrl}/work_packages/${wp.id}`,
   };
+  for (const key of options.omit ?? []) delete row[key];
   if (!options.detail) return row;
   const description = raw(wp.description) ?? "";
   const parentId = linkId(wp, "parent");
@@ -74,7 +75,7 @@ export function flattenProject(project: HalResource, baseUrl: string): Record<st
   };
 }
 
-export function flattenNotification(notification: HalResource, baseUrl: string): Record<string, unknown> {
+export function flattenNotification(notification: HalResource): Record<string, unknown> {
   const href = link(notification, "resource")?.href ?? "";
   const isWorkPackage = href.includes("/work_packages/");
   return {
@@ -87,9 +88,6 @@ export function flattenNotification(notification: HalResource, baseUrl: string):
     workPackageSubject: isWorkPackage ? linkTitle(notification, "resource") : undefined,
     resource: isWorkPackage ? undefined : linkTitle(notification, "resource"),
     createdAt: notification.createdAt,
-    url: isWorkPackage
-      ? `${baseUrl}/work_packages/${linkId(notification, "resource")}`
-      : `${baseUrl}/notifications`,
   };
 }
 

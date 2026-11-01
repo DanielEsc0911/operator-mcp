@@ -46,8 +46,15 @@ describe("list_notifications", () => {
     expect(result.notifications[0]).toMatchObject({
       id: 88, reason: "mentioned", read: false, project: "Website", actor: "Ana Ruiz",
       workPackageId: 1234, workPackageSubject: "Fix login redirect",
-      url: "https://op.acme.com/work_packages/1234",
     });
+    expect(result.notifications[0].url).toBeUndefined();
+    expect(result.urlTemplate).toBe("https://op.acme.com/work_packages/{id}");
+  });
+
+  it("asks for 20 rows by default", async () => {
+    routes({ "/users/me": ME, "/notifications": FEED });
+    await callTool(await connect(), "list_notifications");
+    expect((fetchMock.mock.lastCall![0] as URL).searchParams.get("pageSize")).toBe("20");
   });
 
   it("asks for newest first explicitly", async () => {

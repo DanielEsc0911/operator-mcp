@@ -255,9 +255,9 @@ describe("list_activities", () => {
     const client = await connect();
     const result = (await callTool(client, "list_activities", { id: 1234 })).json();
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
-    expect(result[1]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
+    expect(result.total).toBe(2);
+    expect(result.activities[0]).toMatchObject({ id: 2, user: "Ada Lovelace", comment: "Pushed the fix." });
+    expect(result.activities[1]).toMatchObject({ id: 1, user: "Ana Ruiz", details: ["Status set to New"] });
   });
 
   it("honours limit locally, since the endpoint ignores pageSize", async () => {
@@ -266,7 +266,17 @@ describe("list_activities", () => {
     const client = await connect();
     const result = (await callTool(client, "list_activities", { id: 1234, limit: 2 })).json();
 
-    expect(result.map((entry: any) => entry.id)).toEqual([3, 2]);
+    expect(result.total).toBe(3);
+    expect(result.activities.map((entry: any) => entry.id)).toEqual([3, 2]);
+  });
+});
+
+describe("list_activities caps", () => {
+  it("cuts long comments at the same length get_work_package uses", async () => {
+    const elements = [{ id: 1, comment: { raw: "x".repeat(900) }, _links: {} }];
+    routes({ "/users/me": ME, "/work_packages/1234/activities": { total: 1, count: 1, _embedded: { elements } } });
+    const result = (await callTool(await connect(), "list_activities", { id: 1234 })).json();
+    expect(result.activities[0].comment).toHaveLength(500);
   });
 });
 

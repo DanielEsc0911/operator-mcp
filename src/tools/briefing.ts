@@ -1,11 +1,10 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Filter } from "../client.js";
 import { humanMessage } from "../errors.js";
 import { flattenNotification, linkTitle, type HalResource } from "../hal.js";
-import { resolveProjectId } from "../resolve.js";
 import { localDate } from "./time.js";
 import { buildSearchFilters, collectionPath } from "./workPackages.js";
+import { feedFilters } from "./notifications.js";
 import { handler, type ToolContext } from "./shared.js";
 
 const DEFAULT_WINDOW_DAYS = 7;
@@ -89,17 +88,16 @@ export function registerBriefingTools(server: McpServer, { client }: ToolContext
     return {
       total: list.total,
       ...counted,
-      ...(list.total > list.elements.length ? { pendingTruncated: true } : {}),
+      ...(list.total > list.elements.length ? { truncated: true } : {}),
       pendingCount: notDone.length,
       pending: groupByProject(notDone.slice(0, PENDING_ROWS)),
     };
   }
 
   async function unread() {
-    const filters: Filter[] = [{ readIAN: { operator: "=", values: ["f"] } }];
-    if (project) filters.push({ project: { operator: "=", values: [await resolveProjectId(client, project)] } });
+    const filters = await feedFilters(client, { unreadOnly: true, project });
     const { total, elements } = await client.collection("/notifications", { filters, pageSize: NOTIFICATION_SAMPLE, sortBy: [["id", "desc"]] });
-    return { total, latest: collapseNotifications(elements.map((item) => flattenNotification(item, config.url))) };
+    return { total, latest: collapseNotifications(elements.map(flattenNotification)) };
   }
 
   async function teamActivity(since: string) {

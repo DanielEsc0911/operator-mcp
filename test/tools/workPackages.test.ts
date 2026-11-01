@@ -189,6 +189,23 @@ describe("search_work_packages", () => {
     expect(result.results[0].description).toBeUndefined();
   });
 
+  it("defaults to 20 lean rows with one urlTemplate", async () => {
+    routes({ "/users/me": ME, "/projects/website": { id: 3 }, "/projects/3/work_packages": RESULTS, "/work_packages": RESULTS });
+    const result = (await callTool(await connect(), "search_work_packages", { assignee: "me" })).json();
+
+    expect(lastQuery("pageSize")).toBe("20");
+    expect(result.urlTemplate).toBe("https://op.acme.com/work_packages/{id}");
+    expect(result.results[0].url).toBeUndefined();
+    expect(result.results[0].assignee).toBeUndefined();
+  });
+
+  it("keeps assignee and project on rows when nothing in the query already says them", async () => {
+    routes({ "/users/me": ME, "/work_packages": RESULTS });
+    const row = (await callTool(await connect(), "search_work_packages", {})).json().results[0];
+
+    expect(row).toMatchObject({ assignee: "Ada Lovelace", project: "Website" });
+  });
+
   it("caps the page size at 100", async () => {
     routes({ "/users/me": ME, "/work_packages": RESULTS });
     const client = await connect();

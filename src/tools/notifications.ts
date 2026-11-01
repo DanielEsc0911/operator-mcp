@@ -12,7 +12,7 @@ const REASONS = [
 
 type FeedArgs = { unreadOnly?: boolean; reason?: string; project?: string; limit?: number };
 
-async function feedFilters(client: OpenProjectClient, { unreadOnly, reason, project }: FeedArgs): Promise<Filter[]> {
+export async function feedFilters(client: OpenProjectClient, { unreadOnly, reason, project }: FeedArgs): Promise<Filter[]> {
   const filters: Filter[] = [];
   // OpenProject encodes boolean filter values as the strings "t" and "f".
   if (unreadOnly) filters.push({ readIAN: { operator: "=", values: ["f"] } });
@@ -30,21 +30,25 @@ export function registerNotificationTools(server: McpServer, { client }: ToolCon
       title: "List notifications",
       annotations: { readOnlyHint: true },
       description:
-        "Your in-app notification feed, newest first. Each row carries the work package it concerns, so you can triage without a second lookup.",
+        "Your in-app notification feed, newest first. Each row carries the work package it concerns, so you can triage without a second lookup; build its link from `urlTemplate`.",
       inputSchema: {
         unreadOnly: z.boolean().optional().describe("Only notifications you have not read yet."),
         reason: z.enum(REASONS).optional().describe("Why the notification exists."),
         project: z.string().optional().describe("Project identifier, name or numeric id."),
-        limit: z.number().int().positive().max(100).optional().describe("Maximum notifications, at most 100. Defaults to 50."),
+        limit: z.number().int().positive().max(100).optional().describe("Maximum notifications, at most 100. Defaults to 20."),
       },
     },
     handler(async (args: FeedArgs) => {
       const { total, elements } = await client.collection("/notifications", {
         filters: await feedFilters(client, args),
-        pageSize: args.limit ?? 50,
+        pageSize: args.limit ?? 20,
         sortBy: [["id", "desc"]],
       });
-      return { total, notifications: elements.map((item) => flattenNotification(item, config.url)) };
+      return {
+        total,
+        urlTemplate: `${config.url}/work_packages/{id}`,
+        notifications: elements.map(flattenNotification),
+      };
     }),
   );
 

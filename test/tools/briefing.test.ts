@@ -188,4 +188,31 @@ describe("briefing", () => {
 
     expect(urlsFor("/notifications")[0].searchParams.get("sortBy")).toBe('[["id","desc"]]');
   });
+
+  it("marks the assigned section truncated when more exist than were fetched", async () => {
+    fetchMock.mockImplementation(async (url: URL) => {
+      if (url.pathname === "/api/v3/users/me") return respond(ME);
+      if (url.pathname === "/api/v3/notifications") return respond(FEED);
+      return respond(isAssignedQuery(url) ? { ...ASSIGNED, total: 150 } : CHANGED);
+    });
+    const { assignedToMe } = (await callTool(await connect(), "briefing")).json();
+
+    expect(assignedToMe.truncated).toBe(true);
+    expect(assignedToMe.pendingTruncated).toBeUndefined();
+  });
+
+  it("filters unread notifications through the shared feed filter, resolving a project name", async () => {
+    fetchMock.mockImplementation(async (url: URL) => {
+      if (url.pathname === "/api/v3/users/me") return respond(ME);
+      if (url.pathname === "/api/v3/notifications") return respond(FEED);
+      if (url.pathname === "/api/v3/projects/web") return respond({ id: 3 });
+      return respond(isAssignedQuery(url) ? ASSIGNED : CHANGED);
+    });
+    await callTool(await connect({ ...testConfig, defaultProject: "web" }), "briefing");
+
+    expect(filtersOf(urlsFor("/notifications")[0])).toEqual([
+      { readIAN: { operator: "=", values: ["f"] } },
+      { project: { operator: "=", values: ["3"] } },
+    ]);
+  });
 });

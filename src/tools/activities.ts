@@ -14,12 +14,16 @@ async function newestFirst(client: OpenProjectClient, id: number) {
   return elements.map(flattenActivity).reverse();
 }
 
+function cappedComment(comment: unknown): string {
+  return String(comment).slice(0, COMMENT_CHARS);
+}
+
 export async function latestComments(client: OpenProjectClient, id: number, count: number) {
   const entries = await newestFirst(client, id);
   return entries
     .filter((entry) => entry.comment)
     .slice(0, count)
-    .map(({ user, comment, createdAt }) => ({ user, comment: String(comment).slice(0, COMMENT_CHARS), createdAt }));
+    .map(({ user, comment, createdAt }) => ({ user, comment: cappedComment(comment), createdAt }));
 }
 
 export function registerActivityTools(server: McpServer, { client }: ToolContext): void {
@@ -28,12 +32,18 @@ export function registerActivityTools(server: McpServer, { client }: ToolContext
     {
       title: "List work package activity",
       annotations: { readOnlyHint: true },
-      description: "Comments and field changes for one work package, newest first.",
+      description: `Comments and field changes for one work package, newest first, as { total, activities }. Comments are cut at ${COMMENT_CHARS} characters.`,
       inputSchema: {
         id: z.number().int().describe("Work package id."),
-        limit: z.number().int().positive().max(MAX_ENTRIES).optional().describe("Maximum entries, at most 100. Defaults to 50."),
+        limit: z.number().int().positive().max(MAX_ENTRIES).optional().describe("Maximum entries, at most 100. Defaults to 10."),
       },
     },
-    handler(async ({ id, limit }: { id: number; limit?: number }) => (await newestFirst(client, id)).slice(0, limit ?? 50)),
+    handler(async ({ id, limit }: { id: number; limit?: number }) => {
+      const entries = await newestFirst(client, id);
+      const activities = entries
+        .slice(0, limit ?? 10)
+        .map((entry) => (entry.comment ? { ...entry, comment: cappedComment(entry.comment) } : entry));
+      return { total: entries.length, activities };
+    }),
   );
 }
