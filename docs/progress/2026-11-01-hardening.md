@@ -14,6 +14,7 @@ open, with the commit range.
 | Review triage (44 points + 6) | done | Rulings in spec §3, deferrals in §4 |
 | Spec + plan | done | |
 | Chunk 1 — Safety and the manual (1a–1g) | done | `ca9a34e`..`dbecbbe` |
+| Chunk 1 — review fixes (F1–F16) | done | `e788bcb`..`718e3f7` |
 | Chunk 2 — Agent tools (2a–2i) | done | `b636897`..`26d77aa` (2i skipped) |
 | Chunk 3 — Install, setup, CLI, doctor (3a–3f) | todo | |
 | Chunk 4 — Release, testing infra, final gate (4a–4f) | todo | |
@@ -92,3 +93,17 @@ Open for later chunks:
 - Live suite (R41) should cover the shapes above (`groupBy`, `read_ian` id filter, activities, `spentOn`).
 - Notifications are not generated for self-made changes in the Docker image; seed them with `rails runner`
   (`Notification.create!`) when the live suite needs them.
+
+### Chunk 1 review fixes (2026-11-01, `e788bcb`..`718e3f7`)
+
+All of F1–F16 done, 397 tests green, no new code comments.
+- F1: fetch and body read share one try; non-GET failures become `UnexpectedResponseError` ("write may already have happened"), GET keeps "Cannot reach". The old "did not answer" wording is gone.
+- F2: `storedReadOnly` in `config.ts` is the one predicate for `loadConfig` and setup.
+- F3: ReadOnlyError text names profile `readOnly` and the env var.
+- F4: `patchWorkPackage` helper (not inside the handler) rethrows a 409 with the compare-and-ask text when the body has `description`. README softened: without a passed `lockVersion` the tool uses the current one, so no protection.
+- F5-F9, F13: `conventions.ts` split; parsing moved to new `src/manualText.ts` (listed in CLAUDE.md). Lazy continuations, mode kept, CRLF kept, top-level-only dedupe and removal, unclosed fence throws naming the line. `parse` is a plain loop with `closesFence`.
+- F11: non-HTML non-JSON 2xx GET says "<path> is not a JSON resource (content-type X)".
+- F12: blank `OPENPROJECT_PROFILE` is unset. F14: concurrent test deleted. F16: bidi/format characters stripped.
+- F15: interactive `setup --read-only`, `~~~` and nested-backtick fences, read-only before confirm on `api_request` and `mark_notifications_read`. The read-only-precedence tests passed already (regression guards).
+
+Deviation: `removeRule` also lists only top-level bullets now (consistent with F8).
