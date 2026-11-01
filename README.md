@@ -98,7 +98,7 @@ xattr -d com.apple.quarantine operator-mcp-darwin-arm64
 
 ### Verifying a release
 
-Every binary and the npm tarball carry a signed build provenance attestation, made
+Every binary, `SHA256SUMS` and the npm tarball carry a signed build provenance attestation, made
 by the release workflow from this repository. Check a download before you run it
 (needs the [GitHub CLI](https://cli.github.com)):
 
